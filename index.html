@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Battle Spirits Brave</title>
+  <style>
+:root {
+  --bg-dark: #0a0a1a; --bg-mid: #111130; --bg-panel: #1a1a3a;
+  --border-glow: #4444ff; --text-main: #e0e0ff; --text-dim: #8888aa;
+  --gold: #ffd700; --red-spirit: #ff4422; --blue-spirit: #2255ff;
+  --purple-spirit: #9922cc; --core-color: #44ffdd; --life-color: #ff4488; --phase-color: #ffaa00;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg-dark); color: var(--text-main);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 100vh; overflow-x: hidden;
+  background-image: radial-gradient(ellipse at 20% 10%, rgba(40,0,80,0.4) 0%, transparent 50%), radial-gradient(ellipse at 80% 90%, rgba(0,20,80,0.4) 0%, transparent 50%);
+}
+#game-container { display: flex; flex-direction: column; height: 100vh; max-width: 1400px; margin: 0 auto; padding: 8px; gap: 6px; }
+#header { display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(30,10,60,0.9), rgba(10,20,60,0.9)); border: 1px solid rgba(100,60,200,0.5); border-radius: 10px; padding: 8px 16px; flex-shrink: 0; }
+#header h1 { font-size: 1.4rem; background: linear-gradient(90deg, #ff6644, #ffaa00, #4466ff, #aa44ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 900; letter-spacing: 2px; }
+#phase-indicator { text-align: center; flex: 1; margin: 0 16px; }
+#phase-name { font-size: 1rem; font-weight: bold; color: var(--phase-color); text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 12px rgba(255,170,0,0.7); }
+#turn-label { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
+#action-btn { padding: 8px 20px; background: linear-gradient(135deg, #332266, #221144); border: 2px solid #6644cc; border-radius: 8px; color: #ccaaff; font-size: 0.85rem; font-weight: bold; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+#action-btn:hover:not(:disabled) { background: linear-gradient(135deg, #4433aa, #2211aa); border-color: #9966ff; color: #ffffff; box-shadow: 0 0 16px rgba(150,80,255,0.6); }
+#action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+#play-area { display: flex; flex: 1; gap: 6px; min-height: 0; }
+#sidebar { width: 220px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+#board { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.player-zone { background: linear-gradient(180deg, rgba(20,20,50,0.8), rgba(10,10,30,0.8)); border: 1px solid rgba(80,80,160,0.4); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.player-zone.ai-zone { background: linear-gradient(180deg, rgba(50,10,20,0.6), rgba(30,5,10,0.6)); border-color: rgba(160,40,40,0.4); }
+.zone-header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+.player-label { font-size: 0.75rem; font-weight: bold; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+.player-stats { display: flex; align-items: center; gap: 12px; }
+.life-display { display: flex; align-items: center; gap: 4px; }
+.life-label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; }
+.life-orbs { display: flex; gap: 4px; }
+.life-orb { width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ff88bb, #cc1144); box-shadow: 0 0 8px rgba(255,50,100,0.8), 0 0 16px rgba(255,50,100,0.3); border: 1px solid rgba(255,150,150,0.5); transition: all 0.3s; }
+.life-orb.empty { background: rgba(80,20,40,0.5); box-shadow: none; border-color: rgba(80,30,50,0.5); }
+.reserve-display { display: flex; align-items: center; gap: 4px; }
+.reserve-label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; }
+.reserve-count { font-size: 0.8rem; font-weight: bold; color: var(--core-color); text-shadow: 0 0 8px rgba(68,255,221,0.6); min-width: 24px; text-align: center; }
+.reserve-cores { display: flex; flex-wrap: wrap; gap: 2px; max-width: 80px; }
+.core-dot { width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #88ffee, #00ccaa); box-shadow: 0 0 4px rgba(68,255,221,0.8); flex-shrink: 0; }
+.deck-display { display: flex; align-items: center; gap: 4px; }
+.deck-count { font-size: 0.75rem; color: var(--text-dim); }
+.field-area { display: flex; gap: 6px; min-height: 120px; align-items: center; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px dashed rgba(80,80,160,0.3); overflow-x: auto; flex-wrap: nowrap; }
+.field-area.ai-field { border-color: rgba(160,40,40,0.3); }
+.field-empty-label { color: rgba(100,100,160,0.4); font-size: 0.75rem; font-style: italic; width: 100%; text-align: center; }
+.hand-area { display: flex; gap: 4px; padding: 4px; min-height: 110px; align-items: center; overflow-x: auto; flex-wrap: nowrap; }
+.hand-area.ai-hand { justify-content: flex-end; }
+.card { width: 80px; min-width: 80px; height: 110px; border-radius: 8px; border: 2px solid rgba(120,120,200,0.5); position: relative; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; user-select: none; }
+.card:hover { transform: translateY(-6px) scale(1.04); z-index: 10; }
+.card.in-hand:hover { transform: translateY(-12px) scale(1.06); }
+.card.selected { border-color: #ffdd00 !important; box-shadow: 0 0 20px rgba(255,220,0,0.8) !important; transform: translateY(-8px) scale(1.05); z-index: 20; }
+.card.attacking { border-color: #ff4400 !important; box-shadow: 0 0 20px rgba(255,80,0,0.8) !important; animation: attack-pulse 1s infinite; }
+.card.exhausted { transform: rotate(90deg); opacity: 0.85; }
+.card.exhausted:hover { transform: rotate(90deg) scale(1.04); }
+.card.playable-hint { border-color: rgba(100,255,150,0.6) !important; box-shadow: 0 0 8px rgba(100,255,150,0.3); }
+.card.color-Red { background: linear-gradient(160deg, #3a0808, #6a1010, #3a0808); border-color: rgba(220,60,40,0.6); }
+.card.color-Red:hover, .card.color-Red.in-hand:hover { box-shadow: 0 6px 24px rgba(220,60,40,0.7); }
+.card.color-Blue { background: linear-gradient(160deg, #080838, #102060, #080838); border-color: rgba(40,100,220,0.6); }
+.card.color-Blue:hover, .card.color-Blue.in-hand:hover { box-shadow: 0 6px 24px rgba(40,100,220,0.7); }
+.card.color-Purple { background: linear-gradient(160deg, #180828, #381050, #180828); border-color: rgba(140,40,200,0.6); }
+.card.color-Purple:hover, .card.color-Purple.in-hand:hover { box-shadow: 0 6px 24px rgba(140,40,200,0.7); }
+.card.color-White { background: linear-gradient(160deg, #1a1a28, #282838, #1a1a28); border-color: rgba(180,180,220,0.6); }
+.card.color-Yellow { background: linear-gradient(160deg, #282000, #404010, #282000); border-color: rgba(220,180,0,0.6); }
+.card.color-Green { background: linear-gradient(160deg, #081808, #104020, #081808); border-color: rgba(40,180,80,0.6); }
+.card.hidden { background: linear-gradient(160deg, #0d0d25, #1a1a40, #0d0d25); border-color: rgba(80,80,160,0.5); cursor: default; }
+.card.hidden:hover { transform: none; box-shadow: none; }
+.card-header { padding: 3px 4px 2px; display: flex; align-items: flex-start; justify-content: space-between; gap: 2px; }
+.card-name { font-size: 0.5rem; font-weight: bold; color: #ffffff; text-shadow: 0 0 6px rgba(255,255,255,0.5); line-height: 1.2; flex: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.card-cost { font-size: 0.6rem; font-weight: bold; color: var(--core-color); text-shadow: 0 0 6px rgba(68,255,221,0.8); background: rgba(0,0,0,0.4); border-radius: 4px; padding: 0 3px; min-width: 14px; text-align: center; flex-shrink: 0; }
+.card-art { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; text-shadow: 0 0 12px rgba(255,200,100,0.6); background: rgba(0,0,0,0.2); }
+.card-footer { padding: 2px 4px; background: rgba(0,0,0,0.35); }
+.card-type-label { font-size: 0.42rem; color: rgba(200,200,255,0.6); text-transform: uppercase; letter-spacing: 0.5px; }
+.card-bp { font-size: 0.55rem; color: #ffdd88; font-weight: bold; }
+.card-effect-mini { font-size: 0.38rem; color: rgba(180,200,255,0.7); line-height: 1.2; margin-top: 1px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.card-symbols { display: flex; gap: 2px; margin-top: 1px; }
+.symbol-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.symbol-dot.Red { background: radial-gradient(circle, #ff8866, #cc2200); box-shadow: 0 0 4px #ff4400; }
+.symbol-dot.Blue { background: radial-gradient(circle, #8899ff, #1133cc); box-shadow: 0 0 4px #2255ff; }
+.symbol-dot.Purple { background: radial-gradient(circle, #cc77ff, #771199); box-shadow: 0 0 4px #9933cc; }
+.spirit-cores { position: absolute; bottom: 28px; right: 3px; display: flex; flex-wrap: wrap; gap: 2px; max-width: 30px; justify-content: flex-end; }
+.spirit-core-dot { width: 6px; height: 6px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #88ffee, #00ccaa); box-shadow: 0 0 3px rgba(68,255,221,0.8); }
+.brave-badge { position: absolute; top: 3px; right: 3px; font-size: 0.45rem; background: linear-gradient(135deg, #ffaa00, #ff6600); color: #000; border-radius: 3px; padding: 1px 3px; font-weight: bold; }
+.card-back-design { flex: 1; display: flex; align-items: center; justify-content: center; background: repeating-linear-gradient(45deg, rgba(60,60,120,0.3), rgba(60,60,120,0.3) 4px, rgba(40,40,90,0.3) 4px, rgba(40,40,90,0.3) 8px); font-size: 1.2rem; color: rgba(100,100,200,0.4); }
+#center-strip { display: flex; align-items: center; justify-content: center; gap: 20px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(80,80,160,0.3); padding: 4px 12px; flex-shrink: 0; }
+.center-info { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; color: var(--text-dim); }
+.center-info-value { color: var(--text-main); font-weight: bold; }
+#action-log { background: rgba(0,0,0,0.4); border: 1px solid rgba(80,80,160,0.3); border-radius: 8px; padding: 8px; flex: 1; overflow-y: auto; min-height: 0; }
+#action-log h3 { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 6px; border-bottom: 1px solid rgba(80,80,160,0.3); padding-bottom: 4px; }
+.log-entry { font-size: 0.65rem; color: var(--text-dim); padding: 2px 0; border-bottom: 1px solid rgba(60,60,100,0.2); line-height: 1.3; }
+.log-entry.log-battle { color: #ff8866; } .log-entry.log-summon { color: #88ffaa; } .log-entry.log-magic { color: #aa88ff; } .log-entry.log-life { color: #ff4488; } .log-entry.log-brave { color: #ffaa00; } .log-entry.log-phase { color: #ffcc44; font-weight: bold; } .log-entry.log-system { color: #44aaff; }
+#controls-panel { background: rgba(0,0,0,0.4); border: 1px solid rgba(80,80,160,0.3); border-radius: 8px; padding: 8px; flex-shrink: 0; }
+#controls-panel h3 { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 6px; border-bottom: 1px solid rgba(80,80,160,0.3); padding-bottom: 4px; }
+.hint-text { font-size: 0.65rem; color: var(--text-dim); line-height: 1.4; }
+.hint-text strong { color: var(--phase-color); }
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+.modal-box { background: linear-gradient(160deg, #14143a, #0a0a20); border: 2px solid rgba(100,60,220,0.7); border-radius: 16px; padding: 24px; max-width: 480px; width: 90%; box-shadow: 0 0 40px rgba(100,60,220,0.4), 0 0 80px rgba(100,60,220,0.2); text-align: center; }
+.modal-box h2 { font-size: 1.4rem; margin-bottom: 12px; background: linear-gradient(90deg, #ff6644, #ffaa00, #4466ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.modal-box p { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 16px; line-height: 1.5; }
+.modal-btn { padding: 10px 24px; background: linear-gradient(135deg, #3a1a6a, #1a0a40); border: 2px solid #6644cc; border-radius: 8px; color: #ccaaff; font-size: 0.85rem; font-weight: bold; cursor: pointer; transition: all 0.2s; margin: 4px; }
+.modal-btn:hover { background: linear-gradient(135deg, #5a2aaa, #2a1a60); border-color: #9966ff; color: #ffffff; box-shadow: 0 0 16px rgba(150,80,255,0.6); }
+.modal-btn.danger { background: linear-gradient(135deg, #4a0a0a, #200000); border-color: #cc2222; color: #ffaaaa; }
+.modal-btn.danger:hover { background: linear-gradient(135deg, #7a1a1a, #400000); border-color: #ff4444; color: #ffffff; }
+.modal-btn.confirm { background: linear-gradient(135deg, #0a3a1a, #002010); border-color: #22aa44; color: #aaffcc; }
+.modal-btn.confirm:hover { background: linear-gradient(135deg, #1a6a2a, #004020); border-color: #44ff88; color: #ffffff; }
+#core-modal .modal-box { max-width: 600px; }
+.spirit-core-row { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px 12px; margin: 4px 0; }
+.spirit-core-name { flex: 1; text-align: left; font-size: 0.8rem; color: var(--text-main); }
+.spirit-core-count { font-size: 0.9rem; font-weight: bold; color: var(--core-color); min-width: 30px; text-align: center; }
+.core-adjust-btn { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(68,255,221,0.5); background: rgba(0,60,50,0.5); color: var(--core-color); font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; line-height: 1; }
+.core-adjust-btn:hover { background: rgba(0,100,80,0.7); border-color: var(--core-color); }
+.reserve-remaining { font-size: 0.8rem; color: var(--core-color); margin-top: 8px; text-shadow: 0 0 8px rgba(68,255,221,0.6); }
+#block-modal .spirit-choice { background: rgba(0,0,0,0.3); border: 1px solid rgba(80,80,160,0.4); border-radius: 8px; padding: 8px 12px; margin: 4px 0; cursor: pointer; transition: all 0.2s; text-align: left; }
+#block-modal .spirit-choice:hover { background: rgba(40,40,100,0.5); border-color: rgba(100,100,220,0.8); }
+#gameover-modal .modal-box { border-color: rgba(255,100,50,0.7); box-shadow: 0 0 60px rgba(255,100,50,0.3); }
+@keyframes attack-pulse { 0%,100% { box-shadow: 0 0 20px rgba(255,80,0,0.8); } 50% { box-shadow: 0 0 35px rgba(255,180,0,1), 0 0 60px rgba(255,80,0,0.5); } }
+@keyframes card-appear { from { opacity: 0; transform: scale(0.8) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.card.new-card { animation: card-appear 0.3s ease-out; }
+#card-tooltip { position: fixed; background: linear-gradient(160deg, #1a1a40, #0a0a20); border: 2px solid rgba(100,60,200,0.7); border-radius: 12px; padding: 12px; width: 200px; z-index: 500; pointer-events: none; opacity: 0; transition: opacity 0.15s; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+#card-tooltip.visible { opacity: 1; }
+.tooltip-name { font-size: 0.85rem; font-weight: bold; color: #ffffff; margin-bottom: 4px; }
+.tooltip-type { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 6px; }
+.tooltip-stat { font-size: 0.7rem; color: var(--text-dim); margin: 2px 0; }
+.tooltip-stat span { color: var(--text-main); font-weight: bold; }
+.tooltip-effect { font-size: 0.68rem; color: #aabbff; margin-top: 6px; line-height: 1.4; border-top: 1px solid rgba(80,80,160,0.4); padding-top: 6px; }
+#flash-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: linear-gradient(135deg, rgba(80,0,150,0.95), rgba(40,0,80,0.95)); border: 2px solid #aa44ff; border-radius: 12px; padding: 12px 24px; font-size: 1.1rem; font-weight: bold; color: #cc88ff; z-index: 600; text-align: center; box-shadow: 0 0 40px rgba(150,50,255,0.6); display: none; pointer-events: none; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: rgba(100,80,200,0.4); border-radius: 2px; }
+@media (max-width: 900px) { #sidebar { width: 180px; } .card { width: 68px; min-width: 68px; height: 95px; } .card-art { font-size: 1.3rem; } }
+@media (max-width: 700px) { #play-area { flex-direction: column; } #sidebar { width: 100%; flex-direction: row; height: 120px; } #action-log { flex: 1; } #controls-panel { width: 180px; } }
+#phase-steps { display: flex; gap: 4px; align-items: center; }
+.phase-step { font-size: 0.55rem; padding: 2px 6px; border-radius: 4px; background: rgba(40,40,80,0.6); color: rgba(120,120,160,0.8); border: 1px solid rgba(60,60,120,0.4); white-space: nowrap; }
+.phase-step.active { background: rgba(80,50,160,0.8); color: #ccaaff; border-color: rgba(120,80,220,0.8); box-shadow: 0 0 8px rgba(120,80,220,0.4); }
+.phase-step.done { background: rgba(20,40,20,0.6); color: rgba(80,140,80,0.8); border-color: rgba(40,80,40,0.4); }
+  </style>
+</head>
+<body>
+<div id="game-container">
+  <div id="header">
+    <h1>⚔ BATTLE SPIRITS BRAVE</h1>
+    <div id="phase-indicator">
+      <div id="phase-name">—</div>
+      <div id="turn-label">Runde 1</div>
+      <div id="phase-steps">
+        <span class="phase-step" id="ps-refresh">Refresh</span>
+        <span class="phase-step" id="ps-draw">Draw</span>
+        <span class="phase-step" id="ps-core">Core</span>
+        <span class="phase-step" id="ps-main">Main</span>
+        <span class="phase-step" id="ps-attack">Attack</span>
+        <span class="phase-step" id="ps-end">End</span>
+      </div>
+    </div>
+    <button id="action-btn">Next Phase</button>
+  </div>
+  <div id="play-area">
+    <div id="sidebar">
+      <div id="action-log"><h3>Battle Log</h3></div>
+      <div id="controls-panel"><h3>Guide</h3><div class="hint-text" id="hint-text">Willkommen! Drücke <strong>Next Phase</strong> um zu starten.</div></div>
+    </div>
+    <div id="board">
+      <div class="player-zone ai-zone" id="ai-zone">
+        <div class="zone-header">
+          <span class="player-label">⚔ Gegner (KI)</span>
+          <div class="player-stats">
+            <div class="life-display"><span class="life-label">LEBEN</span><div class="life-orbs" id="ai-life-orbs"></div></div>
+            <div class="reserve-display"><span class="reserve-label">RESERVE</span><span class="reserve-count" id="ai-reserve-count">0</span><div class="reserve-cores" id="ai-reserve-cores"></div></div>
+            <div class="deck-display"><span class="deck-count">Deck: <span id="ai-deck-count">40</span></span></div>
+          </div>
+        </div>
+        <div class="hand-area ai-hand" id="ai-hand"></div>
+        <div class="field-area ai-field" id="ai-field"><span class="field-empty-label">— Gegner-Feld —</span></div>
+      </div>
+      <div id="center-strip">
+        <div class="center-info"><span>⚡ Void:</span><span class="center-info-value" id="void-count">—</span></div>
+        <div class="center-info"><span>🗑 Trash (Du):</span><span class="center-info-value" id="player-trash-count">0</span></div>
+        <div class="center-info"><span>🗑 Trash (KI):</span><span class="center-info-value" id="ai-trash-count">0</span></div>
+        <div class="center-info"><span>⚔ Kampf:</span><span class="center-info-value" id="battle-status">—</span></div>
+      </div>
+      <div class="player-zone" id="player-zone">
+        <div class="zone-header">
+          <span class="player-label">🛡 Du (Spieler)</span>
+          <div class="player-stats">
+            <div class="life-display"><span class="life-label">LEBEN</span><div class="life-orbs" id="player-life-orbs"></div></div>
+            <div class="reserve-display"><span class="reserve-label">RESERVE</span><span class="reserve-count" id="player-reserve-count">0</span><div class="reserve-cores" id="player-reserve-cores"></div></div>
+            <div class="deck-display"><span class="deck-count">Deck: <span id="player-deck-count">40</span></span></div>
+          </div>
+        </div>
+        <div class="field-area" id="player-field"><span class="field-empty-label">— Dein Feld —</span></div>
+        <div class="hand-area" id="player-hand"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="card-tooltip">
+  <div class="tooltip-name" id="tip-name"></div>
+  <div class="tooltip-type" id="tip-type"></div>
+  <div class="tooltip-stat" id="tip-cost"></div>
+  <div class="tooltip-stat" id="tip-bp"></div>
+  <div class="tooltip-stat" id="tip-color"></div>
+  <div class="tooltip-effect" id="tip-effect"></div>
+</div>
+<div id="flash-indicator">⚡ FLASH!</div>
+<div class="modal-overlay" id="core-modal" style="display:none;">
+  <div class="modal-box">
+    <h2>⚡ Cores platzieren</h2>
+    <p>Verteile Cores auf deine Spirits. Spirits mit 0 Cores werden zerstört. Verfügbare Cores: <strong id="core-modal-reserve">0</strong></p>
+    <div id="core-spirit-list"></div>
+    <div class="reserve-remaining">Reserve übrig: <span id="core-reserve-remaining">0</span></div>
+    <br/><button class="modal-btn confirm" id="core-modal-confirm">Bestätigen</button>
+  </div>
+</div>
+<div class="modal-overlay" id="block-modal" style="display:none;">
+  <div class="modal-box">
+    <h2>⚔ Eingehender Angriff!</h2>
+    <p id="block-attacker-desc">Gegner-Spirit greift an!</p>
+    <p>Wähle einen Spirit zum Blocken, oder nimm den Treffer:</p>
+    <div id="block-choices"></div>
+    <br/><button class="modal-btn danger" id="block-pass-btn">Lebens-Treffer nehmen</button>
+  </div>
+</div>
+<div class="modal-overlay" id="brave-modal" style="display:none;">
+  <div class="modal-box">
+    <h2>✨ Brave anlegen</h2>
+    <p id="brave-modal-desc">Wähle einen Spirit für diese Brave-Karte:</p>
+    <div id="brave-target-list"></div>
+    <br/><button class="modal-btn danger" id="brave-cancel-btn">Abbrechen</button>
+  </div>
+</div>
+<div class="modal-overlay" id="magic-modal" style="display:none;">
+  <div class="modal-box">
+    <h2>🔮 Magie wirken</h2>
+    <p id="magic-modal-desc">Wähle ein Ziel:</p>
+    <div id="magic-target-list"></div>
+    <br/><button class="modal-btn danger" id="magic-cancel-btn">Abbrechen</button>
+  </div>
+</div>
+<div class="modal-overlay" id="gameover-modal" style="display:none;">
+  <div class="modal-box" id="gameover-box">
+    <h2 id="gameover-title">Game Over</h2>
+    <p id="gameover-msg"></p>
+    <br/><button class="modal-btn confirm" onclick="location.reload()">Nochmal spielen</button>
+  </div>
+</div>
+<script>
+'use strict';
+const CARD_DB={
+  'agni-drake':{id:'agni-drake',name:'Agni Drake',type:'Spirit',color:'Red',cost:3,symbols:['Red'],bp:[3000,5000,7000],art:'🐉',effect:'Burn: Wenn dieser Spirit angreift, entferne 1 Core von einem Gegner-Spirit.',effectId:'burn-core'},
+  'flame-serpent':{id:'flame-serpent',name:'Flame Serpent',type:'Spirit',color:'Red',cost:2,symbols:['Red'],bp:[2000,3000],art:'🐍',effect:'',effectId:null},
+  'brave-dragon-king':{id:'brave-dragon-king',name:'Brave Dragon King',type:'Spirit',color:'Red',cost:6,symbols:['Red','Red'],bp:[8000,12000,15000],art:'👑',effect:'Double Strike: Dieser Spirit greift zweimal pro Runde an.',effectId:'double-strike'},
+  'fire-elemental':{id:'fire-elemental',name:'Fire Elemental',type:'Spirit',color:'Red',cost:1,symbols:['Red'],bp:[1000,2000],art:'🔥',effect:'',effectId:null},
+  'tidal-leviathan':{id:'tidal-leviathan',name:'Tidal Leviathan',type:'Spirit',color:'Blue',cost:5,symbols:['Blue','Blue'],bp:[6000,9000,12000],art:'🌊',effect:'Bei Zerstörung: Ziehe 2 Karten.',effectId:'draw-on-destroy'},
+  'storm-seahorse':{id:'storm-seahorse',name:'Storm Seahorse',type:'Spirit',color:'Blue',cost:3,symbols:['Blue'],bp:[3000,5000],art:'🐎',effect:"Flash: Kann während der gegnerischen Angriffsphase beschworen werden.",effectId:'flash-summon',flash:true},
+  'wave-rider':{id:'wave-rider',name:'Wave Rider',type:'Spirit',color:'Blue',cost:2,symbols:['Blue'],bp:[2000,4000],art:'🏄',effect:'',effectId:null},
+  'shadow-revenant':{id:'shadow-revenant',name:'Shadow Revenant',type:'Spirit',color:'Purple',cost:4,symbols:['Purple'],bp:[4000,6000,8000],art:'👻',effect:"Bei Zerstörung: Kehrt auf die Hand zurück.",effectId:'return-on-destroy'},
+  'void-specter':{id:'void-specter',name:'Void Specter',type:'Spirit',color:'Purple',cost:2,symbols:['Purple'],bp:[2000,3000],art:'💀',effect:'',effectId:null},
+  'dragon-breath':{id:'dragon-breath',name:'Dragon Breath',type:'Magic',color:'Red',cost:2,art:'🌬️',effect:'Zerstöre einen Spirit mit 5000 BP oder weniger.',effectId:'destroy-low-bp',flash:false,targetType:'opponent-spirit'},
+  'tidal-wave':{id:'tidal-wave',name:'Tidal Wave',type:'Magic',color:'Blue',cost:3,art:'🌀',effect:"Schicke alle Gegner-Spirits auf die Hand zurück.",effectId:'bounce-all',flash:false,targetType:'none'},
+  'shadow-veil':{id:'shadow-veil',name:'Shadow Veil',type:'Magic',color:'Purple',cost:1,art:'🌑',effect:'FLASH. Gib einem Spirit -2000 BP diesen Zug.',effectId:'debuff-bp',flash:true,targetType:'any-spirit'},
+  'heavens-blade':{id:'heavens-blade',name:"Heaven's Blade",type:'Brave',color:'Red',cost:2,art:'⚔️',braveCondition:'Red',bpBonus:3000,effect:'Brave (Rot): +3000 BP. Double Strike.',effectId:'brave-double-strike'},
+  'ocean-shield':{id:'ocean-shield',name:'Ocean Shield',type:'Brave',color:'Blue',cost:1,art:'🛡️',braveCondition:'Blue',bpBonus:2000,effect:'Brave (Blau): +2000 BP. Kein Lebens-Schaden beim Blocken.',effectId:'brave-guardian'},
+  'dark-soul':{id:'dark-soul',name:'Dark Soul',type:'Brave',color:'Purple',cost:2,art:'💫',braveCondition:'Purple',bpBonus:2000,effect:'Brave (Lila): +2000 BP. Erhalte 2 Cores wenn dieser Spirit einen anderen zerstört.',effectId:'brave-soul-drain'},
+};
+function buildDeck(){const c={'fire-elemental':4,'flame-serpent':4,'agni-drake':3,'brave-dragon-king':2,'wave-rider':3,'storm-seahorse':3,'tidal-leviathan':2,'void-specter':3,'shadow-revenant':2,'dragon-breath':3,'tidal-wave':2,'shadow-veil':3,'heavens-blade':2,'ocean-shield':2,'dark-soul':2};const d=[];for(const[id,n]of Object.entries(c))for(let i=0;i<n;i++)d.push(id);return d;}
+const PHASES=['refresh','draw','core','main','attack','end'];
+let state=null;
+function createPS(isAI){return{isAI,life:5,reserve:3,deck:shuffle([...buildDeck()]),hand:[],field:[],trash:[]};}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function newGame(){
+  state={turn:1,activePlayer:'player',phase:0,void:50,player:createPS(false),ai:createPS(true),selectedCard:null,selectedAttacker:null,attackingWith:null,tempBpDebuffs:[],gameOver:false,flashWindow:false};
+  for(let i=0;i<5;i++){drawCard('player');drawCard('ai');}
+  render();log('Battle Spirits Brave gestartet! Du fängst an.','log-system');log('Drücke "Refresh & Gain Cores" um deinen Zug zu beginnen.','log-system');updateHint();
+}
+function gp(w){return w==='player'?state.player:state.ai;}
+function opp(w){return w==='player'?'ai':'player';}
+let nextUid=1;
+function makeSI(cardId,owner){const def=CARD_DB[cardId];return{uid:nextUid++,cardId,owner,cores:def.cost>0?def.cost:1,exhausted:false,brave:null,usedDoubleStrike:false};}
+function drawCard(w){const p=gp(w);if(!p.deck.length){log(`${cap(w)}'s Deck ist leer!`,'log-system');return;}p.hand.push(p.deck.pop());}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+function sBP(inst){const def=CARD_DB[inst.cardId];let idx=Math.min(inst.cores-1,def.bp.length-1);if(idx<0)idx=0;let bp=def.bp[idx];if(inst.brave){const bd=CARD_DB[inst.brave];bp+=(bd.bpBonus||0);}for(const d of state.tempBpDebuffs)if(d.uid===inst.uid)bp-=d.amount;return Math.max(0,bp);}
+function countSym(w){let c=0;for(const i of gp(w).field)c+=(CARD_DB[i.cardId].symbols||[]).length;return c;}
+function gainCores(w){const p=gp(w);const s=countSym(w);const g=s+1;const a=Math.min(g,state.void);state.void-=a;p.reserve+=a;log(`${cap(w)} erhält ${a} Cores (${s} Symbole+1).`,'log-system');}
+function destroySpirit(w,inst,skip=false){const p=gp(w);const idx=p.field.indexOf(inst);if(idx===-1)return;const def=CARD_DB[inst.cardId];state.void+=inst.cores;if(inst.brave)state.void+=1;p.field.splice(idx,1);if(!skip){if(def.effectId==='draw-on-destroy'){drawCard(w);drawCard(w);log(`${def.name} zerstört → ${cap(w)} zieht 2 Karten!`,'log-system');}else if(def.effectId==='return-on-destroy'){p.hand.push(inst.cardId);log(`${def.name} kehrt auf die Hand zurück!`,'log-system');return;}}p.trash.push(inst.cardId);if(inst.brave)p.trash.push(inst.brave);log(`${def.name} wird zerstört!`,'log-battle');}
+function removeLife(w){const p=gp(w);if(p.life<=0)return;p.life--;state.void++;p.reserve++;log(`${cap(w)} verliert ein Leben! (${p.life} übrig)`,'log-life');if(p.life===0)triggerGO(w==='player'?'ai':'player');}
+function triggerGO(winner){state.gameOver=true;const ip=winner==='player';document.getElementById('gameover-title').textContent=ip?'🏆 Du gewinnst!':'💀 KI gewinnt!';document.getElementById('gameover-msg').textContent=ip?'Du hast die KI besiegt! Glückwunsch!':'Die KI hat gewonnen. Versuch es nochmal!';document.getElementById('gameover-modal').style.display='flex';render();}
+function curPhase(){return PHASES[state.phase];}
+function advancePhase(){
+  if(state.gameOver)return;
+  switch(curPhase()){
+    case'refresh':execRefresh();break;
+    case'draw':execDraw();break;
+    case'core':openCoreModal();return;
+    case'main':state.selectedCard=null;break;
+    case'attack':endAttackPhase();return;
+    case'end':execEnd();return;
+  }
+  state.phase++;if(state.phase>=PHASES.length){state.phase=0;switchTurn();}
+  render();updateHint();if(state.activePlayer==='ai')setTimeout(runAI,600);
+}
+function execRefresh(){const p=gp(state.activePlayer);for(const i of p.field){i.exhausted=false;i.usedDoubleStrike=false;}state.tempBpDebuffs=state.tempBpDebuffs.filter(d=>{const o=[...state.player.field,...state.ai.field].find(s=>s.uid===d.uid);return o&&o.owner!==state.activePlayer;});log(`--- ${cap(state.activePlayer)}s Zug ${state.turn} ---`,'log-phase');gainCores(state.activePlayer);}
+function execDraw(){drawCard(state.activePlayer);log(`${cap(state.activePlayer)} zieht eine Karte. (Hand: ${gp(state.activePlayer).hand.length})`,'log-system');}
+function execEnd(){const p=gp(state.activePlayer);while(p.hand.length>7){const d=p.hand.splice(0,1)[0];p.trash.push(d);log(`${cap(state.activePlayer)} wirft ${CARD_DB[d].name} ab.`,'log-system');}checkZero(state.activePlayer);checkZero(opp(state.activePlayer));state.phase=0;switchTurn();render();updateHint();if(state.activePlayer==='ai')setTimeout(runAI,600);}
+function switchTurn(){if(state.activePlayer==='player')state.activePlayer='ai';else{state.activePlayer='player';state.turn++;}state.flashWindow=false;}
+function checkZero(w){const p=gp(w);const td=p.field.filter(s=>s.cores<=0);for(const i of td){log(`${CARD_DB[i.cardId].name} hat keine Cores!`,'log-battle');destroySpirit(w,i);}}
+function endAttackPhase(){state.selectedAttacker=null;state.flashWindow=false;state.phase++;if(state.phase>=PHASES.length){state.phase=0;switchTurn();render();updateHint();if(state.activePlayer==='ai')setTimeout(runAI,600);return;}render();updateHint();if(state.activePlayer==='ai')setTimeout(runAI,600);}
+let corePl={};
+function openCoreModal(){if(state.activePlayer==='ai'){aiCores();state.phase++;render();updateHint();return;}const p=gp('player');corePl={};for(const i of p.field)corePl[i.uid]=i.cores;renderCoreModal();document.getElementById('core-modal').style.display='flex';}
+function renderCoreModal(){const p=gp('player');const list=document.getElementById('core-spirit-list');list.innerHTML='';let tot=p.reserve;for(const i of p.field)tot+=i.cores;const used=Object.values(corePl).reduce((a,b)=>a+b,0);document.getElementById('core-modal-reserve').textContent=tot;document.getElementById('core-reserve-remaining').textContent=tot-used;if(!p.field.length){list.innerHTML='<p style="color:var(--text-dim);font-size:0.8rem;">Keine Spirits auf dem Feld.</p>';return;}for(const i of p.field){const def=CARD_DB[i.cardId];const row=document.createElement('div');row.className='spirit-core-row';const c=corePl[i.uid]||0;row.innerHTML=`<span class="spirit-core-name">${def.art} ${def.name}</span><button class="core-adjust-btn" onclick="adjCore(${i.uid},-1)">−</button><span class="spirit-core-count" id="scc-${i.uid}">${c}</span><button class="core-adjust-btn" onclick="adjCore(${i.uid},+1)">+</button>`;list.appendChild(row);}}
+function adjCore(uid,d){const p=gp('player');let tot=p.reserve;for(const i of p.field)tot+=i.cores;corePl[uid]=(corePl[uid]||0)+d;if(corePl[uid]<0)corePl[uid]=0;const used=Object.values(corePl).reduce((a,b)=>a+b,0);if(used>tot){corePl[uid]-=d;return;}const el=document.getElementById(`scc-${uid}`);if(el)el.textContent=corePl[uid];const rEl=document.getElementById('core-reserve-remaining');if(rEl)rEl.textContent=tot-used;}
+document.getElementById('core-modal-confirm').addEventListener('click',()=>{const p=gp('player');let tot=p.reserve;for(const i of p.field)tot+=i.cores;for(const i of p.field)i.cores=corePl[i.uid]||0;p.reserve=tot-Object.values(corePl).reduce((a,b)=>a+b,0);checkZero('player');document.getElementById('core-modal').style.display='none';state.phase++;render();updateHint();});
+function canAfford(w,id){return gp(w).reserve>=CARD_DB[id].cost;}
+function playCard(w,idx){
+  if(state.gameOver)return;
+  if(state.activePlayer!==w&&w==='player'){const def=CARD_DB[state.player.hand[idx]];if(!def.flash||!state.flashWindow){log('Nicht dein Zug!','log-system');return;}}
+  const p=gp(w);const id=p.hand[idx];const def=CARD_DB[id];
+  if(!canAfford(w,id)){log(`Nicht genug Cores! Benötigt ${def.cost}, vorhanden ${gp(w).reserve}.`,'log-system');return;}
+  const ph=curPhase();
+  if(def.type==='Spirit'){if(ph!=='main'&&!(def.flash&&state.flashWindow)){log('Spirits können nur in der Main Phase beschworen werden.','log-system');return;}summonS(w,idx);}
+  else if(def.type==='Magic'){if(ph!=='main'&&!(def.flash&&state.flashWindow)){log('Magie nur in der Main Phase oder Flash-Zeitfenster.','log-system');return;}castMagic(w,idx);}
+  else if(def.type==='Brave'){if(ph!=='main'){log('Braves nur in der Main Phase.','log-system');return;}openBraveM(w,idx);}
+}
+function summonS(w,idx){const p=gp(w);const id=p.hand[idx];const def=CARD_DB[id];p.hand.splice(idx,1);p.reserve-=def.cost;const inst=makeSI(id,w);p.field.push(inst);log(`${cap(w)} beschwört ${def.name}! (BP: ${sBP(inst).toLocaleString()})`,'log-summon');if(def.flash&&state.flashWindow)log(`${def.name} via Flash beschworen!`,'log-summon');render();}
+function castMagic(w,idx){const p=gp(w);const id=p.hand[idx];const def=CARD_DB[id];if(def.effectId==='bounce-all'){p.hand.splice(idx,1);p.reserve-=def.cost;p.trash.push(id);execEff(def.effectId,w,null);render();return;}if(def.targetType==='opponent-spirit'||def.targetType==='any-spirit'){openMagicM(w,idx,def);return;}p.hand.splice(idx,1);p.reserve-=def.cost;p.trash.push(id);render();}
+function openMagicM(w,idx,def){const op=opp(w);const oP=gp(op);const pP=gp(w);const list=document.getElementById('magic-target-list');list.innerHTML='';let targets=[];if(def.targetType==='opponent-spirit')targets=oP.field;else targets=[...oP.field,...pP.field];if(!targets.length){log('Keine gültigen Ziele!','log-system');return;}document.getElementById('magic-modal-desc').textContent=`${def.name}: ${def.effect}`;for(const inst of targets){const d=CARD_DB[inst.cardId];const btn=document.createElement('button');btn.className='modal-btn';btn.textContent=`${d.art} ${d.name} (BP: ${sBP(inst).toLocaleString()}) [${inst.owner}]`;btn.onclick=()=>{document.getElementById('magic-modal').style.display='none';const p=gp(w);p.hand.splice(idx,1);p.reserve-=def.cost;p.trash.push(def.id);log(`${cap(w)} spielt ${def.name}!`,'log-magic');execEff(def.effectId,w,inst);render();};list.appendChild(btn);}document.getElementById('magic-modal').style.display='flex';}
+document.getElementById('magic-cancel-btn').addEventListener('click',()=>document.getElementById('magic-modal').style.display='none');
+function execEff(eid,caster,target){const op=opp(caster);switch(eid){case'destroy-low-bp':if(!target)break;{const bp=sBP(target);if(bp<=5000){log(`Dragon Breath zerstört ${CARD_DB[target.cardId].name}!`,'log-magic');destroySpirit(target.owner,target);}else log(`Dragon Breath schlägt fehl: ${CARD_DB[target.cardId].name} hat ${bp.toLocaleString()} BP.`,'log-magic');}break;case'bounce-all':{const oPP=gp(op);const b=[...oPP.field];for(const i of b){oPP.hand.push(i.cardId);oPP.reserve+=i.cores;log(`${CARD_DB[i.cardId].name} zurück auf die Hand.`,'log-magic');}oPP.field=[];log('Tidal Wave! Alle Gegner-Spirits zurückgeschickt!','log-magic');}break;case'debuff-bp':if(!target)break;state.tempBpDebuffs.push({uid:target.uid,amount:2000});log(`Shadow Veil: ${CARD_DB[target.cardId].name} bekommt -2000 BP!`,'log-magic');break;case'burn-core':if(!target)break;target.cores=Math.max(0,target.cores-1);log(`${CARD_DB[target.cardId].name} verliert 1 Core! (${target.cores} übrig)`,'log-battle');if(target.cores===0)destroySpirit(target.owner,target);break;}}
+function openBraveM(w,idx){const p=gp(w);const id=p.hand[idx];const def=CARD_DB[id];const list=document.getElementById('brave-target-list');list.innerHTML='';const el=p.field.filter(i=>CARD_DB[i.cardId].color===def.braveCondition&&!i.brave);if(!el.length){log(`Keine gültigen Ziele für ${def.name}!`,'log-brave');return;}document.getElementById('brave-modal-desc').textContent=`${def.name} (+${def.bpBonus} BP) anlegen:`;for(const inst of el){const sd=CARD_DB[inst.cardId];const btn=document.createElement('button');btn.className='modal-btn';btn.textContent=`${sd.art} ${sd.name} (BP: ${sBP(inst).toLocaleString()} → ${(sBP(inst)+def.bpBonus).toLocaleString()})`;btn.onclick=()=>{document.getElementById('brave-modal').style.display='none';p.hand.splice(idx,1);p.reserve-=def.cost;inst.brave=def.id;log(`${cap(w)} legt ${def.name} an ${sd.name} an! (+${def.bpBonus} BP)`,'log-brave');render();};list.appendChild(btn);}document.getElementById('brave-modal').style.display='flex';}
+document.getElementById('brave-cancel-btn').addEventListener('click',()=>document.getElementById('brave-modal').style.display='none');
+function playerAtk(inst){if(state.gameOver)return;if(curPhase()!=='attack'){log('Nicht in der Angriffsphase!','log-system');return;}if(state.activePlayer!=='player'||inst.owner!=='player')return;const def=CARD_DB[inst.cardId];const be=inst.brave?CARD_DB[inst.brave].effectId:null;const hasDS=def.effectId==='double-strike'||be==='brave-double-strike';if(inst.exhausted&&!(hasDS&&!inst.usedDoubleStrike)){log(`${def.name} kann nicht mehr angreifen.`,'log-system');return;}state.selectedAttacker=inst;inst.exhausted=true;log(`${def.name} greift an!`,'log-battle');state.flashWindow=true;render();setTimeout(()=>resolvePAtk(inst),300);}
+function resolvePAtk(atk){state.flashWindow=false;const aiP=state.ai;const cb=aiP.field.filter(s=>!s.exhausted);if(!cb.length){log(`KI hat keine Blocker! ${CARD_DB[atk.cardId].name} trifft!`,'log-battle');applyAtkEff(atk,'player');removeLife('ai');if(!state.gameOver){state.selectedAttacker=null;render();updateHint();}return;}const blk=aiPickBlk(atk,cb);if(blk){log(`KI blockt mit ${CARD_DB[blk.cardId].name}!`,'log-battle');resolveBattle(atk,'player',blk,'ai');}else{log('KI nimmt den Lebens-Treffer!','log-battle');applyAtkEff(atk,'player');removeLife('ai');if(!state.gameOver){state.selectedAttacker=null;render();updateHint();}}}
+function applyAtkEff(atk,atkOwner){const def=CARD_DB[atk.cardId];if(def.effectId==='burn-core'){const op=opp(atkOwner);const opP=gp(op);if(opP.field.length){const t=opP.field.reduce((a,b)=>a.cores<b.cores?a:b);execEff('burn-core',atkOwner,t);}}}
+function resolveBattle(atk,atkO,blk,blkO){const aBP=sBP(atk);const bBP=sBP(blk);blk.exhausted=true;log(`${CARD_DB[atk.cardId].name} (${aBP.toLocaleString()}) vs ${CARD_DB[blk.cardId].name} (${bBP.toLocaleString()})`,'log-battle');let aD=false;let bD=false;if(aBP>bBP)bD=true;else if(bBP>aBP)aD=true;else{aD=true;bD=true;}if(aD)destroySpirit(atkO,atk);if(bD){if(!aD){const ab=atk.brave?CARD_DB[atk.brave]:null;if(ab&&ab.effectId==='brave-soul-drain'){gp(atkO).reserve+=2;state.void-=2;log(`Dark Soul: +2 Cores für ${cap(atkO)}!`,'log-brave');}}destroySpirit(blkO,blk);}if(!aD&&!bD)log('Beide Spirits überleben!','log-battle');const def=CARD_DB[atk.cardId];const be=atk.brave?CARD_DB[atk.brave].effectId:null;const hasDS=def.effectId==='double-strike'||be==='brave-double-strike';if(hasDS&&!atk.usedDoubleStrike&&!aD){atk.usedDoubleStrike=true;atk.exhausted=false;log(`${def.name} aktiviert Double Strike!`,'log-battle');}state.selectedAttacker=null;render();updateHint();}
+function openBlockM(atk,atkO){state.attackingWith={inst:atk,owner:atkO};const def=CARD_DB[atk.cardId];document.getElementById('block-attacker-desc').textContent=`${def.art} ${def.name} (${sBP(atk).toLocaleString()} BP) greift an!`;const choices=document.getElementById('block-choices');choices.innerHTML='';const blks=state.player.field.filter(s=>!s.exhausted);for(const inst of blks){const sd=CARD_DB[inst.cardId];const div=document.createElement('div');div.className='spirit-choice';div.innerHTML=`${sd.art} ${sd.name} <span style="color:var(--core-color)">${sBP(inst).toLocaleString()} BP</span>`;div.onclick=()=>{document.getElementById('block-modal').style.display='none';log(`Spieler blockt mit ${sd.name}!`,'log-battle');resolveBattle(atk,atkO,inst,'player');if(!state.gameOver)contAI();};choices.appendChild(div);}document.getElementById('block-modal').style.display='flex';}
+document.getElementById('block-pass-btn').addEventListener('click',()=>{document.getElementById('block-modal').style.display='none';const{inst,owner}=state.attackingWith;log('Spieler nimmt den Lebens-Treffer!','log-life');applyAtkEff(inst,owner);removeLife('player');if(!state.gameOver)contAI();});
+function runAI(){if(state.gameOver||state.activePlayer!=='ai')return;switch(curPhase()){case'refresh':execRefresh();state.phase++;render();setTimeout(runAI,500);break;case'draw':execDraw();state.phase++;render();setTimeout(runAI,500);break;case'core':aiCores();state.phase++;render();setTimeout(runAI,500);break;case'main':aiMain();break;case'attack':setTimeout(aiAtk,600);break;case'end':execEnd();break;}}
+function aiCores(){const p=gp('ai');let pool=p.reserve;for(const i of p.field)pool+=i.cores;for(const i of p.field)i.cores=0;if(pool>=p.field.length)for(const i of p.field){i.cores=1;pool--;}const sorted=[...p.field].sort((a,b)=>CARD_DB[b.cardId].bp[0]-CARD_DB[a.cardId].bp[0]);for(const i of sorted){if(pool<=0)break;const def=CARD_DB[i.cardId];const add=Math.min(pool,def.bp.length-i.cores+1);i.cores+=add;pool-=add;}p.reserve=pool;log('KI verteilt Cores.','log-system');}
+function aiMain(){const p=state.ai;const po=[...p.hand.entries()].sort(([,a],[,b])=>{const pr={Brave:3,Spirit:2,Magic:1};return(pr[CARD_DB[b].type]||0)-(pr[CARD_DB[a].type]||0);});const acts=[];for(const[idx,id]of po){const def=CARD_DB[id];if(!canAfford('ai',id))continue;if(def.type==='Spirit')acts.push({idx,id,def});else if(def.type==='Brave'){const el=p.field.filter(s=>CARD_DB[s.cardId].color===def.braveCondition&&!s.brave);if(el.length)acts.push({idx,id,def,bt:el[0]});}else if(def.effectId==='bounce-all'&&state.player.field.length>=2)acts.push({idx,id,def});}if(!acts.length){log('KI beendet Hauptphase.','log-system');state.phase++;render();setTimeout(runAI,600);return;}function next(i){if(i>=acts.length||state.gameOver){state.phase++;render();setTimeout(runAI,600);return;}const a=acts[i];const ci=p.hand.indexOf(a.id);if(ci===-1||!canAfford('ai',a.id)){next(i+1);return;}if(a.def.type==='Spirit')summonS('ai',ci);else if(a.def.type==='Brave'&&a.bt){const bi=p.hand.indexOf(a.id);if(bi!==-1){p.hand.splice(bi,1);p.reserve-=a.def.cost;a.bt.brave=a.def.id;log(`KI legt ${a.def.name} an ${CARD_DB[a.bt.cardId].name} an!`,'log-brave');render();}}else if(a.def.effectId==='bounce-all'){const mi=p.hand.indexOf(a.id);if(mi!==-1){p.hand.splice(mi,1);p.reserve-=a.def.cost;p.trash.push(a.id);log('KI spielt Tidal Wave!','log-magic');execEff('bounce-all','ai',null);render();}}setTimeout(()=>next(i+1),500);}setTimeout(()=>next(0),400);}
+function aiAtk(){if(state.gameOver)return;const aiP=state.ai;const atkers=aiP.field.filter(s=>!s.exhausted);if(!atkers.length){log('KI hat keine Angreifer.','log-system');endAttackPhase();return;}const atk=atkers.sort((a,b)=>sBP(b)-sBP(a))[0];const def=CARD_DB[atk.cardId];atk.exhausted=true;log(`KI greift mit ${def.name} (${sBP(atk).toLocaleString()} BP) an!`,'log-battle');applyAtkEff(atk,'ai');state.flashWindow=true;render();setTimeout(()=>{state.flashWindow=false;const pb=state.player.field.filter(s=>!s.exhausted);if(pb.length)openBlockM(atk,'ai');else{log('Spieler hat keine Blocker!','log-battle');removeLife('player');if(!state.gameOver)contAI();}},800);}
+function contAI(){if(state.gameOver)return;render();const aiP=state.ai;const ja=aiP.field.filter(s=>{const def=CARD_DB[s.cardId];const be=s.brave?CARD_DB[s.brave].effectId:null;return(def.effectId==='double-strike'||be==='brave-double-strike')&&s.exhausted&&!s.usedDoubleStrike;});for(const s of ja){s.usedDoubleStrike=true;s.exhausted=false;}const aa=aiP.field.filter(s=>!s.exhausted);if(aa.length)setTimeout(aiAtk,800);else{log('KI beendet Angriffsphase.','log-system');endAttackPhase();}}
+function aiPickBlk(atk,cands){const aBP=sBP(atk);const w=cands.filter(b=>sBP(b)>aBP);if(w.length)return w.sort((a,b)=>sBP(a)-sBP(b))[0];const def=CARD_DB[atk.cardId];const be=atk.brave?CARD_DB[atk.brave].effectId:null;const dan=def.effectId==='double-strike'||be==='brave-double-strike';if(state.ai.life<=1||dan)return cands.sort((a,b)=>sBP(a)-sBP(b))[0];return null;}
+function render(){rzn('player');rzn('ai');renderStats();renderPS();updateBtn();}
+function rzn(w){const p=gp(w);renderHand(w,p.hand);renderField(w,p.field);}
+function renderHand(w,hand){const c=document.getElementById(w==='player'?'player-hand':'ai-hand');c.innerHTML='';for(let i=0;i<hand.length;i++){if(w==='ai'){c.appendChild(mkHidden());continue;}c.appendChild(mkCard(hand[i],i,w));}}
+function renderField(w,field){const c=document.getElementById(w==='player'?'player-field':'ai-field');c.innerHTML='';if(!field.length){const l=document.createElement('span');l.className='field-empty-label';l.textContent=w==='player'?'— Dein Feld —':'— Gegner-Feld —';c.appendChild(l);return;}for(const i of field)c.appendChild(mkField(i,w));}
+function renderStats(){const pp=state.player;const ap=state.ai;renderLifeOrbs('player-life-orbs',pp.life);renderLifeOrbs('ai-life-orbs',ap.life);document.getElementById('player-reserve-count').textContent=pp.reserve;document.getElementById('ai-reserve-count').textContent=ap.reserve;renderDots('player-reserve-cores',pp.reserve);renderDots('ai-reserve-cores',ap.reserve);document.getElementById('player-deck-count').textContent=pp.deck.length;document.getElementById('ai-deck-count').textContent=ap.deck.length;document.getElementById('player-trash-count').textContent=pp.trash.length;document.getElementById('ai-trash-count').textContent=ap.trash.length;document.getElementById('void-count').textContent=state.void;document.getElementById('turn-label').textContent=`Runde ${state.turn} — ${cap(state.activePlayer)}s Zug`;document.getElementById('phase-name').textContent=curPhase().toUpperCase()+' PHASE';document.getElementById('battle-status').textContent=state.selectedAttacker?`${CARD_DB[state.selectedAttacker.cardId].name} greift an`:'—';}
+function renderLifeOrbs(id,life){const c=document.getElementById(id);c.innerHTML='';for(let i=0;i<5;i++){const o=document.createElement('div');o.className='life-orb'+(i>=life?' empty':'');c.appendChild(o);}}
+function renderDots(id,count){const c=document.getElementById(id);c.innerHTML='';for(let i=0;i<Math.min(count,12);i++){const d=document.createElement('div');d.className='core-dot';c.appendChild(d);}}
+function renderPS(){const ids=['ps-refresh','ps-draw','ps-core','ps-main','ps-attack','ps-end'];for(let i=0;i<ids.length;i++){const el=document.getElementById(ids[i]);el.className='phase-step';if(i===state.phase)el.classList.add('active');else if(i<state.phase)el.classList.add('done');}}
+function updateBtn(){const btn=document.getElementById('action-btn');if(state.gameOver){btn.disabled=true;btn.textContent='Game Over';return;}if(state.activePlayer==='ai'){btn.disabled=true;btn.textContent='KI spielt...';return;}btn.disabled=false;const lb={refresh:'Refresh & Gain Cores',draw:'Karte ziehen',core:'Cores platzieren',main:'Main Phase beenden',attack:'Angriffsphase beenden',end:'Zug beenden'};btn.textContent=lb[curPhase()]||'Nächste Phase';}
+function updateHint(){const el=document.getElementById('hint-text');if(!el)return;if(state.gameOver){el.innerHTML='Spiel vorbei!';return;}if(state.activePlayer==='ai'){el.innerHTML='<strong>KI denkt nach...</strong>';return;}const h={refresh:'Drücke <strong>Refresh &amp; Gain Cores</strong> um alle Spirits zu aktivieren und Cores zu erhalten.',draw:'Drücke <strong>Karte ziehen</strong> um 1 Karte vom Deck zu ziehen.',core:'Drücke <strong>Cores platzieren</strong> um Cores auf deine Spirits zu verteilen.',main:'Klicke Karten in deiner Hand um sie zu spielen. Drücke <strong>Main Phase beenden</strong> wenn fertig.',attack:'Klicke einen Spirit auf <em>deinem Feld</em> (grün leuchtend) um anzugreifen. <strong>Angriffsphase beenden</strong> wenn fertig.',end:'Drücke <strong>Zug beenden</strong> um auf 7 Karten abzuwerfen.'};el.innerHTML=h[curPhase()]||'Drücke Nächste Phase.';}
+function mkHidden(){const el=document.createElement('div');el.className='card hidden';el.innerHTML='<div class="card-back-design">🂠</div>';return el;}
+function mkCard(id,idx,owner){const def=CARD_DB[id];const el=document.createElement('div');el.className=`card color-${def.color} in-hand`;const ph=curPhase();const cp=ph==='main'&&owner==='player'&&canAfford(owner,id);const fp=def.flash&&state.flashWindow&&owner==='player'&&canAfford(owner,id);if(cp||fp)el.classList.add('playable-hint');el.innerHTML=cardHTML(def,null);el.addEventListener('click',()=>{if(owner==='player')playCard('player',idx);});attTip(el,def,null);return el;}
+function mkField(inst,owner){const def=CARD_DB[inst.cardId];const el=document.createElement('div');el.className=`card color-${def.color}`;if(inst.exhausted)el.classList.add('exhausted');if(state.selectedAttacker===inst)el.classList.add('attacking');if(curPhase()==='attack'&&owner==='player'&&state.activePlayer==='player'&&!inst.exhausted){const def2=CARD_DB[inst.cardId];const be=inst.brave?CARD_DB[inst.brave].effectId:null;const hasDS=def2.effectId==='double-strike'||be==='brave-double-strike';if(!inst.exhausted||(hasDS&&!inst.usedDoubleStrike))el.classList.add('playable-hint');}el.innerHTML=cardHTML(def,inst);const cc=document.createElement('div');cc.className='spirit-cores';for(let i=0;i<Math.min(inst.cores,8);i++){const d=document.createElement('div');d.className='spirit-core-dot';cc.appendChild(d);}el.appendChild(cc);if(inst.brave){const b=document.createElement('div');b.className='brave-badge';b.textContent='BRAVE';el.appendChild(b);}el.addEventListener('click',()=>{if(state.gameOver)return;if(owner==='player'&&curPhase()==='attack'&&state.activePlayer==='player')playerAtk(inst);});attTip(el,def,inst);return el;}
+function cardHTML(def,inst){const bpStr=inst?`${sBP(inst).toLocaleString()} BP`:def.bp?def.bp.map(b=>b.toLocaleString()).join('/'):'';const cStr=inst?` [${inst.cores}c]`:'';const syms=(def.symbols||[]).map(s=>`<span class="symbol-dot ${s}"></span>`).join('');const tl=def.type==='Brave'?`Brave (${def.braveCondition})`:def.type+(def.flash?' [FLASH]':'');return `<div class="card-header"><span class="card-name">${def.name}</span><span class="card-cost">${def.cost}</span></div><div class="card-art">${def.art}</div><div class="card-footer"><div class="card-type-label">${tl}</div>${bpStr?`<div class="card-bp">${bpStr}${cStr}</div>`:''}${syms?`<div class="card-symbols">${syms}</div>`:''}${def.effect?`<div class="card-effect-mini">${def.effect}</div>`:''}</div>`;}
+const tip=document.getElementById('card-tooltip');
+function attTip(el,def,inst){el.addEventListener('mouseenter',e=>{document.getElementById('tip-name').textContent=def.name;document.getElementById('tip-type').textContent=def.type+(def.flash?' [FLASH]':'')+(def.braveCondition?` (${def.braveCondition})`:'');document.getElementById('tip-cost').innerHTML=`Kosten: <span>${def.cost} Cores</span>`;document.getElementById('tip-color').innerHTML=`Farbe: <span>${def.color}</span>`;if(def.bp){const bd=inst?`${sBP(inst).toLocaleString()} BP (${inst.cores} Cores)`:def.bp.map(b=>b.toLocaleString()).join(' / ');document.getElementById('tip-bp').innerHTML=`BP: <span>${bd}</span>`;}else if(def.bpBonus)document.getElementById('tip-bp').innerHTML=`BP Bonus: <span>+${def.bpBonus.toLocaleString()}</span>`;else document.getElementById('tip-bp').innerHTML='';document.getElementById('tip-effect').textContent=def.effect||'';tip.classList.add('visible');moveTip(e);});el.addEventListener('mousemove',moveTip);el.addEventListener('mouseleave',()=>tip.classList.remove('visible'));}
+function moveTip(e){let x=e.clientX+12,y=e.clientY+12;if(x+210>window.innerWidth)x=e.clientX-222;if(y+300>window.innerHeight)y=e.clientY-260;tip.style.left=x+'px';tip.style.top=y+'px';}
+const ML=80;
+function log(msg,cls=''){const le=document.getElementById('action-log');const e=document.createElement('div');e.className='log-entry '+cls;e.textContent=msg;le.appendChild(e);while(le.children.length>ML+1)le.removeChild(le.children[1]);le.scrollTop=le.scrollHeight;}
+document.getElementById('action-btn').addEventListener('click',()=>{if(state.gameOver||state.activePlayer!=='player')return;advancePhase();});
+newGame();
+</script>
+</body>
+</html>

@@ -268,21 +268,21 @@ body {
 <script>
 'use strict';
 const CARD_DB={
-  'agni-drake':{id:'agni-drake',name:'Agni Drake',type:'Spirit',color:'Red',cost:3,symbols:['Red'],bp:[3000,5000,7000],art:'🐉',effect:'Burn: Wenn dieser Spirit angreift, entferne 1 Core von einem Gegner-Spirit.',effectId:'burn-core'},
-  'flame-serpent':{id:'flame-serpent',name:'Flame Serpent',type:'Spirit',color:'Red',cost:2,symbols:['Red'],bp:[2000,3000],art:'🐍',effect:'',effectId:null},
-  'brave-dragon-king':{id:'brave-dragon-king',name:'Brave Dragon King',type:'Spirit',color:'Red',cost:6,symbols:['Red','Red'],bp:[8000,12000,15000],art:'👑',effect:'Double Strike: Dieser Spirit greift zweimal pro Runde an.',effectId:'double-strike'},
-  'fire-elemental':{id:'fire-elemental',name:'Fire Elemental',type:'Spirit',color:'Red',cost:1,symbols:['Red'],bp:[1000,2000],art:'🔥',effect:'',effectId:null},
-  'tidal-leviathan':{id:'tidal-leviathan',name:'Tidal Leviathan',type:'Spirit',color:'Blue',cost:5,symbols:['Blue','Blue'],bp:[6000,9000,12000],art:'🌊',effect:'Bei Zerstörung: Ziehe 2 Karten.',effectId:'draw-on-destroy'},
-  'storm-seahorse':{id:'storm-seahorse',name:'Storm Seahorse',type:'Spirit',color:'Blue',cost:3,symbols:['Blue'],bp:[3000,5000],art:'🐎',effect:"Flash: Kann während der gegnerischen Angriffsphase beschworen werden.",effectId:'flash-summon',flash:true},
-  'wave-rider':{id:'wave-rider',name:'Wave Rider',type:'Spirit',color:'Blue',cost:2,symbols:['Blue'],bp:[2000,4000],art:'🏄',effect:'',effectId:null},
-  'shadow-revenant':{id:'shadow-revenant',name:'Shadow Revenant',type:'Spirit',color:'Purple',cost:4,symbols:['Purple'],bp:[4000,6000,8000],art:'👻',effect:"Bei Zerstörung: Kehrt auf die Hand zurück.",effectId:'return-on-destroy'},
-  'void-specter':{id:'void-specter',name:'Void Specter',type:'Spirit',color:'Purple',cost:2,symbols:['Purple'],bp:[2000,3000],art:'💀',effect:'',effectId:null},
-  'dragon-breath':{id:'dragon-breath',name:'Dragon Breath',type:'Magic',color:'Red',cost:2,art:'🌬️',effect:'Zerstöre einen Spirit mit 5000 BP oder weniger.',effectId:'destroy-low-bp',flash:false,targetType:'opponent-spirit'},
-  'tidal-wave':{id:'tidal-wave',name:'Tidal Wave',type:'Magic',color:'Blue',cost:3,art:'🌀',effect:"Schicke alle Gegner-Spirits auf die Hand zurück.",effectId:'bounce-all',flash:false,targetType:'none'},
-  'shadow-veil':{id:'shadow-veil',name:'Shadow Veil',type:'Magic',color:'Purple',cost:1,art:'🌑',effect:'FLASH. Gib einem Spirit -2000 BP diesen Zug.',effectId:'debuff-bp',flash:true,targetType:'any-spirit'},
-  'heavens-blade':{id:'heavens-blade',name:"Heaven's Blade",type:'Brave',color:'Red',cost:2,art:'⚔️',braveCondition:'Red',bpBonus:3000,effect:'Brave (Rot): +3000 BP. Double Strike.',effectId:'brave-double-strike'},
-  'ocean-shield':{id:'ocean-shield',name:'Ocean Shield',type:'Brave',color:'Blue',cost:1,art:'🛡️',braveCondition:'Blue',bpBonus:2000,effect:'Brave (Blau): +2000 BP. Kein Lebens-Schaden beim Blocken.',effectId:'brave-guardian'},
-  'dark-soul':{id:'dark-soul',name:'Dark Soul',type:'Brave',color:'Purple',cost:2,art:'💫',braveCondition:'Purple',bpBonus:2000,effect:'Brave (Lila): +2000 BP. Erhalte 2 Cores wenn dieser Spirit einen anderen zerstört.',effectId:'brave-soul-drain'},
+  'agni-drake':{id:'agni-drake',name:'Agni-Drache',type:'Spirit',color:'Red',cost:3,symbols:['Red'],bp:[3000,5000,7000],art:'🐉',effect:'Verbrennung: Wenn dieser Geist angreift, entferne 1 Core von einem Gegner-Geist.',effectId:'burn-core'},
+  'flame-serpent':{id:'flame-serpent',name:'Flammenschlange',type:'Spirit',color:'Red',cost:2,symbols:['Red'],bp:[2000,3000],art:'🐍',effect:'',effectId:null},
+  'brave-dragon-king':{id:'brave-dragon-king',name:'Tapferer Drachenkönig',type:'Spirit',color:'Red',cost:6,symbols:['Red','Red'],bp:[8000,12000,15000],art:'👑',effect:'Doppelschlag: Dieser Geist greift zweimal pro Runde an.',effectId:'double-strike'},
+  'fire-elemental':{id:'fire-elemental',name:'Feuerelementar',type:'Spirit',color:'Red',cost:1,symbols:['Red'],bp:[1000,2000],art:'🔥',effect:'',effectId:null},
+  'tidal-leviathan':{id:'tidal-leviathan',name:'Gezeitenleviathan',type:'Spirit',color:'Blue',cost:5,symbols:['Blue','Blue'],bp:[6000,9000,12000],art:'🌊',effect:'Bei Zerstörung: Ziehe 2 Karten.',effectId:'draw-on-destroy'},
+  'storm-seahorse':{id:'storm-seahorse',name:'Sturmseepferd',type:'Spirit',color:'Blue',cost:3,symbols:['Blue'],bp:[3000,5000],art:'🐎',effect:"Blitz: Kann während der gegnerischen Angriffsphase beschworen werden.",effectId:'flash-summon',flash:true},
+  'wave-rider':{id:'wave-rider',name:'Wellenreiter',type:'Spirit',color:'Blue',cost:2,symbols:['Blue'],bp:[2000,4000],art:'🏄',effect:'',effectId:null},
+  'shadow-revenant':{id:'shadow-revenant',name:'Schattengeist',type:'Spirit',color:'Purple',cost:4,symbols:['Purple'],bp:[4000,6000,8000],art:'👻',effect:"Bei Zerstörung: Kehrt auf die Hand zurück.",effectId:'return-on-destroy'},
+  'void-specter':{id:'void-specter',name:'Leerenspektrum',type:'Spirit',color:'Purple',cost:2,symbols:['Purple'],bp:[2000,3000],art:'💀',effect:'',effectId:null},
+  'dragon-breath':{id:'dragon-breath',name:'Drachenatem',type:'Magic',color:'Red',cost:2,art:'🌬️',effect:'Zerstöre einen Geist mit 5000 BP oder weniger.',effectId:'destroy-low-bp',flash:false,targetType:'opponent-spirit'},
+  'tidal-wave':{id:'tidal-wave',name:'Gezeitenwelle',type:'Magic',color:'Blue',cost:3,art:'🌀',effect:"Schicke alle Gegner-Geister auf die Hand zurück.",effectId:'bounce-all',flash:false,targetType:'none'},
+  'shadow-veil':{id:'shadow-veil',name:'Schattenschleier',type:'Magic',color:'Purple',cost:1,art:'🌑',effect:'BLITZ. Gib einem Geist -2000 BP diesen Zug.',effectId:'debuff-bp',flash:true,targetType:'any-spirit'},
+  'heavens-blade':{id:'heavens-blade',name:'Himmelsklinge',type:'Brave',color:'Red',cost:2,art:'⚔️',braveCondition:'Rot',bpBonus:3000,effect:'Tapfer (Rot): +3000 BP. Doppelschlag.',effectId:'brave-double-strike'},
+  'ocean-shield':{id:'ocean-shield',name:'Ozeanschild',type:'Brave',color:'Blue',cost:1,art:'🛡️',braveCondition:'Blau',bpBonus:2000,effect:'Tapfer (Blau): +2000 BP. Kein Lebens-Schaden beim Blocken.',effectId:'brave-guardian'},
+  'dark-soul':{id:'dark-soul',name:'Dunkelseele',type:'Brave',color:'Purple',cost:2,art:'💫',braveCondition:'Lila',bpBonus:2000,effect:'Tapfer (Lila): +2000 BP. Erhalte 2 Cores wenn dieser Geist einen anderen zerstört.',effectId:'brave-soul-drain'},
 };
 function buildDeck(){const c={'fire-elemental':4,'flame-serpent':4,'agni-drake':3,'brave-dragon-king':2,'wave-rider':3,'storm-seahorse':3,'tidal-leviathan':2,'void-specter':3,'shadow-revenant':2,'dragon-breath':3,'tidal-wave':2,'shadow-veil':3,'heavens-blade':2,'ocean-shield':2,'dark-soul':2};const d=[];for(const[id,n]of Object.entries(c))for(let i=0;i<n;i++)d.push(id);return d;}
 const PHASES=['main1','attack','main2','end'];
@@ -387,7 +387,8 @@ function mkCard(id,idx,owner){const def=CARD_DB[id];const el=document.createElem
 function mkField(inst,owner){const def=CARD_DB[inst.cardId];const el=document.createElement('div');el.className=`card color-${def.color}`;if(inst.exhausted)el.classList.add('exhausted');if(state.selectedAttacker===inst)el.classList.add('attacking');if(curPhase()==='attack'&&owner==='player'&&state.activePlayer==='player'&&!inst.exhausted){const def2=CARD_DB[inst.cardId];const be=inst.brave?CARD_DB[inst.brave].effectId:null;const hasDS=def2.effectId==='double-strike'||be==='brave-double-strike';if(!inst.exhausted||(hasDS&&!inst.usedDoubleStrike))el.classList.add('playable-hint');}el.innerHTML=cardHTML(def,inst);const cc=document.createElement('div');cc.className='spirit-cores';for(let i=0;i<Math.min(inst.cores,8);i++){const d=document.createElement('div');d.className='spirit-core-dot';cc.appendChild(d);}el.appendChild(cc);if(inst.brave){const b=document.createElement('div');b.className='brave-badge';b.textContent='BRAVE';el.appendChild(b);}el.addEventListener('click',()=>{if(state.gameOver)return;if(owner==='player'&&curPhase()==='attack'&&state.activePlayer==='player')playerAtk(inst);});attTip(el,def,inst);return el;}
 function cardHTML(def,inst){
   const syms=(def.symbols||[]).map(s=>`<div class="sym-gem ${s}"></div>`).join('');
-  const tl=def.type==='Brave'?'Brave':def.type;
+  const typeDE={Spirit:'Geist',Magic:'Magie',Brave:'Tapfer'};
+  const tl=typeDE[def.type]||def.type;
   const flashTag=def.flash?'<span class="flash-tag">FLASH</span>':'';
   let bpHTML='';
   if(def.bp&&def.bp.length){

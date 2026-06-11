@@ -58,9 +58,10 @@ body {
 #board { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; position: relative; }
 .player-zone {
   background:
-    radial-gradient(ellipse at 50% -15%, rgba(80,110,255,0.16) 0%, transparent 55%),
-    radial-gradient(ellipse at 50% 120%, rgba(50,65,220,0.3) 0%, transparent 60%),
-    linear-gradient(180deg, rgba(13,16,52,0.98), rgba(6,7,26,0.98));
+    radial-gradient(ellipse 60% 42% at 18% 28%, rgba(255,150,215,0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 38% at 80% 62%, rgba(240,115,195,0.14) 0%, transparent 70%),
+    radial-gradient(ellipse at 50% 120%, rgba(200,55,160,0.22) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(74,18,66,0.97), rgba(40,9,42,0.97));
   border: 2px solid rgba(70,80,200,0.55); border-radius: 14px; padding: 8px;
   display: flex; flex-direction: column; gap: 5px; position: relative; overflow: visible; z-index:2;
   box-shadow: inset 0 0 50px rgba(30,30,110,0.14), 0 0 22px rgba(60,70,200,0.14), 0 0 0 1px rgba(90,90,200,0.1);
@@ -81,9 +82,10 @@ body {
 @keyframes clash-glow { 0%,100%{opacity:0.4;}50%{opacity:0.9;} }
 .player-zone.ai-zone {
   background:
-    radial-gradient(ellipse at 50% 115%, rgba(255,120,60,0.16) 0%, transparent 55%),
-    radial-gradient(ellipse at 50% -20%, rgba(225,55,50,0.3) 0%, transparent 60%),
-    linear-gradient(180deg, rgba(48,8,16,0.98), rgba(24,4,8,0.98));
+    radial-gradient(ellipse 60% 42% at 78% 30%, rgba(255,150,215,0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 38% at 22% 65%, rgba(240,115,195,0.14) 0%, transparent 70%),
+    radial-gradient(ellipse at 50% -20%, rgba(215,60,145,0.22) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(82,16,60,0.97), rgba(44,8,38,0.97));
   border-color: rgba(200,45,45,0.55);
   box-shadow: inset 0 0 50px rgba(110,15,15,0.14), 0 0 22px rgba(200,50,50,0.14), 0 0 0 1px rgba(200,50,50,0.1);
 }
@@ -103,14 +105,23 @@ body {
 .player-stats { display: flex; align-items: center; gap: 10px; }
 .life-display { display: flex; align-items: center; gap: 5px; }
 .life-label { font-size: 0.57rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
-.life-orbs { display: flex; gap: 5px; }
+.life-orbs { display: flex; gap: 3px; align-items: flex-end; }
+/* Lebens-Rüstung: goldene Flügel-Segmente wie Dans Soul-Armor */
 .life-orb {
-  width: 19px; height: 19px; border-radius: 50%;
-  background: radial-gradient(circle at 28% 28%, #ff99cc, #ee0055);
-  box-shadow: 0 0 11px rgba(255,20,90,0.95), 0 0 22px rgba(255,10,70,0.4), inset 0 -2px 4px rgba(160,0,50,0.5);
-  border: 1.5px solid rgba(255,170,190,0.55); transition: all 0.3s;
+  width: 12px; height: 22px; border-radius: 0; border: none;
+  clip-path: polygon(50% 0, 100% 26%, 80% 100%, 20% 100%, 0 26%);
+  background: linear-gradient(165deg, #fff6c0 0%, #ffd64e 34%, #efa416 62%, #9a5d07 100%);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.75), inset 0 -2px 3px rgba(120,70,0,0.55);
+  filter: drop-shadow(0 0 5px rgba(255,205,70,0.85));
+  transition: all 0.3s; transform-origin: 50% 100%;
 }
-.life-orb.empty { background: rgba(55,12,25,0.65); box-shadow: none; border-color: rgba(75,18,38,0.4); }
+.life-orbs .life-orb:nth-child(1) { transform: rotate(-22deg); }
+.life-orbs .life-orb:nth-child(2) { transform: rotate(-11deg); }
+.life-orbs .life-orb:nth-child(4) { transform: rotate(11deg); }
+.life-orbs .life-orb:nth-child(5) { transform: rotate(22deg); }
+.life-orb.empty { background: linear-gradient(165deg, #4a4232, #262017); filter: none; opacity: 0.5; box-shadow: inset 0 1px 2px rgba(255,255,255,0.12); }
+#ai-life-orbs .life-orb, .life-orb.ai-shard { background: linear-gradient(165deg, #f0d6ff 0%, #bb6bff 36%, #7a1fd0 64%, #3c0c70 100%); filter: drop-shadow(0 0 5px rgba(175,90,255,0.8)); }
+#ai-life-orbs .life-orb.empty { background: linear-gradient(165deg, #3c3344, #201826); filter: none; opacity: 0.5; }
 .reserve-display { display: flex; align-items: center; gap: 4px; }
 .reserve-label { font-size: 0.57rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
 .reserve-count { font-size: 0.76rem; font-weight: bold; color: var(--core-color); text-shadow: 0 0 10px rgba(51,255,200,0.75); min-width: 22px; text-align: center; }
@@ -122,29 +133,29 @@ body {
   display: flex; gap: 8px; min-height: 130px; align-items: center;
   padding: 8px 12px;
   background:
-    linear-gradient(180deg, transparent 0%, rgba(45,58,200,0.2) 70%, rgba(85,105,255,0.4) 100%),
-    repeating-linear-gradient(60deg, rgba(90,105,235,0.06) 0 1px, transparent 1px 24px),
-    repeating-linear-gradient(-60deg, rgba(90,105,235,0.06) 0 1px, transparent 1px 24px),
-    linear-gradient(135deg, rgba(0,0,14,0.82), rgba(4,0,22,0.82));
-  border-radius: 10px; border: 1px solid rgba(80,95,225,0.5);
+    radial-gradient(ellipse at 50% -10%, rgba(255,245,215,0.25) 0%, transparent 60%),
+    repeating-linear-gradient(35deg, rgba(125,95,45,0.07) 0 3px, transparent 3px 9px),
+    repeating-linear-gradient(-25deg, rgba(150,120,70,0.06) 0 2px, transparent 2px 11px),
+    linear-gradient(180deg, #c9af7e 0%, #d8c293 45%, #bfa471 100%);
+  border-radius: 12px; border: 3px solid #c9a14e;
   overflow-x: auto; flex-wrap: nowrap; position: relative;
-  box-shadow: inset 0 -18px 40px rgba(50,60,200,0.22), inset 0 0 35px rgba(15,15,80,0.45), 0 0 16px rgba(60,75,210,0.12);
+  box-shadow: 0 7px 0 rgba(38,40,58,0.95), 0 12px 22px rgba(0,0,0,0.55), inset 0 0 30px rgba(125,90,35,0.4), inset 0 2px 5px rgba(255,245,210,0.6), 0 0 18px rgba(255,200,90,0.18);
 }
 .field-area::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 9px;
-  background: radial-gradient(ellipse at 50% 100%, rgba(70,90,255,0.16) 0%, transparent 62%);
+  background: radial-gradient(ellipse at 50% 100%, rgba(255,215,140,0.18) 0%, transparent 62%);
 }
 .field-area.ai-field {
-  border-color: rgba(210,55,55,0.5);
+  border-color: #c9a14e;
   background:
-    linear-gradient(0deg, transparent 0%, rgba(200,48,42,0.2) 70%, rgba(255,95,75,0.4) 100%),
-    repeating-linear-gradient(60deg, rgba(235,75,75,0.06) 0 1px, transparent 1px 24px),
-    repeating-linear-gradient(-60deg, rgba(235,75,75,0.06) 0 1px, transparent 1px 24px),
-    linear-gradient(135deg, rgba(14,0,0,0.82), rgba(22,0,4,0.82));
-  box-shadow: inset 0 18px 40px rgba(200,50,50,0.22), inset 0 0 35px rgba(80,8,8,0.45), 0 0 16px rgba(210,60,60,0.12);
+    radial-gradient(ellipse at 50% 110%, rgba(255,245,215,0.25) 0%, transparent 60%),
+    repeating-linear-gradient(35deg, rgba(125,95,45,0.07) 0 3px, transparent 3px 9px),
+    repeating-linear-gradient(-25deg, rgba(150,120,70,0.06) 0 2px, transparent 2px 11px),
+    linear-gradient(0deg, #c9af7e 0%, #d8c293 45%, #bfa471 100%);
+  box-shadow: 0 7px 0 rgba(38,40,58,0.95), 0 12px 22px rgba(0,0,0,0.55), inset 0 0 30px rgba(125,90,35,0.4), inset 0 -2px 5px rgba(255,245,210,0.6), 0 0 18px rgba(255,200,90,0.18);
 }
-.field-area.ai-field::after { background: radial-gradient(ellipse at 50% 0%, rgba(255,80,70,0.16) 0%, transparent 62%); }
-.field-empty-label { color: rgba(70,75,140,0.32); font-size: 0.68rem; font-style: italic; width: 100%; text-align: center; letter-spacing: 1.5px; position: relative; z-index: 1; }
+.field-area.ai-field::after { background: radial-gradient(ellipse at 50% 0%, rgba(255,215,140,0.18) 0%, transparent 62%); }
+.field-empty-label { color: rgba(110,82,40,0.55); font-size: 0.68rem; font-style: italic; width: 100%; text-align: center; letter-spacing: 1.5px; position: relative; z-index: 1; }
 .hand-area { display: flex; gap: 0; padding: 12px 20px 4px; min-height: 148px; align-items: flex-end; overflow: visible; flex-wrap: nowrap; }
 .hand-area.ai-hand { justify-content: flex-end; gap: 4px; }
 /* ── CARDS ───────────────────────────────────────── */
@@ -183,7 +194,8 @@ body {
   position: absolute; top: -2px; left: -2px; width: 23px; height: 23px;
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
   font-size: 0.72rem; font-weight: bold; color: #fff; z-index: 6;
-  border: 2px solid rgba(255,255,255,0.55); text-shadow: 0 1px 3px rgba(0,0,0,1);
+  border: 2px solid #f2c75c; text-shadow: 0 1px 3px rgba(0,0,0,1);
+  outline: 1px solid rgba(90,60,10,0.8);
 }
 .color-Red .card-cost-circle { background: radial-gradient(circle at 30% 30%, #ff7033, #aa1100); box-shadow: 0 0 12px rgba(255,55,0,0.9); }
 .color-Blue .card-cost-circle { background: radial-gradient(circle at 30% 30%, #4466ff, #0825cc); box-shadow: 0 0 12px rgba(25,75,255,0.9); }
@@ -199,10 +211,13 @@ body {
 .sym-gem.White { background: linear-gradient(135deg, #eeeeff, #8899cc); box-shadow: 0 0 7px rgba(160,170,255,1); }
 .sym-gem.Yellow{ background: linear-gradient(135deg, #ffee33, #997700); box-shadow: 0 0 7px rgba(240,200,0,1); }
 .sym-gem.Green { background: linear-gradient(135deg, #44ee77, #106630); box-shadow: 0 0 7px rgba(35,220,100,1); }
+.card-face { position:relative; z-index:2; display:flex; flex-direction:column; height:100%; pointer-events:none; }
+.card-spacer { flex:1; }
 .card-name-bar {
-  padding: 2px 16px 2px 24px;
-  background: rgba(0,0,0,0.65); border-bottom: 1px solid rgba(255,255,255,0.07);
-  min-height: 22px; display: flex; align-items: center;
+  padding: 2px 6px;
+  background: linear-gradient(90deg, rgba(8,6,2,0.93), rgba(34,25,8,0.88) 50%, rgba(8,6,2,0.93));
+  border-top: 1px solid rgba(255,200,90,0.6); border-bottom: 1px solid rgba(255,200,90,0.6);
+  min-height: 17px; display: flex; align-items: center;
 }
 .card-name {
   font-size: 0.43rem; font-weight: bold; color: #fff;
@@ -210,32 +225,29 @@ body {
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow-wrap: anywhere; word-break: break-word; hyphens: auto;
 }
-.card-art {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  font-size: 1.9rem; position: relative; z-index: 1; overflow: hidden;
-}
+.card-art { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+.card-art-emoji { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:2.1rem; }
 .card-art::before { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 50% 38%, rgba(255,255,255,0.07) 0%,transparent 68%); z-index:1; }
 .card-art svg { width:100%; height:100%; display:block; position:relative; z-index:0; }
+/* helles Info-Feld unten — wie der weisse Textkasten echter Battle-Spirits-Karten */
+.card-info-panel { background: linear-gradient(180deg, rgba(236,238,246,0.96), rgba(212,215,230,0.96)); border-top: 1px solid rgba(255,200,90,0.7); }
 .card-type-strip {
-  padding: 2px 5px; font-size: 0.37rem; text-transform: uppercase; letter-spacing: 0.5px;
-  background: rgba(0,0,0,0.58); border-top: 1px solid rgba(255,255,255,0.09);
-  display: flex; justify-content: space-between; align-items: center; color: rgba(200,200,255,0.8);
+  padding: 1px 5px 2px; font-size: 0.37rem; text-transform: uppercase; letter-spacing: 0.5px;
+  display: flex; justify-content: space-between; align-items: center; color: #4a5070;
+  border-top: 1px solid rgba(110,120,160,0.35);
 }
-.color-Red .card-type-strip    { color: rgba(255,155,125,0.88); border-top-color: rgba(200,55,25,0.4); }
-.color-Blue .card-type-strip   { color: rgba(120,165,255,0.88); border-top-color: rgba(25,75,220,0.4); }
-.color-Purple .card-type-strip { color: rgba(210,145,255,0.88); border-top-color: rgba(115,30,195,0.4); }
-.flash-tag { color: #55ffbb; font-size: 0.34rem; font-weight: bold; background: rgba(0,90,70,0.35); border-radius: 2px; padding: 0 2px; }
+.flash-tag { color: #fff; font-size: 0.34rem; font-weight: bold; background: #0a7a55; border-radius: 2px; padding: 0 2px; }
 .card-bp-strip {
-  padding: 1px 5px 3px; background: rgba(0,0,0,0.68);
+  padding: 2px 5px 1px;
   display: flex; flex-wrap: wrap; gap: 3px; align-items: center;
-  border-top: 1px solid rgba(255,200,80,0.1);
 }
-.bp-lv { font-size: 0.37rem; color: rgba(240,195,75,0.65); white-space: nowrap; }
-.bp-lv.active-lv { color: #ffee22; font-weight: bold; text-shadow: 0 0 7px rgba(255,240,0,0.85); }
-.card-brave-cond { padding: 1px 5px 2px; font-size: 0.34rem; color: rgba(195,150,255,0.82); background: rgba(65,0,105,0.58); font-style: italic; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.spirit-cores { position: absolute; bottom: 34px; right: 3px; display: flex; flex-wrap: wrap; gap: 2px; max-width: 28px; justify-content: flex-end; z-index: 3; }
+.bp-lv { font-size: 0.37rem; color: #59607f; white-space: nowrap; font-weight: 600; }
+.bp-lv.active-lv { color: #c0101f; font-weight: bold; text-shadow: 0 0 4px rgba(255,120,90,0.45); }
+.card-brave-cond { padding: 1px 5px 2px; font-size: 0.34rem; color: #fff; background: linear-gradient(90deg, #9c0e1c, #cf1f2e); font-weight: bold; letter-spacing: 0.3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.card-color-gem { position: absolute; bottom: 4px; right: 4px; width: 11px; height: 11px; z-index: 3; }
+.spirit-cores { position: absolute; bottom: 52px; right: 3px; display: flex; flex-wrap: wrap; gap: 2px; max-width: 28px; justify-content: flex-end; z-index: 3; }
 .spirit-core-dot { width: 5px; height: 5px; border-radius: 50%; background: radial-gradient(circle at 28% 28%, #aafff0, #00ccaa); box-shadow: 0 0 4px rgba(51,255,200,0.95); }
-.brave-badge { position: absolute; bottom: 34px; left: 3px; font-size: 0.38rem; background: linear-gradient(135deg, #ffaa00, #ff5500); color: #000; border-radius: 3px; padding: 1px 3px; font-weight: bold; z-index: 4; letter-spacing: 0.3px; }
+.brave-badge { position: absolute; bottom: 52px; left: 3px; font-size: 0.38rem; background: linear-gradient(135deg, #ffaa00, #ff5500); color: #000; border-radius: 3px; padding: 1px 3px; font-weight: bold; z-index: 4; letter-spacing: 0.3px; }
 .card-back-design { flex: 1; display: flex; align-items: center; justify-content: center; background: repeating-linear-gradient(45deg, rgba(50,50,110,0.32), rgba(50,50,110,0.32) 5px, rgba(28,28,80,0.32) 5px, rgba(28,28,80,0.32) 10px); font-size: 1.1rem; color: rgba(75,75,175,0.32); }
 /* ── CENTER / SIDEBAR ───────────────────────────── */
 #center-strip {
@@ -450,7 +462,7 @@ body {
 .card.draw-fly { animation:draw-fly 0.44s ease-out !important; }
 /* ── CARD ZOOM / TRASH MODALS ─────────── */
 #card-zoom-box { max-width:320px; }
-.zoom-art { width:140px; height:105px; margin:0 auto 12px; display:block; font-size:3.2rem; text-align:center; }
+.zoom-art { width:100%; height:170px; margin:0 auto 12px; display:block; font-size:3.2rem; text-align:center; border-radius:10px; overflow:hidden; border:1.5px solid rgba(255,200,90,0.6); box-shadow:0 0 24px rgba(0,0,0,0.55), inset 0 0 18px rgba(255,190,80,0.12); }
 .zoom-art svg { width:100%; height:100%; }
 #trash-modal-cards { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-height:58vh; overflow-y:auto; padding:8px; }
 /* ── ANIME FX: HINTERGRUND-NEBEL ──────── */
@@ -574,16 +586,16 @@ body::before { content:''; position:fixed; inset:-15%; z-index:-1; pointer-event
 @keyframes ray-converge { 0%{transform:rotate(var(--ra,0deg)) translateX(150px) scaleX(1);opacity:0;} 30%{opacity:1;} 100%{transform:rotate(var(--ra,0deg)) translateX(6px) scaleX(0.2);opacity:0.95;} }
 /* ── ANIME FX 2: ARENA-BODEN ──────────── */
 .field-area::before { content:''; position:absolute; left:50%; bottom:-34%; width:78%; height:92%; transform:translateX(-50%); border-radius:50%; pointer-events:none; z-index:0;
-  border:2px solid rgba(120,140,255,0.42);
+  border:2px solid rgba(170,122,38,0.5);
   background:
-    radial-gradient(closest-side, transparent 60%, rgba(110,130,255,0.16) 62%, transparent 66%, transparent 77%, rgba(110,130,255,0.12) 79%, transparent 83%),
-    repeating-conic-gradient(from 0deg, rgba(110,130,255,0.08) 0deg 5deg, transparent 5deg 22.5deg);
-  box-shadow: 0 0 34px rgba(90,110,255,0.24), inset 0 0 56px rgba(90,110,255,0.18); }
-.field-area.ai-field::before { bottom:auto; top:-34%; border-color:rgba(255,125,95,0.42);
+    radial-gradient(closest-side, transparent 60%, rgba(165,120,40,0.2) 62%, transparent 66%, transparent 77%, rgba(165,120,40,0.15) 79%, transparent 83%),
+    repeating-conic-gradient(from 0deg, rgba(150,105,30,0.1) 0deg 5deg, transparent 5deg 22.5deg);
+  box-shadow: 0 0 30px rgba(200,150,50,0.28), inset 0 0 50px rgba(180,130,40,0.22); }
+.field-area.ai-field::before { bottom:auto; top:-34%; border-color:rgba(170,122,38,0.5);
   background:
-    radial-gradient(closest-side, transparent 60%, rgba(255,115,85,0.16) 62%, transparent 66%, transparent 77%, rgba(255,115,85,0.12) 79%, transparent 83%),
-    repeating-conic-gradient(from 0deg, rgba(255,115,85,0.08) 0deg 5deg, transparent 5deg 22.5deg);
-  box-shadow: 0 0 34px rgba(255,90,70,0.24), inset 0 0 56px rgba(255,90,70,0.18); }
+    radial-gradient(closest-side, transparent 60%, rgba(165,120,40,0.2) 62%, transparent 66%, transparent 77%, rgba(165,120,40,0.15) 79%, transparent 83%),
+    repeating-conic-gradient(from 0deg, rgba(150,105,30,0.1) 0deg 5deg, transparent 5deg 22.5deg);
+  box-shadow: 0 0 30px rgba(200,150,50,0.28), inset 0 0 50px rgba(180,130,40,0.22); }
 /* ── ANIME FX 3: STERNENHIMMEL & BODENLICHT ── */
 body::after { content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
   background-image:
@@ -600,6 +612,10 @@ body::after { content:''; position:fixed; inset:0; z-index:-1; pointer-events:no
   animation: star-twinkle 5s ease-in-out infinite alternate; }
 @keyframes star-twinkle { 0%{opacity:0.45;} 100%{opacity:1;} }
 .field-area .card { filter: drop-shadow(0 10px 8px rgba(0,0,30,0.6)); }
+/* ── ANIME FX 5: STERNBILD-BESCHWÖRUNGSKREIS ── */
+.constellation-wrap { position:fixed; z-index:648; pointer-events:none; transform:translate(-50%,-50%); animation: constel-in 1.3s ease-out forwards; }
+@keyframes constel-in { 0%{opacity:0;transform:translate(-50%,-50%) scale(0.22) rotate(-16deg);} 16%{opacity:0.95;} 68%{opacity:0.95;transform:translate(-50%,-50%) scale(1) rotate(2deg);} 100%{opacity:0;transform:translate(-50%,-50%) scale(1.12) rotate(5deg);} }
+.constellation-wrap svg { display:block; overflow:visible; }
 /* ── ANIME FX 4: EGO-PERSPEKTIVE (Dans Sicht) ── */
 /* Dein Feld: Tischfläche kippt nach hinten, Spirits stehen aufrecht darauf */
 #player-field { overflow:visible; transform:perspective(1100px) rotateX(24deg); transform-origin:50% 100%; transform-style:preserve-3d; min-height:150px; align-items:flex-end; padding-bottom:10px; }
@@ -619,8 +635,11 @@ body::after { content:''; position:fixed; inset:0; z-index:-1; pointer-events:no
 /* Deine Hand: gross, wie selbst gehalten */
 #player-hand { transform:scale(1.12); transform-origin:50% 100%; position:relative; z-index:6; }
 /* Dein Pult/Konsole direkt vor dir */
-#player-console { background:linear-gradient(180deg, rgba(28,34,86,0.92), rgba(10,12,40,0.96)); border:1px solid rgba(95,115,255,0.45); border-radius:10px; padding:6px 14px; position:relative; z-index:5;
-  box-shadow: 0 5px 18px rgba(0,0,25,0.55), inset 0 1px 0 rgba(145,165,255,0.2), 0 0 22px rgba(70,90,255,0.15); }
+#player-console { background:linear-gradient(180deg, #dde1e9 0%, #aab2c0 28%, #5e6675 62%, #3a4150 100%); border:1px solid #99a2b4; border-radius:10px; padding:6px 14px; position:relative; z-index:5;
+  box-shadow: 0 6px 16px rgba(0,0,15,0.6), inset 0 2px 3px rgba(255,255,255,0.6), inset 0 -5px 10px rgba(12,16,30,0.5), 0 0 20px rgba(120,140,200,0.15); }
+#player-console .player-label { color:#16203a; text-shadow:0 1px 0 rgba(255,255,255,0.5); }
+#player-console .life-label, #player-console .reserve-label { color:#26304c; }
+#player-console .deck-count { color:#26304c; }
 /* Der Gegner steht dir gegenüber */
 #opponent-figure { position:absolute; top:4px; left:50%; width:118px; height:118px; z-index:0; opacity:0.92; pointer-events:none; border-radius:50%; overflow:hidden;
   border:2px solid rgba(200,80,255,0.45); box-shadow: 0 0 34px rgba(150,50,255,0.4), 0 0 80px rgba(120,30,220,0.2);
@@ -802,7 +821,7 @@ body::after { content:''; position:fixed; inset:0; z-index:-1; pointer-events:no
     <h2 id="card-zoom-name"></h2>
     <div id="card-zoom-type" style="font-size:0.68rem;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;"></div>
     <div id="card-zoom-stats"></div>
-    <div id="card-zoom-effect" style="color:#99aaff;font-size:0.74rem;margin-top:12px;line-height:1.52;border-top:1px solid rgba(65,65,145,0.45);padding-top:10px;"></div>
+    <div id="card-zoom-effect" style="background:linear-gradient(180deg,#eceef6,#dcdfe9);color:#252c4a;font-size:0.74rem;margin-top:12px;line-height:1.5;border-radius:8px;padding:10px;border:1px solid rgba(140,150,190,0.6);text-align:left;"></div>
     <br/><button class="modal-btn" onclick="document.getElementById('card-zoom-modal').style.display='none'">Schließen [Rechtsklick]</button>
   </div>
 </div>
@@ -959,12 +978,12 @@ function playCard(w,idx){
   else if(def.type==='Nexus'){if(ph!=='main1'&&ph!=='main2'){log('Nexus nur in der Hauptphase.','log-system');return;}if(!canAfford(w,id)){log(`Nicht genug Cores für Nexus!`,'log-system');return;}playNexus(w,idx);}
   else if(def.type==='Burst'){if(ph!=='main1'&&ph!=='main2'){log('Burst nur in der Hauptphase verdeckt auslegen.','log-system');return;}playBurst(w,idx);}
 }
-function summonS(w,idx){const p=gp(w);const id=p.hand[idx];const def=CARD_DB[id];const disc=symDiscount(w,id);p.hand.splice(idx,1);p.reserve-=(def.cost-disc);const inst=makeSI(id,w);p.field.push(inst);log(`${cap(w)} beschwört ${def.name}! (${sBP(inst).toLocaleString()} BP)${disc>0?` [-${disc} Rabatt]`:''}`,'log-summon');if(def.flash&&state.flashWindow)log(`${def.name} via Flash!`,'log-summon');showSummonBeam(w);if(def.type==='Ultimate'||def.cost>=6)showCardCutIn(def);if(def.effectId==='draw-on-summon'){drawCard(w);log(`${def.name}: ${cap(w)} zieht 1 Karte!`,'log-system');}if(def.effectId==='gain-2-on-summon'){const g=Math.min(2,state.void);state.void-=g;p.reserve+=g;log(`${def.name}: ${cap(w)} erhält ${g} Cores!`,'log-system');}render();}
+function summonS(w,idx){const p=gp(w);const id=p.hand[idx];const def=CARD_DB[id];const disc=symDiscount(w,id);p.hand.splice(idx,1);p.reserve-=(def.cost-disc);const inst=makeSI(id,w);p.field.push(inst);log(`${cap(w)} beschwört ${def.name}! (${sBP(inst).toLocaleString()} BP)${disc>0?` [-${disc} Rabatt]`:''}`,'log-summon');if(def.flash&&state.flashWindow)log(`${def.name} via Flash!`,'log-summon');showSummonBeam(w);if(def.cost>=4||def.type==='Ultimate')showConstellation(w,def);if(def.type==='Ultimate'||def.cost>=6)showCardCutIn(def);if(def.effectId==='draw-on-summon'){drawCard(w);log(`${def.name}: ${cap(w)} zieht 1 Karte!`,'log-system');}if(def.effectId==='gain-2-on-summon'){const g=Math.min(2,state.void);state.void-=g;p.reserve+=g;log(`${def.name}: ${cap(w)} erhält ${g} Cores!`,'log-system');}render();}
 function castMagic(w,idx){const p=gp(w);const id=p.hand[idx];const def=CARD_DB[id];if(!canAfford(w,id)){log(`Nicht genug Cores!`,'log-system');return;}const disc=symDiscount(w,id);if(def.effectId==='bounce-all'){p.hand.splice(idx,1);p.reserve-=(def.cost-disc);p.trash.push(id);execEff(def.effectId,w,null);render();return;}if(def.targetType==='opponent-spirit'||def.targetType==='any-spirit'){openMagicM(w,idx,def,disc);return;}p.hand.splice(idx,1);p.reserve-=(def.cost-disc);p.trash.push(id);if(def.effectId)execEff(def.effectId,w,null);render();}
 function openMagicM(w,idx,def,disc=0){const op=opp(w);const oP=gp(op);const pP=gp(w);const list=document.getElementById('magic-target-list');list.innerHTML='';let targets=[];if(def.targetType==='opponent-spirit')targets=oP.field;else targets=[...oP.field,...pP.field];if(!targets.length){log('Keine gültigen Ziele!','log-system');return;}document.getElementById('magic-modal-desc').textContent=`${def.name}: ${def.effect}`;for(const inst of targets){const d=CARD_DB[inst.cardId];const btn=document.createElement('button');btn.className='modal-btn';btn.textContent=`${d.art} ${d.name} (BP: ${sBP(inst).toLocaleString()}) [${inst.owner}]`;btn.onclick=()=>{document.getElementById('magic-modal').style.display='none';const p=gp(w);p.hand.splice(idx,1);p.reserve-=(def.cost-disc);p.trash.push(def.id);log(`${cap(w)} spielt ${def.name}!`,'log-magic');execEff(def.effectId,w,inst);render();};list.appendChild(btn);}document.getElementById('magic-modal').style.display='flex';}
 document.getElementById('magic-cancel-btn').addEventListener('click',()=>document.getElementById('magic-modal').style.display='none');
 function execEff(eid,caster,target){const op=opp(caster);switch(eid){case'destroy-low-bp':if(!target)break;if(isUltimate(target)){log(`${CARD_DB[target.cardId].name} ist immun (Ultimate)!`,'log-magic');break;}{const bp=sBP(target);if(bp<=5000){log(`Dragon Breath zerstört ${CARD_DB[target.cardId].name}!`,'log-magic');destroySpirit(target.owner,target);}else log(`Dragon Breath schlägt fehl: ${CARD_DB[target.cardId].name} hat ${bp.toLocaleString()} BP.`,'log-magic');}break;case'bounce-all':{const oPP=gp(op);const b=[...oPP.field];for(const i of b){oPP.hand.push(i.cardId);oPP.reserve+=i.cores;log(`${CARD_DB[i.cardId].name} zurück auf die Hand.`,'log-magic');}oPP.field=[];log('Tidal Wave! Alle Gegner-Spirits zurückgeschickt!','log-magic');}break;case'debuff-bp':if(!target)break;if(isUltimate(target)){log(`${CARD_DB[target.cardId].name} ist immun!`,'log-magic');break;}state.tempBpDebuffs.push({uid:target.uid,amount:2000});log(`Shadow Veil: ${CARD_DB[target.cardId].name} bekommt -2000 BP!`,'log-magic');break;case'burn-core':if(!target)break;target.cores=Math.max(0,target.cores-1);log(`${CARD_DB[target.cardId].name} verliert 1 Core! (${target.cores} übrig)`,'log-battle');if(target.cores===0)destroySpirit(target.owner,target);break;case'destroy-8k':if(!target)break;if(isUltimate(target)){log(`${CARD_DB[target.cardId].name} ist immun!`,'log-magic');break;}{const bp=sBP(target);if(bp<=8000){log(`Dracheninferno zerstört ${CARD_DB[target.cardId].name}!`,'log-magic');destroySpirit(target.owner,target);}else log(`Dracheninferno schlägt fehl!`,'log-magic');}break;case'draw-two':drawCard(caster);drawCard(caster);log(`${cap(caster)} zieht 2 Karten!`,'log-system');break;case'bounce-one':if(!target)break;if(isUltimate(target)){log(`${CARD_DB[target.cardId].name} ist immun!`,'log-magic');break;}{const bp=sBP(target);if(bp<=5000){const to=target.owner;const pr=gp(to);const fi=pr.field.indexOf(target);if(fi!==-1){pr.field.splice(fi,1);state.void+=target.cores;if(target.brave)state.void+=1;pr.hand.push(target.cardId);log(`Blitz-Drachensturm: ${CARD_DB[target.cardId].name} zurück auf die Hand!`,'log-magic');}}else log(`Blitz-Drachensturm schlägt fehl!`,'log-magic');}break;}}
-function openBraveM(w,idx){const p=gp(w);const id=p.hand[idx];const def=CARD_DB[id];if(!canAfford(w,id)){log(`Nicht genug Cores für Brave!`,'log-system');return;}const disc=symDiscount(w,id);const list=document.getElementById('brave-target-list');list.innerHTML='';const el=p.field.filter(i=>CARD_DB[i.cardId].color===def.braveCondition&&!i.brave);if(!el.length){log(`Keine gültigen Ziele für ${def.name}!`,'log-brave');return;}document.getElementById('brave-modal-desc').textContent=`${def.name} (+${def.bpBonus} BP) anlegen:`;for(const inst of el){const sd=CARD_DB[inst.cardId];const btn=document.createElement('button');btn.className='modal-btn';btn.textContent=`${sd.art} ${sd.name} (BP: ${sBP(inst).toLocaleString()} → ${(sBP(inst)+def.bpBonus).toLocaleString()})`;btn.onclick=()=>{document.getElementById('brave-modal').style.display='none';p.hand.splice(idx,1);p.reserve-=(def.cost-disc);inst.brave=def.id;log(`${cap(w)} legt ${def.name} an ${sd.name}!${disc>0?` [-${disc}]`:''}`,'log-brave');showBraveTransform();showCardCutIn(def);render();};list.appendChild(btn);}document.getElementById('brave-modal').style.display='flex';}
+function openBraveM(w,idx){const p=gp(w);const id=p.hand[idx];const def=CARD_DB[id];if(!canAfford(w,id)){log(`Nicht genug Cores für Brave!`,'log-system');return;}const disc=symDiscount(w,id);const list=document.getElementById('brave-target-list');list.innerHTML='';const el=p.field.filter(i=>CARD_DB[i.cardId].color===def.braveCondition&&!i.brave);if(!el.length){log(`Keine gültigen Ziele für ${def.name}!`,'log-brave');return;}document.getElementById('brave-modal-desc').textContent=`${def.name} (+${def.bpBonus} BP) anlegen:`;for(const inst of el){const sd=CARD_DB[inst.cardId];const btn=document.createElement('button');btn.className='modal-btn';btn.textContent=`${sd.art} ${sd.name} (BP: ${sBP(inst).toLocaleString()} → ${(sBP(inst)+def.bpBonus).toLocaleString()})`;btn.onclick=()=>{document.getElementById('brave-modal').style.display='none';p.hand.splice(idx,1);p.reserve-=(def.cost-disc);inst.brave=def.id;log(`${cap(w)} legt ${def.name} an ${sd.name}!${disc>0?` [-${disc}]`:''}`,'log-brave');showBraveTransform();showConstellation(w,def);showCardCutIn(def);render();};list.appendChild(btn);}document.getElementById('brave-modal').style.display='flex';}
 document.getElementById('brave-cancel-btn').addEventListener('click',()=>document.getElementById('brave-modal').style.display='none');
 function playNexus(w,idx){const p=gp(w);const id=p.hand[idx];const def=CARD_DB[id];const disc=symDiscount(w,id);p.hand.splice(idx,1);p.reserve-=(def.cost-disc);p.nexus.push(id);log(`${cap(w)} legt ${def.name} aus!${disc>0?` [-${disc}]`:''}`,'log-summon');render();}
 function playBurst(w,idx){const p=gp(w);const id=p.hand[idx];if(p.burst)p.trash.push(p.burst);p.hand.splice(idx,1);p.burst=id;log(`${cap(w)} legt Burst-Karte verdeckt aus!`,'log-system');render();}
@@ -976,8 +995,8 @@ function showBraveTransform(){const el=document.getElementById('brave-flash');if
 function showSummonBeam(owner){const field=document.getElementById(owner==='player'?'player-field':'ai-field');if(!field)return;const r=field.getBoundingClientRect();const x=r.left+r.width*(0.2+Math.random()*0.6);const beam=document.createElement('div');beam.className='summon-beam';const col=owner==='player'?'rgba(120,180,255,0.9)':'rgba(255,100,70,0.9)';beam.style.background=`linear-gradient(0deg,${col} 0%,rgba(255,255,255,0.7) 30%,rgba(255,255,255,0.3) 65%,transparent 100%)`;beam.style.boxShadow=`0 0 30px ${col},0 0 60px ${col}`;beam.style.left=x+'px';if(owner==='player'){beam.style.bottom=(window.innerHeight-r.bottom)+'px';}else{beam.style.top=r.top+'px';beam.style.transform='translateX(-50%) scaleY(-1)';}document.body.appendChild(beam);const cyc=owner==='player'?r.bottom-10:r.top+10;for(const inner of[false,true]){const ring=document.createElement('div');ring.className='summon-circle'+(inner?' inner':'');ring.style.left=x+'px';ring.style.top=cyc+'px';ring.style.borderColor=col;ring.style.boxShadow=`0 0 18px ${col}`;document.body.appendChild(ring);setTimeout(()=>ring.remove(),900);}setTimeout(()=>beam.remove(),720);}
 function shatterLifeOrb(w){const orbsEl=document.getElementById(w==='player'?'player-life-orbs':'ai-life-orbs');if(!orbsEl)return;const orbs=[...orbsEl.querySelectorAll('.life-orb:not(.empty)')];if(!orbs.length)return;const orb=orbs[orbs.length-1];const rect=orb.getBoundingClientRect();const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
 // Standalone shattering orb on body so the upcoming render() can't wipe it mid-animation
-const ghost=document.createElement('div');ghost.className='life-orb shattering';ghost.style.position='fixed';ghost.style.left=rect.left+'px';ghost.style.top=rect.top+'px';ghost.style.width=rect.width+'px';ghost.style.height=rect.height+'px';ghost.style.margin='0';ghost.style.zIndex='805';ghost.style.pointerEvents='none';document.body.appendChild(ghost);setTimeout(()=>ghost.remove(),470);
-for(let i=0;i<12;i++){const fr=document.createElement('div');fr.className='orb-fragment';const angle=(i/12)*Math.PI*2+(Math.random()-0.5)*0.6;const dist=20+Math.random()*36;fr.style.left=cx+'px';fr.style.top=cy+'px';fr.style.setProperty('--fx',Math.cos(angle)*dist+'px');fr.style.setProperty('--fy',Math.sin(angle)*dist+'px');fr.style.setProperty('--fdur',(0.35+Math.random()*0.35)+'s');document.body.appendChild(fr);setTimeout(()=>fr.remove(),750);}}
+const ghost=document.createElement('div');ghost.className='life-orb shattering'+(w==='ai'?' ai-shard':'');ghost.style.position='fixed';ghost.style.left=rect.left+'px';ghost.style.top=rect.top+'px';ghost.style.width=rect.width+'px';ghost.style.height=rect.height+'px';ghost.style.margin='0';ghost.style.zIndex='805';ghost.style.pointerEvents='none';document.body.appendChild(ghost);setTimeout(()=>ghost.remove(),470);
+const fc=w==='player'?['#ffd64e','#fff0a8']:['#bb6bff','#e6c6ff'];for(let i=0;i<12;i++){const fr=document.createElement('div');fr.className='orb-fragment';const angle=(i/12)*Math.PI*2+(Math.random()-0.5)*0.6;const dist=20+Math.random()*36;fr.style.left=cx+'px';fr.style.top=cy+'px';fr.style.background=fc[i%2];fr.style.boxShadow='0 0 7px '+fc[i%2];fr.style.setProperty('--fx',Math.cos(angle)*dist+'px');fr.style.setProperty('--fy',Math.sin(angle)*dist+'px');fr.style.setProperty('--fdur',(0.35+Math.random()*0.35)+'s');document.body.appendChild(fr);setTimeout(()=>fr.remove(),750);}}
 function initArenaParticles(){const board=document.getElementById('board');if(!board)return;board.querySelectorAll('.arena-particle').forEach(p=>p.remove());const cols=['rgba(80,110,255,0.6)','rgba(255,70,60,0.6)','rgba(255,190,60,0.55)','rgba(51,255,200,0.5)','rgba(180,80,255,0.5)'];for(let i=0;i<24;i++){const p=document.createElement('div');p.className='arena-particle';const s=2+Math.random()*4,c=cols[Math.floor(Math.random()*cols.length)];p.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;top:${8+Math.random()*82}%;background:${c};box-shadow:0 0 ${s+2}px ${c};--pdur:${3+Math.random()*5}s;--pdelay:${-Math.random()*6}s;--popacity:${0.3+Math.random()*0.45};`;board.appendChild(p);}}
 /* ── ANIME FX ENGINE ─────────────────── */
 function shakeScreen(hard=false){const el=document.getElementById('game-container');if(!el)return;const cls=hard?'shaking-hard':'shaking';el.classList.remove('shaking','shaking-hard');void el.offsetWidth;el.classList.add(cls);setTimeout(()=>el.classList.remove(cls),hard?700:460);}
@@ -997,6 +1016,7 @@ const FX_COLS={Red:'#ff5533',Blue:'#4488ff',Purple:'#bb55ff',White:'#ccccee',Yel
 function showCardCutIn(def){const box=document.getElementById('card-cutin');if(!box)return;const art=cardSVG(def.id)||`<div style="font-size:3rem">${def.art||'✦'}</div>`;box.innerHTML=`<div class="cutin-panel"><div class="cutin-art">${art}</div><div><div class="cutin-type">${def.type} · ${def.color}</div><div class="cutin-name">${def.name}</div></div></div>`;box.style.display='block';flashSpeedLines();setTimeout(()=>{box.style.display='none';box.innerHTML='';},1300);}
 function showPhaseCallout(text){const el=document.getElementById('phase-callout');if(!el)return;el.textContent=text;el.style.display='none';void el.offsetWidth;el.style.display='block';setTimeout(()=>{el.style.display='none';},1060);}
 function chargeAura(inst){const el=fieldCardEl(inst.uid);if(!el)return;const r=el.getBoundingClientRect();const def=CARD_DB[inst.cardId];const col=FX_COLS[def.color]||'#ffcc44';for(let i=0;i<10;i++){const p=document.createElement('div');p.className='charge-orb';p.style.cssText=`left:${r.left+4+Math.random()*Math.max(r.width-8,1)}px;top:${r.top+r.height*0.5+Math.random()*Math.max(r.height*0.45,1)}px;background:${col};box-shadow:0 0 8px ${col};animation-delay:${(Math.random()*0.3).toFixed(2)}s;--chd:${(0.5+Math.random()*0.3).toFixed(2)}s;`;document.body.appendChild(p);setTimeout(()=>p.remove(),1150);}}
+function showConstellation(owner,def){const field=document.getElementById(owner==='player'?'player-field':'ai-field');if(!field)return;const r=field.getBoundingClientRect();const x=r.left+r.width/2;const y=owner==='player'?r.top+8:r.bottom-8;const col=FX_COLS[def.color]||'#ff5533';const n=7+Math.floor(Math.random()*4);const pts=[];let a=Math.random()*Math.PI*2;for(let i=0;i<n;i++){a+=0.5+Math.random()*0.9;const d=30+Math.random()*70;pts.push([160+Math.cos(a)*d,160+Math.sin(a)*d]);}const poly=pts.map(p=>p.map(v=>v.toFixed(1)).join(',')).join(' ');const stars=pts.map(([px,py],i)=>{const rr=(i%3===0)?4:2.6;let s=`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${rr}" fill="#ffe9a0"/>`;if(i%3===0)s+=`<path d="M${(px-8).toFixed(1)} ${py.toFixed(1)}H${(px+8).toFixed(1)}M${px.toFixed(1)} ${(py-8).toFixed(1)}V${(py+8).toFixed(1)}" stroke="#fff" stroke-width="1" opacity="0.85"/>`;return s;}).join('');const wrap=document.createElement('div');wrap.className='constellation-wrap';wrap.style.left=x+'px';wrap.style.top=y+'px';wrap.innerHTML=`<svg width="320" height="320" viewBox="0 0 320 320" style="filter:drop-shadow(0 0 12px ${col}) drop-shadow(0 0 32px ${col})"><circle cx="160" cy="160" r="150" fill="${col}" opacity="0.07"/><circle cx="160" cy="160" r="150" fill="none" stroke="${col}" stroke-width="2.5" opacity="0.95"/><circle cx="160" cy="160" r="139" fill="none" stroke="${col}" stroke-width="1" stroke-dasharray="5 9" opacity="0.8"/><circle cx="160" cy="160" r="118" fill="none" stroke="${col}" stroke-width="1.4" opacity="0.7"/><polyline points="${poly}" fill="none" stroke="${col}" stroke-width="1.6" opacity="0.95"/>${stars}</svg>`;document.body.appendChild(wrap);spawnSparks(x,y,12,[col,'#ffffff','#ffe9a0']);setTimeout(()=>wrap.remove(),1350);}
 function showVSScreen(done){const scr=document.getElementById('vs-screen');if(!scr){done();return;}const isMai=selOpponent==='mai';document.getElementById('vs-portrait-left').innerHTML=DAN_SVG;document.getElementById('vs-portrait-right').innerHTML=isMai?MAI_SVG:BARONE_SVG;document.getElementById('vs-name-right').textContent=isMai?'MAI':'BARONE';scr.querySelector('.vs-right').classList.toggle('mai',isMai);scr.classList.remove('vs-out');scr.style.display='block';setTimeout(()=>{flashSpeedLines('vs-lines');},420);setTimeout(()=>{scr.classList.add('vs-out');screenFlash('rgba(255,255,255,0.9)',450);},2250);setTimeout(()=>{scr.style.display='none';scr.classList.remove('vs-out');done();},2680);}
 function assignSoulCore(){if(state.activePlayer!=='player'||!state.player.soulCore)return;if(curPhase()!=='main1'&&curPhase()!=='main2'){log('Soul Core nur in der Hauptphase anlegen.','log-system');return;}const p=state.player;if(!p.field.length){log('Keine Spirits für Soul Core vorhanden.','log-system');return;}const list=document.getElementById('soul-core-list');list.innerHTML='';for(const inst of p.field){const sd=CARD_DB[inst.cardId];const btn=document.createElement('button');btn.className='modal-btn';btn.textContent=`${sd.art} ${sd.name} (${sBP(inst).toLocaleString()} → ${(sBP(inst)+2000).toLocaleString()} BP)`;btn.onclick=()=>{document.getElementById('soul-core-modal').style.display='none';p.soulCoreOn=inst.uid;p.soulCore=false;log(`Soul Core auf ${sd.name}! (+2000 BP)`,'log-brave');render();};list.appendChild(btn);}document.getElementById('soul-core-modal').style.display='flex';}
 function playerAtk(inst){if(state.gameOver||state.animating)return;if(curPhase()!=='attack'){log('Nicht in der Angriffsphase!','log-system');return;}if(state.activePlayer!=='player'||inst.owner!=='player')return;if(state.turn===1){log('Im ersten Zug darf man nicht angreifen! (Battle Spirits Regel)','log-system');return;}const def=CARD_DB[inst.cardId];const be=inst.brave?CARD_DB[inst.brave].effectId:null;const hasDS=def.effectId==='double-strike'||def.effectId==='nova-double-strike'||be==='brave-double-strike';if(inst.exhausted&&!(hasDS&&!inst.usedDoubleStrike)){log(`${def.name} kann nicht mehr angreifen.`,'log-system');return;}state.selectedAttacker=inst;inst.exhausted=true;log(`${def.name} greift an!`,'log-battle');showSignatureAtk(inst.cardId);state.flashWindow=true;render();chargeAura(inst);setTimeout(()=>resolvePAtk(inst),300);}
@@ -1011,7 +1031,7 @@ function openBlockM(atk,atkO){state.attackingWith={inst:atk,owner:atkO};const de
 document.getElementById('block-pass-btn').addEventListener('click',()=>{document.getElementById('block-modal').style.display='none';const{inst,owner}=state.attackingWith;log('Spieler nimmt den Lebens-Treffer!','log-life');animDirectHit(inst,'player',()=>{applyAtkEff(inst,owner);removeLife('player');if(!state.gameOver)contAI();});});
 function runAI(){if(state.gameOver||state.activePlayer!=='ai')return;switch(curPhase()){case'main1':aiMain();break;case'attack':showPhaseCallout('⚔ ATTACK STEP!');setTimeout(aiAtk,600);break;case'main2':state.phase++;render();setTimeout(runAI,400);break;case'end':execEnd();break;}}
 function aiCores(){const p=gp('ai');if(difficulty!=='easy'&&p.soulCore&&p.field.length){const strongest=p.field.reduce((a,b)=>sBP(b)>sBP(a)?b:a);p.soulCoreOn=strongest.uid;p.soulCore=false;}let pool=p.reserve;for(const i of p.field)pool+=i.cores;for(const i of p.field)i.cores=0;if(difficulty==='easy'){const each=Math.max(1,Math.floor(pool/Math.max(p.field.length,1)));for(const i of p.field){i.cores=each;pool-=each;}p.reserve=Math.max(0,pool);}else{if(pool>=p.field.length)for(const i of p.field){i.cores=1;pool--;}const sorted=[...p.field].sort((a,b)=>CARD_DB[b.cardId].bp[0]-CARD_DB[a.cardId].bp[0]);for(const i of sorted){if(pool<=0)break;const def=CARD_DB[i.cardId];const add=Math.min(pool,def.bp.length-i.cores+1);i.cores+=add;pool-=add;}p.reserve=pool;}log('KI verteilt Cores.','log-system');}
-function aiMain(){const p=state.ai;const po=[...p.hand.entries()].sort(([,a],[,b])=>{const pr={Brave:3,Spirit:2,Magic:1};return(pr[CARD_DB[b].type]||0)-(pr[CARD_DB[a].type]||0);});const acts=[];for(const[idx,id]of po){const def=CARD_DB[id];if(!canAfford('ai',id))continue;if(def.type==='Spirit')acts.push({idx,id,def});else if(def.type==='Brave'){const el=p.field.filter(s=>CARD_DB[s.cardId].color===def.braveCondition&&!s.brave);if(el.length)acts.push({idx,id,def,bt:el[0]});}else if(def.type==='Nexus')acts.push({idx,id,def});else if(def.type==='Burst'&&!p.burst)acts.push({idx,id,def});else if(def.type==='Ultimate'&&canAfford('ai',id))acts.push({idx,id,def});else if(def.effectId==='bounce-all'&&state.player.field.length>=2)acts.push({idx,id,def});}if(!acts.length){log('KI beendet Hauptphase.','log-system');state.phase++;render();setTimeout(runAI,600);return;}function next(i){if(i>=acts.length||state.gameOver){state.phase++;render();setTimeout(runAI,600);return;}const a=acts[i];const ci=p.hand.indexOf(a.id);if(ci===-1||!canAfford('ai',a.id)){next(i+1);return;}if(a.def.type==='Spirit')summonS('ai',ci);else if(a.def.type==='Brave'&&a.bt){const bi=p.hand.indexOf(a.id);if(bi!==-1){p.hand.splice(bi,1);p.reserve-=a.def.cost;a.bt.brave=a.def.id;log(`KI legt ${a.def.name} an ${CARD_DB[a.bt.cardId].name} an!`,'log-brave');showBraveTransform();showCardCutIn(a.def);render();}}else if(a.def.type==='Nexus'){const ni=p.hand.indexOf(a.id);if(ni!==-1&&canAfford('ai',a.id)){playNexus('ai',ni);render();}}else if(a.def.type==='Burst'&&!p.burst){const bi=p.hand.indexOf(a.id);if(bi!==-1){playBurst('ai',bi);render();}}else if(a.def.effectId==='bounce-all'){const mi=p.hand.indexOf(a.id);if(mi!==-1&&canAfford('ai',a.id)){p.hand.splice(mi,1);p.reserve-=Math.max(0,a.def.cost-symDiscount('ai',a.id));p.trash.push(a.id);log('KI spielt Tidal Wave!','log-magic');execEff('bounce-all','ai',null);render();}}setTimeout(()=>next(i+1),500);}setTimeout(()=>next(0),400);}
+function aiMain(){const p=state.ai;const po=[...p.hand.entries()].sort(([,a],[,b])=>{const pr={Brave:3,Spirit:2,Magic:1};return(pr[CARD_DB[b].type]||0)-(pr[CARD_DB[a].type]||0);});const acts=[];for(const[idx,id]of po){const def=CARD_DB[id];if(!canAfford('ai',id))continue;if(def.type==='Spirit')acts.push({idx,id,def});else if(def.type==='Brave'){const el=p.field.filter(s=>CARD_DB[s.cardId].color===def.braveCondition&&!s.brave);if(el.length)acts.push({idx,id,def,bt:el[0]});}else if(def.type==='Nexus')acts.push({idx,id,def});else if(def.type==='Burst'&&!p.burst)acts.push({idx,id,def});else if(def.type==='Ultimate'&&canAfford('ai',id))acts.push({idx,id,def});else if(def.effectId==='bounce-all'&&state.player.field.length>=2)acts.push({idx,id,def});}if(!acts.length){log('KI beendet Hauptphase.','log-system');state.phase++;render();setTimeout(runAI,600);return;}function next(i){if(i>=acts.length||state.gameOver){state.phase++;render();setTimeout(runAI,600);return;}const a=acts[i];const ci=p.hand.indexOf(a.id);if(ci===-1||!canAfford('ai',a.id)){next(i+1);return;}if(a.def.type==='Spirit')summonS('ai',ci);else if(a.def.type==='Brave'&&a.bt){const bi=p.hand.indexOf(a.id);if(bi!==-1){p.hand.splice(bi,1);p.reserve-=a.def.cost;a.bt.brave=a.def.id;log(`KI legt ${a.def.name} an ${CARD_DB[a.bt.cardId].name} an!`,'log-brave');showBraveTransform();showConstellation('ai',a.def);showCardCutIn(a.def);render();}}else if(a.def.type==='Nexus'){const ni=p.hand.indexOf(a.id);if(ni!==-1&&canAfford('ai',a.id)){playNexus('ai',ni);render();}}else if(a.def.type==='Burst'&&!p.burst){const bi=p.hand.indexOf(a.id);if(bi!==-1){playBurst('ai',bi);render();}}else if(a.def.effectId==='bounce-all'){const mi=p.hand.indexOf(a.id);if(mi!==-1&&canAfford('ai',a.id)){p.hand.splice(mi,1);p.reserve-=Math.max(0,a.def.cost-symDiscount('ai',a.id));p.trash.push(a.id);log('KI spielt Tidal Wave!','log-magic');execEff('bounce-all','ai',null);render();}}setTimeout(()=>next(i+1),500);}setTimeout(()=>next(0),400);}
 function aiAtk(){if(state.gameOver)return;const aiP=state.ai;const atkers=aiP.field.filter(s=>!s.exhausted);if(!atkers.length){log('KI hat keine Angreifer.','log-system');endAttackPhase();return;}if(difficulty==='easy'&&Math.random()<0.4){log('KI greift nicht an.','log-system');endAttackPhase();return;}const atk=atkers.sort((a,b)=>sBP(b)-sBP(a))[0];const def=CARD_DB[atk.cardId];atk.exhausted=true;log(`KI greift mit ${def.name} (${sBP(atk).toLocaleString()} BP) an!`,'log-battle');showSignatureAtk(atk.cardId);if(Math.random()<0.42)triggerDialogue('aiAttacks');applyAtkEff(atk,'ai');state.flashWindow=true;render();chargeAura(atk);setTimeout(()=>{state.flashWindow=false;if(checkBurst('player',atk)){if(!state.gameOver)contAI();return;}const pb=state.player.field.filter(s=>!s.exhausted);if(pb.length)openBlockM(atk,'ai');else{log('Spieler hat keine Blocker!','log-battle');animDirectHit(atk,'player',()=>{removeLife('player');if(!state.gameOver)contAI();});}},800);}
 function contAI(){if(state.gameOver)return;render();const aiP=state.ai;const ja=aiP.field.filter(s=>{const def=CARD_DB[s.cardId];const be=s.brave?CARD_DB[s.brave].effectId:null;return(def.effectId==='double-strike'||def.effectId==='nova-double-strike'||be==='brave-double-strike')&&s.exhausted&&!s.usedDoubleStrike;});for(const s of ja){s.usedDoubleStrike=true;s.exhausted=false;}const aa=aiP.field.filter(s=>!s.exhausted);if(aa.length)setTimeout(aiAtk,800);else{log('KI beendet Angriffsphase.','log-system');endAttackPhase();}}
 function aiPickBlk(atk,cands){
@@ -1104,10 +1124,11 @@ function cardHTML(def,inst){
     }).join('');
   }
   const colorDE={Red:'Rot',Blue:'Blau',Purple:'Lila',White:'Weiß',Yellow:'Gelb',Green:'Grün'};
-  const braveCond=def.type==='Brave'&&def.braveCondition?`<div class="card-brave-cond">${colorDE[def.braveCondition]||def.braveCondition}</div>`:'';
-  const artContent=cardSVG(def.id)||def.art;
+  const braveCond=def.type==='Brave'&&def.braveCondition?`<div class="card-brave-cond">Tapfer-Bedingung: ${colorDE[def.braveCondition]||def.braveCondition}</div>`:'';
+  let artContent=cardSVG(def.id)||`<span class="card-art-emoji">${def.art}</span>`;
+  if(artContent.startsWith('<svg '))artContent=artContent.replace('<svg ','<svg preserveAspectRatio="xMidYMid slice" ');
   const ultimaBadge=def.type==='Ultimate'?`<div class="ultimate-badge">ULTIMA</div>`:'';
-  return `<div class="card-cost-circle">${def.cost}</div><div class="card-sym-row">${syms}</div><div class="card-name-bar"><span class="card-name">${def.name}</span></div><div class="card-art">${artContent}</div><div class="card-type-strip"><span>${tl}</span>${flashTag}</div>${bpHTML?`<div class="card-bp-strip">${bpHTML}</div>`:''}${braveCond}${ultimaBadge}`;
+  return `<div class="card-art">${artContent}</div><div class="card-cost-circle">${def.cost}</div><div class="card-sym-row">${syms}</div><div class="card-face"><div class="card-spacer"></div><div class="card-name-bar"><span class="card-name">${def.name}</span></div>${braveCond}<div class="card-info-panel">${bpHTML?`<div class="card-bp-strip">${bpHTML}</div>`:''}<div class="card-type-strip"><span>${tl}</span>${flashTag}</div></div></div><div class="sym-gem card-color-gem ${def.color}"></div>${ultimaBadge}`;
 }
 /* ── DIALOGUES ─────────────────────────────────────────── */
 const DIALOGUES={
@@ -1136,7 +1157,7 @@ function triggerDialogue(event){const d=selOpponent==='mai'?DIALOGUES.mai:DIALOG
 /* ── TURN BANNER ───────────────────────────────────────── */
 function showTurnBanner(isPlayer){const el=document.getElementById('turn-banner');if(!el)return;el.textContent=isPlayer?'⚔ DEIN ZUG!':'🔥 GEGNER ZUG!';el.className=isPlayer?'player-turn':'';el.style.display='block';el.style.animation='none';void el.offsetHeight;el.style.animation='banner-show 1.65s ease forwards';setTimeout(()=>{el.style.display='none';},1650);}
 /* ── CARD ZOOM ─────────────────────────────────────────── */
-function showCardZoom(def,inst){const artEl=document.getElementById('card-zoom-art');const artC=cardSVG(def.id);artEl.innerHTML=artC||`<span style="font-size:3rem">${def.art}</span>`;document.getElementById('card-zoom-name').textContent=def.name;const typeDE={Spirit:'Geist',Magic:'Magie',Brave:'Tapfer',Nexus:'Nexus',Burst:'Burst',Ultimate:'Ultimate'};document.getElementById('card-zoom-type').textContent=(typeDE[def.type]||def.type)+(def.flash?' [FLASH]':'')+(def.braveCondition?` · Tapfer(${def.braveCondition})`:'')+'  ·  '+def.color;let stats=`<div style="font-size:0.72rem;color:var(--text-dim)">Kosten: <strong style="color:var(--text-main)">${def.cost}</strong></div>`;if(def.bp){const bpStr=inst?`${sBP(inst).toLocaleString()} BP (${inst.cores} Core${inst.cores!==1?'s':''})`:def.bp.map(b=>b.toLocaleString()).join(' / ')+' BP';stats+=`<div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px">BP: <strong style="color:#ffee22">${bpStr}</strong></div>`;}if(def.bpBonus)stats+=`<div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px">BP Bonus: <strong style="color:#ffee22">+${def.bpBonus.toLocaleString()}</strong></div>`;if(def.symbols&&def.symbols.length)stats+=`<div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px">Symbole: <strong style="color:var(--text-main)">${def.symbols.join(', ')}</strong></div>`;if(def.summonCond)stats+=`<div style="font-size:0.72rem;color:#ffcc44;margin-top:4px">⚡ Beschwörungsbedingung: ${def.summonCond} Symbole</div>`;document.getElementById('card-zoom-stats').innerHTML=stats;document.getElementById('card-zoom-effect').textContent=def.effect||'— Kein Effekt —';document.getElementById('card-zoom-modal').style.display='flex';}
+function showCardZoom(def,inst){const artEl=document.getElementById('card-zoom-art');let artC=cardSVG(def.id);if(artC)artC=artC.replace('<svg ','<svg preserveAspectRatio="xMidYMid slice" ');artEl.innerHTML=artC||`<span style="font-size:3rem">${def.art}</span>`;document.getElementById('card-zoom-name').textContent=def.name;const typeDE={Spirit:'Geist',Magic:'Magie',Brave:'Tapfer',Nexus:'Nexus',Burst:'Burst',Ultimate:'Ultimate'};document.getElementById('card-zoom-type').textContent=(typeDE[def.type]||def.type)+(def.flash?' [FLASH]':'')+(def.braveCondition?` · Tapfer(${def.braveCondition})`:'')+'  ·  '+def.color;let stats=`<div style="font-size:0.72rem;color:var(--text-dim)">Kosten: <strong style="color:var(--text-main)">${def.cost}</strong></div>`;if(def.bp){const bpStr=inst?`${sBP(inst).toLocaleString()} BP (${inst.cores} Core${inst.cores!==1?'s':''})`:def.bp.map(b=>b.toLocaleString()).join(' / ')+' BP';stats+=`<div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px">BP: <strong style="color:#ffee22">${bpStr}</strong></div>`;}if(def.bpBonus)stats+=`<div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px">BP Bonus: <strong style="color:#ffee22">+${def.bpBonus.toLocaleString()}</strong></div>`;if(def.symbols&&def.symbols.length)stats+=`<div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px">Symbole: <strong style="color:var(--text-main)">${def.symbols.join(', ')}</strong></div>`;if(def.summonCond)stats+=`<div style="font-size:0.72rem;color:#ffcc44;margin-top:4px">⚡ Beschwörungsbedingung: ${def.summonCond} Symbole</div>`;document.getElementById('card-zoom-stats').innerHTML=stats;document.getElementById('card-zoom-effect').textContent=def.effect||'— Kein Effekt —';document.getElementById('card-zoom-modal').style.display='flex';}
 /* ── TRASH MODAL ───────────────────────────────────────── */
 function showTrashModal(who){if(!state)return;const p=gp(who);document.getElementById('trash-modal-title').textContent=`🗑 ${who==='player'?'Dein':'KI'} Friedhof (${p.trash.length})`;const cards=document.getElementById('trash-modal-cards');cards.innerHTML='';if(!p.trash.length){cards.innerHTML='<p style="color:var(--text-dim);font-size:0.8rem;width:100%;text-align:center;">Noch keine Karten auf dem Friedhof.</p>';} else{for(const cid of [...p.trash].reverse()){const def=CARD_DB[cid];if(!def)continue;const el=document.createElement('div');el.className=`card color-${def.color}`;el.style.cursor='default';el.innerHTML=cardHTML(def,null);attTip(el,def,null);cards.appendChild(el);}}document.getElementById('trash-modal').style.display='flex';}
 /* ── CONFETTI ───────────────────────────────────────────── */

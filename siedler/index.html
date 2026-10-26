@@ -839,7 +839,7 @@ async function handleSeven() {
     const t = total(p);
     if (t <= 7) continue;
     const n = Math.floor(t / 2);
-    const disc = p.ai ? aiDiscard(p, n) : await discardDialog(p, n);
+    const disc = p.ai ? aiDiscard(p, n) : await ask(p, 'discard', { n });
     RES.forEach(r => p.res[r] -= disc[r]);
     log(`${pname(p)} wirft ${n} Karten ab.`);
     render();
@@ -872,7 +872,7 @@ async function robberFlow(pid) {
   let victim;
   if (victims.length === 1) victim = victims[0];
   else if (p.ai) victim = victims.sort((a, b) => vp(G.players[b], false) * 2 + total(G.players[b]) - vp(G.players[a], false) * 2 - total(G.players[a]))[0];
-  else victim = await chooseVictim(victims);
+  else victim = await ask(p, 'victim', { ids: victims });
   steal(victim, pid);
   render();
 }
@@ -904,11 +904,11 @@ async function playDev(pid, idx) {
       await new Promise(res => G.pending = res);
     }
   } else if (card.type === 'plenty') {
-    const picks = p.ai ? aiPlentyPicks(p) : await chooseResources('Erfindung: Wähle 2 Rohstoffe', 2);
+    const picks = p.ai ? aiPlentyPicks(p) : await ask(p, 'resources', { title: 'Erfindung: Wähle 2 Rohstoffe', count: 2 });
     picks.forEach(r => p.res[r]++);
     log(`${pname(p)} nimmt ${picks.map(r => RINFO[r].icon).join(' ')} aus der Bank.`);
   } else if (card.type === 'monopoly') {
-    const r = p.ai ? aiMonoRes(pid).r : (await chooseResources('Monopol: Wähle einen Rohstoff', 1))[0];
+    const r = p.ai ? aiMonoRes(pid).r : (await ask(p, 'resources', { title: 'Monopol: Wähle einen Rohstoff', count: 1 }))[0];
     let sum = 0;
     G.players.forEach(o => { if (o !== p) { sum += o.res[r]; o.res[r] = 0; } });
     p.res[r] += sum;
@@ -952,6 +952,7 @@ async function nextSetup() {
 async function beginTurn() {
   G.phase = 'roll';
   G.devPlayed = false;
+  G.offered = false;
   G.mode = null;
   log(`— ${pname(cur())} ist am Zug —`);
   if (checkWin()) return;
@@ -1063,6 +1064,15 @@ function production(pid) {
   return pr;
 }
 
+const lvl = () => ({ easy: 0, normal: 1, hard: 2 })[G.level] ?? 1;
+
+// Seltene Rohstoffe sind wertvoller (nur für starke Gegner)
+function scarcity(res) {
+  const tot = r => G.hexes.reduce((t, h) => t + (h.res === r ? pips(h.num) : 0), 0);
+  const avg = RES.reduce((t, r) => t + tot(r), 0) / RES.length;
+  return Math.max(0.7, Math.min(1.5, avg / Math.max(1, tot(res))));
+}
+
 function vertexScore(pid, vid) {
   const v = G.verts[vid];
   const prod = production(pid);
@@ -1071,7 +1081,7 @@ function vertexScore(pid, vid) {
   v.hexes.forEach(h => {
     const hx = G.hexes[h];
     if (hx.res === 'wueste') return;
-    const p = pips(hx.num);
+    const p = pips(hx.num) * (lvl() === 2 ? scarcity(hx.res) : 1);
     s += p * (hx.id === G.robber ? 0.4 : 1);
     if (prod[hx.res] === 0 && !seen.has(hx.res)) s += 1.5;
     if ((hx.res === 'lehm' || hx.res === 'erz') && !seen.has(hx.res)) s += 0.5;
@@ -1089,7 +1099,7 @@ function argmax(list, score) {
 
 function aiSetup(pid, second) {
   const cands = G.verts.filter(v => settlementOk(pid, v.id, true)).map(v => v.id);
-  const vid = argmax(cands, id => vertexScore(pid, id) + Math.random() * 0.6);
+  const vid = argmax(cands, id => vertexScore(pid, id) + Math.random() * [5, 0.6, 0.15][lvl()]);
   buildSettlement(pid, vid, false);
   if (second) giveInitial(pid, vid);
   const es = G.verts[vid].edges.filter(e => roadOk(pid, e, vid));
@@ -1175,6 +1185,11 @@ function aiDiscard(p, n) {
 }
 
 function aiRobberHex(pid) {
+  if (lvl() === 0) {
+    const ok = G.hexes.filter(h => h.id !== G.robber && !h.v.some(v => G.verts[v].owner === pid));
+    const pool = ok.length ? ok : G.hexes.filter(h => h.id !== G.robber);
+    return pool[Math.floor(Math.random() * pool.length)].id;
+  }
   return argmax(G.hexes.filter(h => h.id !== G.robber).map(h => h.id), hid => {
     const h = G.hexes[hid];
     let s = 0;
@@ -1185,7 +1200,8 @@ function aiRobberHex(pid) {
       if (v.owner === pid) s -= 10 * w;
       else {
         const o = G.players[v.owner];
-        s += w * pips(h.num) * (1 + vp(o, false) / 5) + (total(o) > 0 ? 1 : 0);
+        const lead = lvl() === 2 ? 1 + vp(o, false) ** 2 / 12 : 1 + vp(o, false) / 5;
+        s += w * pips(h.num) * lead + (total(o) > 0 ? 1 : 0);
       }
     });
     return s + Math.random() * 0.1;
@@ -1234,7 +1250,7 @@ async function aiAct(p) {
   if (!G.devPlayed) {
     const playable = t => p.dev.findIndex(d => d.type === t && d.turn < G.turn);
     let i;
-    if ((i = playable('knight')) >= 0 && (robberHurts(pid) || (p.knights >= 2 && !p.army) || Math.random() < 0.2)) { await playDev(pid, i); return true; }
+    if ((i = playable('knight')) >= 0 && (robberHurts(pid) || (lvl() > 0 && ((p.knights >= 2 && !p.army) || Math.random() < 0.2)))) { await playDev(pid, i); return true; }
     if ((i = playable('monopoly')) >= 0 && aiMonoRes(pid).count >= 3) { await playDev(pid, i); return true; }
     if ((i = playable('plenty')) >= 0) { await playDev(pid, i); return true; }
     if ((i = playable('road')) >= 0 && p.roads > 0 && aiBestRoad(pid).score > 0) { await playDev(pid, i); return true; }
@@ -1251,8 +1267,37 @@ async function aiAct(p) {
     return true;
   }
   const target = aiTarget(p, spot, br);
-  if (G.deck.length && canAfford(p, COST.dev) && (target === 'dev' || total(p) > 7)) { buyDev(pid); return true; }
+  if (G.deck.length && canAfford(p, COST.dev) && ((target === 'dev' && lvl() > 0) || total(p) > 7)) { buyDev(pid); return true; }
+  if (lvl() >= 1 && !G.offered) {
+    G.offered = true;
+    if (await aiOffer(p, target)) return true;
+  }
+  if (lvl() === 0 && Math.random() < 0.5) return false;
   return aiTrade(p, target);
+}
+
+// Computer bietet den anderen einen Tausch an (einmal pro Zug)
+async function aiOffer(p, target) {
+  if (target === 'dev' && !G.deck.length) return false;
+  const cost = COST[target], miss = aiMissing(p, target);
+  const want = RES.filter(r => miss[r] > 0);
+  if (!want.length) return false;
+  const spare = RES.filter(r => !miss[r] && p.res[r] - (cost[r] || 0) >= 1).sort((a, b) => p.res[b] - p.res[a]);
+  if (!spare.length) return false;
+  const give = emptyRes(), get = emptyRes();
+  get[want[Math.floor(Math.random() * want.length)]] = 1;
+  give[spare[0]] = p.res[spare[0]] - (cost[spare[0]] || 0) >= 3 ? 2 : 1; // bei viel Überschuss großzügiger
+  for (const o of shuffle(G.players.filter(o => o !== p && RES.every(r => o.res[r] >= get[r])))) {
+    const ok = o.ai ? aiAcceptTrade(o, give, get, p) : await ask(o, 'offer', { from: p.id, give, get });
+    if (ok && RES.every(r => o.res[r] >= get[r] && p.res[r] >= give[r])) { executeTrade(p, o, give, get); return true; }
+  }
+  return false;
+}
+
+function executeTrade(a, b, give, get) {
+  RES.forEach(r => { a.res[r] += get[r] - give[r]; b.res[r] += give[r] - get[r]; });
+  log(`🤝 ${pname(a)} tauscht ${fmtRes(give)} gegen ${fmtRes(get)} mit ${pname(b)}.`);
+  Sound.play('card');
 }
 
 async function aiTurn() {
@@ -1279,6 +1324,31 @@ async function aiTurn() {
 }
 
 // ---------- Dialoge ----------
+// Alle Entscheidungen von Menschen laufen hierüber (später auch übers Netz)
+async function ask(p, kind, data) {
+  if (p.remote) return netAsk(p, kind, data);
+  return localAsk(p, kind, data);
+}
+
+function localAsk(p, kind, data) {
+  switch (kind) {
+    case 'discard': return discardDialog(p, data.n);
+    case 'victim': return chooseVictim(data.ids);
+    case 'resources': return chooseResources(data.title, data.count);
+    case 'offer': Sound.play('turn'); return offerDialog(p, data);
+  }
+}
+
+function offerDialog(p, data) {
+  const from = G.players[data.from];
+  return modal((box, close) => {
+    box.innerHTML = `<h2>🤝 Tauschangebot</h2>
+      <p>${humans().length > 1 ? `<b>${p.name}</b>: ` : ''}${pname(from)} bietet dir <b>${fmtRes(data.give)}</b> und möchte dafür <b>${fmtRes(data.get)}</b>.</p>
+      <p class="small muted">Deine Karten:</p><div class="hand">${handHtml(p)}</div>
+      <div class="btns"><button data-no>Ablehnen</button><button class="primary" data-yes>Annehmen</button></div>`;
+    box.onclick = e => { const b = e.target.closest('button'); if (b) close('yes' in b.dataset); };
+  });
+}
 function modal(setup) {
   return new Promise(resolve => {
     const box = $('#modalBox');

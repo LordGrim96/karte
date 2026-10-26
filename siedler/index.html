@@ -170,6 +170,15 @@
   .small { font-size: .85em; }
   .muted { color: var(--muted); }
   .tscroll { overflow-x: auto; }
+  .hbtns { display: flex; gap: 6px; }
+  .fly { position: fixed; left: 0; top: 0; font-size: 26px; pointer-events: none; z-index: 40; margin: -16px 0 0 -16px; filter: drop-shadow(0 2px 3px #0009); }
+  .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+  .pop { animation: pop .5s cubic-bezier(.3, 1.7, .5, 1) both; transform-box: fill-box; transform-origin: 50% 90%; }
+  .pop-c { transform-origin: 50% 50%; }
+  .drop { animation: drop .5s cubic-bezier(.3, 1.4, .5, 1) both; }
+  @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+  @keyframes drop { from { transform: translateY(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .pop, .drop, .dice.shake span.d, .ddice.shake span.d, .hl-v, .hex.pick polygon.tile { animation: none !important; } }
   #toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #000d; padding: 8px 16px; border-radius: 20px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 20; }
   #toast.show { opacity: 1; }
 
@@ -187,12 +196,13 @@
     .sp { flex: none; display: flex; align-items: center; gap: 4px; background: var(--panel2); border: 2px solid transparent; border-radius: 16px; padding: 3px 9px; font-size: .85em; white-space: nowrap; }
     .sp.active { border-color: var(--accent); }
     .sp small { color: var(--muted); }
-    #strip button { flex: none; margin-left: auto; padding: 3px 10px; border-radius: 16px; }
+    #strip button { flex: none; padding: 3px 10px; border-radius: 16px; }
+    #strip button[data-act=sound] { margin-left: auto; }
     #boardWrap { height: auto; display: block; }
     #board { height: auto; max-height: none; display: block; }
     #hint { top: 6px; font-size: .85em; }
     #side { border-left: 0; border-top: 1px solid #2a3f52; }
-    #side .plist, #side .dice, #side .handbox, #side .actions, #side .sidehead button { display: none; }
+    #side .plist, #side .dice, #side .handbox, #side .actions, #side .sidehead .hbtns { display: none; }
     #dock {
       display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 8;
       background: var(--panel); border-top: 1px solid #355068; box-shadow: 0 -6px 20px #0008;
@@ -219,6 +229,11 @@
   <h1>Inselsiedler</h1>
   <svg class="hero" id="heroBoard" viewBox="-335 -300 670 600" aria-hidden="true"></svg>
   <p>Besiedle die Insel, sammle Rohstoffe, handle geschickt und erreiche als Erster die nötigen Siegpunkte.</p>
+  <div class="card" id="resume" hidden>
+    <h3>💾 Gespeichertes Spiel</h3>
+    <p id="resumeInfo"></p>
+    <div class="btns"><button id="discardSave">Verwerfen</button><button class="primary" id="resumeBtn">Weiterspielen</button></div>
+  </div>
   <div class="card">
     <div class="settings">
       <label>Spieler <select id="nPlayers"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
@@ -712,7 +727,10 @@ function checkWin() {
   G.phase = 'over';
   G.mode = null;
   log(`🎉 ${pname(p)} gewinnt mit ${vp(p)} Siegpunkten!`);
+  clearSave();
   render();
+  Sound.play('win');
+  confetti();
   showGameOver(p);
   return true;
 }
@@ -723,6 +741,8 @@ function buildRoad(pid, eid, paid) {
   if (paid) pay(p, COST.road);
   G.edges[eid].owner = pid;
   p.roads--;
+  G.fresh = { e: eid };
+  Sound.play('road');
   log(`${pname(p)} baut eine Straße.`);
   updateLongest();
 }
@@ -732,6 +752,8 @@ function buildSettlement(pid, vid, paid) {
   if (paid) pay(p, COST.settlement);
   G.verts[vid].owner = pid;
   p.settlements--;
+  G.fresh = { v: vid };
+  Sound.play('build');
   log(`${pname(p)} baut eine Siedlung.`);
   updateLongest();
 }
@@ -741,6 +763,8 @@ function buildCity(pid, vid) {
   pay(p, COST.city);
   G.verts[vid].city = true;
   p.cities--;
+  G.fresh = { v: vid };
+  Sound.play('build');
   p.settlements++;
   log(`${pname(p)} baut eine Stadt.`);
 }
@@ -750,6 +774,7 @@ function buyDev(pid) {
   pay(p, COST.dev);
   const type = G.deck.pop();
   p.dev.push({ type, turn: G.turn });
+  Sound.play('card');
   log(`${pname(p)} kauft eine Entwicklungskarte.`);
   return type;
 }
@@ -769,6 +794,7 @@ function rollDice() {
   G.dice = [a, b];
   G.stats.rolls[a + b]++;
   G.diceAnim = true;
+  Sound.play('dice');
   const s = a + b;
   log(`🎲 ${pname(cur())} würfelt <b>${s}</b>.`);
   G.hot = G.hexes.filter(h => h.num === s).map(h => h.id);
@@ -788,9 +814,11 @@ function distribute(n) {
       G.players[v.owner].res[h.res] += amt;
       G.stats.gained[v.owner][h.res] += amt;
       gains[v.owner][h.res] += amt;
+      (G.fx = G.fx || []).push({ hex: h.id, pid: v.owner, res: h.res });
     });
   });
   G.players.forEach((p, i) => { if (fmtRes(gains[i])) log(`${pname(p)} erhält ${fmtRes(gains[i])}.`); });
+  if (G.players.some((p, i) => !p.ai && fmtRes(gains[i]))) setTimeout(() => Sound.play('gain'), 600 * SPEED);
 }
 
 function steal(fromId, toId) {
@@ -833,6 +861,8 @@ async function robberFlow(pid) {
     hid = await new Promise(res => G.pending = res);
   }
   G.robber = hid;
+  G.fresh = { robber: true };
+  Sound.play('robber');
   const h = G.hexes[hid];
   log(`🦹 ${pname(p)} versetzt den Räuber auf ${RINFO[h.res].land}${h.num ? ' (' + h.num + ')' : ''}.`);
   render();
@@ -905,6 +935,7 @@ async function nextSetup() {
   const second = G.setupStep >= G.players.length;
   render();
   if (p.ai) {
+    saveGame();
     await sleep(500);
     aiSetup(pid, second);
     G.setupStep++;
@@ -925,8 +956,8 @@ async function beginTurn() {
   log(`— ${pname(cur())} ist am Zug —`);
   if (checkWin()) return;
   render();
-  if (cur().ai) aiTurn();
-  else { await handoff(cur()); render(); }
+  if (cur().ai) { saveGame(); aiTurn(); }
+  else { await handoff(cur()); Sound.play('turn'); render(); }
 }
 
 function endTurn() {
@@ -1582,22 +1613,23 @@ function renderBoard(target = $('#board')) {
     const [a, b] = e.v.map(v => G.verts[v]);
     const x1 = a.x + (b.x - a.x) * 0.16, y1 = a.y + (b.y - a.y) * 0.16, x2 = a.x + (b.x - a.x) * 0.84, y2 = a.y + (b.y - a.y) * 0.84;
     const c = G.players[e.owner].color;
-    s += `<g filter="url(#shadow)"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#1b1b1b" stroke-width="11" stroke-linecap="round"/>
+    s += `<g class="${G.fresh && G.fresh.e === e.id ? 'pop pop-c' : ''}"><g filter="url(#shadow)"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#1b1b1b" stroke-width="11" stroke-linecap="round"/>
       <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="7.5" stroke-linecap="round"/></g>
-      <line x1="${x1}" y1="${y1 - 1.5}" x2="${x2}" y2="${y2 - 1.5}" stroke="${shade(c, 0.45)}" stroke-width="2" stroke-linecap="round" opacity=".8"/>`;
+      <line x1="${x1}" y1="${y1 - 1.5}" x2="${x2}" y2="${y2 - 1.5}" stroke="${shade(c, 0.45)}" stroke-width="2" stroke-linecap="round" opacity=".8"/></g>`;
   });
 
   // Gebäude
   G.verts.forEach(v => {
     if (v.owner === null) return;
     const c = G.players[v.owner].color;
-    s += v.city ? citySvg(v.x, v.y, c) : settlementSvg(v.x, v.y, c);
+    const svg = v.city ? citySvg(v.x, v.y, c) : settlementSvg(v.x, v.y, c);
+    s += G.fresh && G.fresh.v === v.id ? `<g class="pop">${svg}</g>` : svg;
   });
 
   // Räuber
   const rh = G.hexes[G.robber];
   const rx = rh.x - 31, ry = rh.y + 6;
-  s += `<g class="noev"><ellipse cx="${rx}" cy="${ry + 14}" rx="11" ry="3.5" fill="#000" opacity=".4"/>
+  s += `<g class="noev ${G.fresh && G.fresh.robber ? 'drop' : ''}"><ellipse cx="${rx}" cy="${ry + 14}" rx="11" ry="3.5" fill="#000" opacity=".4"/>
     <path d="M${rx - 9} ${ry + 14} Q${rx - 10} ${ry - 4} ${rx} ${ry - 7} Q${rx + 10} ${ry - 4} ${rx + 9} ${ry + 14} Z" fill="url(#cloak)" stroke="#000" stroke-width="1.2"/>
     <circle cx="${rx}" cy="${ry - 12}" r="7" fill="url(#cloak)" stroke="#000" stroke-width="1.2"/>
     <path d="M${rx - 3.5} ${ry - 12} h7" stroke="#e33" stroke-width="1.6" stroke-linecap="round"/></g>`;
@@ -1652,13 +1684,13 @@ function renderSide() {
   const canAct = my && G.phase === 'main' && !G.busy && G.mode !== 'freeRoad';
   const phaseTxt = G.phase === 'setup' ? 'Aufbauphase' : G.phase === 'roll' ? 'würfelt' : G.phase === 'over' ? 'Spielende' : 'baut & handelt';
 
-  let h = `<div class="sidehead"><div class="turn"><span class="dot" style="background:${p.color}"></span>${p.name} <span style="color:var(--muted);font-weight:400;font-family:Nunito,system-ui,sans-serif">– ${phaseTxt}</span></div><button data-guide>📖 Anleitung</button></div>`;
+  let h = `<div class="sidehead"><div class="turn"><span class="dot" style="background:${p.color}"></span>${p.name} <span style="color:var(--muted);font-weight:400;font-family:Nunito,system-ui,sans-serif">– ${phaseTxt}</span></div><span class="hbtns"><button data-act="sound" aria-label="Ton an/aus">${Sound.on ? '🔊' : '🔇'}</button><button data-guide>📖 Anleitung</button></span></div>`;
   h += `<div class="dice ${G.diceAnim ? 'shake' : ''}">${G.dice ? `<span class="d">${DICE[G.dice[0]]}</span><span class="d">${DICE[G.dice[1]]}</span><span class="sum">= ${G.dice[0] + G.dice[1]}</span>` : '<span class="sum">Noch nicht gewürfelt</span>'}</div>`;
 
   h += '<div class="plist">';
   G.players.forEach(o => {
     const shown = o === viewer ? vp(o) : vp(o, false);
-    h += `<div class="pl ${o === p ? 'active' : ''}"><div class="top"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>${o.ai ? ' 🤖' : ''}<span class="vp">⭐ ${shown}</span></div>
+    h += `<div class="pl ${o === p ? 'active' : ''}" data-pid="${o.id}"><div class="top"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>${o.ai ? ' 🤖' : ''}<span class="vp">⭐ ${shown}</span></div>
       <small>🃏 ${total(o)} · 📜 ${o.dev.length} · ⚔️ ${o.knights} · 🛣️ ${o.roadLen}</small>
       ${o.longest ? '<span class="badge">Längste Straße +2</span>' : ''}${o.army ? '<span class="badge">Größte Rittermacht +2</span>' : ''}</div>`;
   });
@@ -1684,8 +1716,8 @@ function renderSide() {
   $('#side').innerHTML = h;
 
   // Handy: Spielerleiste oben
-  $('#strip').innerHTML = G.players.map(o => `<div class="sp ${o === p ? 'active' : ''}"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>
-    ⭐${o === viewer ? vp(o) : vp(o, false)} <small>🃏${total(o)}</small>${o.longest ? ' 🛣️' : ''}${o.army ? ' ⚔️' : ''}</div>`).join('') + '<button data-guide aria-label="Anleitung">📖</button>';
+  $('#strip').innerHTML = G.players.map(o => `<div class="sp ${o === p ? 'active' : ''}" data-pid="${o.id}"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>
+    ⭐${o === viewer ? vp(o) : vp(o, false)} <small>🃏${total(o)}</small>${o.longest ? ' 🛣️' : ''}${o.army ? ' ⚔️' : ''}</div>`).join('') + `<button data-act="sound" aria-label="Ton an/aus">${Sound.on ? '🔊' : '🔇'}</button><button data-guide aria-label="Anleitung">📖</button>`;
 
   // Handy: Karten und Aktionen unten
   const rollOk = my && G.phase === 'roll' && !G.busy && !G.mode;
@@ -1741,7 +1773,167 @@ function render() {
   renderBoard();
   renderSide();
   G.diceAnim = false;
+  G.fresh = null;
   $('#hint').textContent = hintText();
+  if (G.fx && G.fx.length) { const f = G.fx; G.fx = []; runFlights(f); }
+  if (!G.busy && !G.pending && G.phase !== 'over' && !cur().ai && G.mode !== 'robber' && G.mode !== 'freeRoad') saveGame();
+}
+
+// ---------- Sound (im Browser erzeugt, keine Dateien) ----------
+const Sound = {
+  on: true,
+  ctx: null,
+  init() {
+    try {
+      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+    } catch { this.ctx = null; }
+  },
+  tone(freq, dur, type = 'sine', vol = 0.2, when = 0, slide = 0) {
+    const c = this.ctx, t = c.currentTime + when;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.linearRampToValueAtTime(freq + slide, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(c.destination);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  },
+  noise(dur, vol, when, freq) {
+    const c = this.ctx, t = c.currentTime + when;
+    const buf = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = buf;
+    f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 1.2;
+    g.gain.value = vol;
+    src.connect(f).connect(g).connect(c.destination);
+    src.start(t);
+  },
+  play(name) {
+    if (!this.on || !this.ctx || this.ctx.state !== 'running') return;
+    try {
+      switch (name) {
+        case 'dice': for (let i = 0; i < 7; i++) this.noise(0.05, 0.5, i * 0.06 + Math.random() * 0.02, 2000 + Math.random() * 2500); break;
+        case 'build': this.tone(150, 0.16, 'triangle', 0.35); this.noise(0.1, 0.35, 0, 600); this.tone(300, 0.1, 'triangle', 0.15, 0.08); break;
+        case 'road': this.tone(240, 0.08, 'triangle', 0.25); this.tone(320, 0.1, 'triangle', 0.2, 0.07); break;
+        case 'card': this.tone(880, 0.08, 'sine', 0.18); this.tone(1320, 0.12, 'sine', 0.14, 0.07); break;
+        case 'gain': [0, 0.07, 0.14].forEach((w, i) => this.tone(880 + i * 220, 0.08, 'square', 0.05, w)); break;
+        case 'robber': this.tone(160, 0.6, 'sawtooth', 0.12, 0, -70); this.tone(120, 0.6, 'sawtooth', 0.08, 0.05, -50); break;
+        case 'turn': this.tone(660, 0.1, 'sine', 0.16); this.tone(990, 0.16, 'sine', 0.14, 0.1); break;
+        case 'win': [523, 659, 784, 1047, 784, 1047].forEach((f, i) => this.tone(f, 0.22, 'triangle', 0.22, i * 0.13)); break;
+      }
+    } catch { /* Ton ist Nebensache */ }
+  },
+};
+try { Sound.on = localStorage.getItem('inselsiedler-sound') !== 'off'; } catch { }
+document.addEventListener('pointerdown', () => Sound.init());
+function toggleSound() {
+  Sound.on = !Sound.on;
+  try { localStorage.setItem('inselsiedler-sound', Sound.on ? 'on' : 'off'); } catch { }
+  if (Sound.on) { Sound.init(); Sound.play('card'); }
+  render();
+}
+
+// ---------- Animationen ----------
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Rohstoffe fliegen vom Feld zum Spieler
+function runFlights(list) {
+  if (reducedMotion() || !list.length) return;
+  const svg = $('#board');
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return;
+  list.forEach((f, i) => {
+    const target = [...document.querySelectorAll(`[data-pid="${f.pid}"]`)].find(el => el.offsetParent !== null);
+    if (!target) return;
+    const pt = svg.createSVGPoint();
+    pt.x = G.hexes[f.hex].x; pt.y = G.hexes[f.hex].y;
+    const s = pt.matrixTransform(ctm);
+    const tb = target.getBoundingClientRect();
+    const tx = tb.left + Math.min(40, tb.width / 2), ty = tb.top + tb.height / 2;
+    const el = document.createElement('div');
+    el.className = 'fly';
+    el.textContent = RINFO[f.res].icon;
+    document.body.appendChild(el);
+    const anim = el.animate([
+      { transform: `translate(${s.x}px, ${s.y}px) scale(.4)`, opacity: 0 },
+      { transform: `translate(${s.x}px, ${s.y - 30}px) scale(1.3)`, opacity: 1, offset: 0.25 },
+      { transform: `translate(${tx}px, ${ty}px) scale(.6)`, opacity: 0.3 },
+    ], { duration: 950, delay: 250 + i * 90, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'both' });
+    anim.onfinish = () => el.remove();
+  });
+}
+
+function confetti() {
+  if (reducedMotion()) return;
+  const cv = document.createElement('canvas');
+  cv.className = 'confetti';
+  document.body.appendChild(cv);
+  const ctx = cv.getContext('2d');
+  const W = cv.width = innerWidth, H = cv.height = innerHeight;
+  const cols = ['#ffcf4a', '#e53935', '#1e88e5', '#5ccf7a', '#fb8c00', '#f2f2f2', '#8e24aa'];
+  const parts = Array.from({ length: 180 }, () => ({
+    x: W / 2 + (Math.random() - 0.5) * W * 0.3, y: H * 0.35,
+    vx: (Math.random() - 0.5) * 14, vy: -Math.random() * 14 - 4,
+    w: 6 + Math.random() * 6, h: 4 + Math.random() * 4, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
+    c: cols[Math.floor(Math.random() * cols.length)],
+  }));
+  const start = performance.now();
+  (function frame(now) {
+    ctx.clearRect(0, 0, W, H);
+    parts.forEach(p => {
+      p.vy += 0.35; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+    });
+    if (now - start < 4000) requestAnimationFrame(frame); else cv.remove();
+  })(start);
+}
+
+// ---------- Spielstand speichern ----------
+const SAVE_KEY = 'inselsiedler-save-v1';
+function saveGame() {
+  if (!G || G.phase === 'over' || G.net) return;
+  try {
+    const { pending, fx, fresh, ...rest } = G;
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ ...rest, speed: SPEED, savedAt: Date.now() }));
+  } catch { /* Speichern ist optional */ }
+}
+function loadSave() {
+  try { const j = localStorage.getItem(SAVE_KEY); return j ? JSON.parse(j) : null; } catch { return null; }
+}
+function clearSave() {
+  try { localStorage.removeItem(SAVE_KEY); } catch { }
+}
+
+function resumeGame() {
+  const data = loadSave();
+  if (!data) return;
+  G = { ...data, pending: null, busy: false, fx: [], fresh: null };
+  SPEED = data.speed || 1;
+  showGame();
+  log('💾 Spiel fortgesetzt.');
+  if (G.phase === 'setup') {
+    if (!cur().ai && G.mode === 'setupRoad') render();
+    else { G.mode = null; nextSetup(); }
+    return;
+  }
+  if (!['road', 'settlement', 'city'].includes(G.mode)) G.mode = null;
+  render();
+  if (cur().ai) aiTurn();
+}
+
+function showSavedGame() {
+  const d = loadSave();
+  if (!d || !d.players) return;
+  const when = new Date(d.savedAt || Date.now()).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+  $('#resume').hidden = false;
+  const pts = p => d.verts.reduce((t, v) => t + (v.owner === p.id ? (v.city ? 2 : 1) : 0), 0) + (p.longest ? 2 : 0) + (p.army ? 2 : 0);
+  $('#resumeInfo').innerHTML = `${d.players.map(p => `<span class="dot" style="background:${p.color}"></span> ${p.name} ⭐${pts(p)}`).join(' &nbsp;')}<br><span class="small muted">Gespeichert am ${when}${d.phase === 'setup' ? ' · Aufbauphase' : ` · Zug ${d.turn}`}</span>`;
 }
 
 // ---------- Events ----------
@@ -1771,9 +1963,11 @@ async function onPanelClick(e) {
   else if (a === 'trade') tradeDialog();
   else if (a === 'devlist') devDialog();
   else if (a === 'new') location.reload();
+  else if (a === 'sound') toggleSound();
   else if (a === 'end') endTurn();
 }
 $('#side').addEventListener('click', onPanelClick);
+$('#strip').addEventListener('click', onPanelClick);
 $('#dock').addEventListener('click', onPanelClick);
 
 document.addEventListener('keydown', e => {
@@ -1809,6 +2003,9 @@ $('#guide').addEventListener('click', e => {
   G = null;
 })();
 
+$('#resumeBtn').addEventListener('click', resumeGame);
+$('#discardSave').addEventListener('click', () => { clearSave(); $('#resume').hidden = true; });
+showSavedGame();
 $('#nPlayers').addEventListener('change', () => { drawPlayerRows(); $('#bigNote').hidden = +$('#nPlayers').value < 5; });
 drawPlayerRows();
 

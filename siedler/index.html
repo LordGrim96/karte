@@ -2,12 +2,12 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172634">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Inselsiedler">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -26,7 +26,9 @@
     --bad: #ff6b6b;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; }
+  html, body { margin: 0; height: 100%; overscroll-behavior: none; }
+  body { -webkit-tap-highlight-color: transparent; }
+  #game, #strip, #dock, .modalBox button { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   body {
     background: radial-gradient(circle at 30% 20%, #16405f, var(--bg) 70%);
     color: var(--text);
@@ -48,7 +50,7 @@
   #start .hero { width: 100%; max-width: 420px; display: block; margin: 0 auto; }
 
   /* Start screen */
-  #start { max-width: 560px; margin: 0 auto; padding: 32px 16px; }
+  #start { max-width: 560px; margin: 0 auto; padding: calc(24px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(32px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
   #start h1 { font-size: 2.4em; }
   .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 12px; margin-bottom: 8px; }
   .settings label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: .85em; }
@@ -72,7 +74,8 @@
   details summary { cursor: pointer; font-weight: 600; }
 
   /* Game layout */
-  #game { display: grid; grid-template-columns: minmax(0, 1fr) 360px; height: 100vh; }
+  #game { display: grid; grid-template-columns: minmax(0, 1fr) 360px; height: 100vh; height: 100dvh; box-sizing: border-box;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px); }
   #boardWrap { position: relative; min-height: 0; display: flex; align-items: center; justify-content: center; }
   #board { width: 100%; height: 100%; max-height: 100vh; user-select: none; }
   #hint {
@@ -155,7 +158,13 @@
   @keyframes pulse { from { opacity: .75; } to { opacity: 1; } }
 
   /* Modal */
-  .modal { position: fixed; inset: 0; background: #0009; display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
+  .modal { position: fixed; inset: 0; background: #0009; display: flex; align-items: center; justify-content: center; z-index: 10;
+    padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+  @media (pointer: coarse) {
+    .modalBox button { min-height: 44px; }
+    .cnt button { min-width: 40px; }
+    .chip { padding: 8px 10px; }
+  }
   .modalBox { background: var(--panel); border-radius: 14px; padding: 18px 20px; width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 60px #000a; }
   .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
   .row > span.lbl { width: 70px; color: var(--muted); }
@@ -190,15 +199,33 @@
   #toast.show { opacity: 1; }
 
   body { touch-action: manipulation; }
-  #strip, #dock { display: none; }
+  #strip, #dock, #zoomBtn { display: none; }
+
+  /* Handy quer: Brett links, schmale Steuerleiste rechts */
+  @media (max-height: 560px) and (orientation: landscape) {
+    #game { grid-template-columns: minmax(0, 1fr) 300px; }
+    #side { padding: 8px 10px; font-size: 14px; }
+    .pl { padding: 4px 8px; margin: 4px 0; }
+    .dice { font-size: 1.8em; margin: 4px 0; }
+    .rcard { width: 46px; height: 58px; font-size: 1.3em; }
+    .sidehead .hbtns button { padding: 4px 8px; }
+    .sidehead .bt { display: none; }
+    /* Aktionen direkt unter dem Würfel, damit nichts gescrollt werden muss */
+    #side { display: flex; flex-direction: column; }
+    .sidehead, .dice { order: 0; }
+    .actions { order: 1; }
+    #side > .card { order: 2; margin: 4px 0; }
+    .plist { order: 3; }
+    #side > h4, #log { order: 4; }
+  }
 
   /* Handy: Brett oben, Spielerleiste fest oben, Karten + Aktionen fest unten */
-  @media (max-width: 860px) {
-    #game { display: block; height: auto; padding-bottom: calc(var(--dockH, 160px) + 10px); }
+  @media (max-width: 860px) and (orientation: portrait), (max-width: 560px) {
+    #game { display: block; padding: 0; height: auto; padding-bottom: calc(var(--dockH, 160px) + 10px); }
     #strip {
-      display: flex; gap: 6px; align-items: center; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+      display: flex; gap: 6px; align-items: center; position: sticky; top: 0; z-index: 5;
       background: var(--panel); border-bottom: 1px solid #2a3f52;
-      padding: 6px max(10px, env(safe-area-inset-right, 0px)) 6px max(10px, env(safe-area-inset-left, 0px));
+      padding: calc(6px + env(safe-area-inset-top, 0px)) max(10px, env(safe-area-inset-right, 0px)) 6px max(10px, env(safe-area-inset-left, 0px));
     }
     .sp { flex: none; display: flex; align-items: center; gap: 4px; background: var(--panel2); border: 2px solid transparent; border-radius: 16px; padding: 3px 9px; font-size: .85em; white-space: nowrap; }
     .sp.active { border-color: var(--accent); }
@@ -208,6 +235,10 @@
     .sbtns button { padding: 3px 8px; border-radius: 16px; }
     #boardWrap { height: auto; display: block; }
     #board { height: auto; max-height: none; display: block; }
+    #boardWrap.zoomed { overflow: auto; max-height: calc(100dvh - var(--dockH, 160px) - 60px); -webkit-overflow-scrolling: touch; }
+    #boardWrap.zoomed #board { width: 185%; max-width: none; }
+    #zoomBtn { display: inline-flex; }
+    .sbtns button.on { outline: 2px solid var(--accent); }
     #hint { top: 6px; font-size: .85em; }
     #side { border-left: 0; border-top: 1px solid #2a3f52; }
     #side .plist, #side .dice, #side .handbox, #side .actions, #side .sidehead .hbtns { display: none; }
@@ -264,6 +295,11 @@
       <button id="joinBtn">Beitreten</button>
     </div>
     <div id="netPanel"></div>
+  </div>
+  <div class="card" id="installCard" hidden>
+    <h3>📲 Als App installieren</h3>
+    <p id="installText">Lege Inselsiedler auf deinen Home-Bildschirm. Dann startet es im Vollbild und läuft auch ohne Internet.</p>
+    <div class="btns"><button class="primary" id="installBtn" hidden>Installieren</button></div>
   </div>
   <div class="card intro">
     <p><b>Neu hier?</b> Die Anleitung erklärt Schritt für Schritt, wie das Spiel funktioniert.</p>
@@ -661,6 +697,9 @@ function showGame() {
   $('#start').hidden = true;
   $('#heroBoard').innerHTML = ''; // doppelte SVG-IDs vermeiden
   $('#game').hidden = false;
+  scrollTo(0, 0);
+  try { history.pushState({ spiel: 1 }, ''); } catch { }
+  keepAwake();
 }
 
 // ---------- Hilfsfunktionen ----------
@@ -1799,7 +1838,7 @@ function renderBoard(target = $('#board')) {
       });
     }
     if (m === 'setupSettlement' || m === 'settlement' || m === 'city') {
-      const small = matchMedia('(max-width: 860px)').matches;
+      const small = matchMedia(MOBILE).matches;
       G.verts.forEach(v => {
         const ok = m === 'city' ? cityOk(pid, v.id) : settlementOk(pid, v.id, m === 'setupSettlement');
         if (ok) s += `<g class="hlg" data-v="${v.id}"><circle class="hit" cx="${v.x}" cy="${v.y}" r="27" fill="transparent"/>
@@ -1836,7 +1875,7 @@ function renderSide() {
   const canAct = my && G.phase === 'main' && !G.busy && G.mode !== 'freeRoad';
   const phaseTxt = G.phase === 'setup' ? 'Aufbauphase' : G.phase === 'roll' ? 'würfelt' : G.phase === 'over' ? 'Spielende' : 'baut & handelt';
 
-  let h = `<div class="sidehead"><div class="turn"><span class="dot" style="background:${p.color}"></span>${p.name} <span style="color:var(--muted);font-weight:400;font-family:Nunito,system-ui,sans-serif">– ${phaseTxt}</span></div><span class="hbtns"><button data-act="sound" aria-label="Ton an/aus">${Sound.on ? '🔊' : '🔇'}</button><button data-guide>📖 Anleitung</button><button data-act="quit" aria-label="Spiel beenden">🚪 Beenden</button></span></div>`;
+  let h = `<div class="sidehead"><div class="turn"><span class="dot" style="background:${p.color}"></span>${p.name} <span style="color:var(--muted);font-weight:400;font-family:Nunito,system-ui,sans-serif">– ${phaseTxt}</span></div><span class="hbtns"><button data-act="sound" aria-label="Ton an/aus">${Sound.on ? '🔊' : '🔇'}</button><button data-guide aria-label="Anleitung">📖<span class="bt"> Anleitung</span></button><button data-act="quit" aria-label="Spiel beenden">🚪<span class="bt"> Beenden</span></button></span></div>`;
   h += `<div class="dice ${G.diceAnim ? 'shake' : ''}">${G.dice ? `<span class="d">${DICE[G.dice[0]]}</span><span class="d">${DICE[G.dice[1]]}</span><span class="sum">= ${G.dice[0] + G.dice[1]}</span>` : '<span class="sum">Noch nicht gewürfelt</span>'}</div>`;
 
   h += '<div class="plist">';
@@ -1869,7 +1908,7 @@ function renderSide() {
 
   // Handy: Spielerleiste oben
   $('#strip').innerHTML = '<div class="spl">' + G.players.map(o => `<div class="sp ${o === p ? 'active' : ''}" data-pid="${o.id}"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>
-    ⭐${o === viewer ? vp(o) : vp(o, false)} <small>🃏${total(o)}</small>${o.longest ? ' 🛣️' : ''}${o.army ? ' ⚔️' : ''}</div>`).join('') + `</div><div class="sbtns"><button data-act="sound" aria-label="Ton an/aus">${Sound.on ? '🔊' : '🔇'}</button><button data-guide aria-label="Anleitung">📖</button><button data-act="quit" aria-label="Spiel beenden">🚪</button></div>`;
+    ⭐${o === viewer ? vp(o) : vp(o, false)} <small>🃏${total(o)}</small>${o.longest ? ' 🛣️' : ''}${o.army ? ' ⚔️' : ''}</div>`).join('') + `</div><div class="sbtns"><button id="zoomBtn" data-act="zoom" class="${$('#boardWrap').classList.contains('zoomed') ? 'on' : ''}" aria-label="Brett vergrößern">🔍</button><button data-act="sound" aria-label="Ton an/aus">${Sound.on ? '🔊' : '🔇'}</button><button data-guide aria-label="Anleitung">📖</button><button data-act="quit" aria-label="Spiel beenden">🚪</button></div>`;
 
   // Handy: Karten und Aktionen unten
   const rollOk = my && G.phase === 'roll' && !G.busy && !G.mode;
@@ -2278,6 +2317,7 @@ const Sound = {
     src.start(t);
   },
   play(name) {
+    if (name === 'turn') buzz([60, 40, 60]);
     if (!this.on || !this.ctx || this.ctx.state !== 'running') return;
     try {
       switch (name) {
@@ -2303,6 +2343,31 @@ function toggleSound() {
 }
 
 // ---------- Animationen ----------
+const MOBILE = '(max-width: 860px) and (orientation: portrait), (max-width: 560px)';
+
+// Brett vergrößern und mit dem Finger verschieben
+function toggleZoom() {
+  const bw = $('#boardWrap');
+  const on = bw.classList.toggle('zoomed');
+  if (on) requestAnimationFrame(() => { bw.scrollLeft = (bw.scrollWidth - bw.clientWidth) / 2; bw.scrollTop = (bw.scrollHeight - bw.clientHeight) / 2; });
+  render();
+}
+
+// Vibration (Android), Bildschirm anlassen, Zurück-Taste abfangen
+const buzz = pattern => { try { navigator.vibrate && navigator.vibrate(pattern); } catch { } };
+let wakeLock = null;
+async function keepAwake() {
+  try {
+    if (G && 'wakeLock' in navigator && document.visibilityState === 'visible' && !(wakeLock && !wakeLock.released)) wakeLock = await navigator.wakeLock.request('screen');
+  } catch { /* nicht jedes Gerät erlaubt das */ }
+}
+document.addEventListener('visibilitychange', keepAwake);
+addEventListener('popstate', () => {
+  if (!G || $('#game').hidden) return;
+  history.pushState({ spiel: 1 }, '');
+  if (!document.querySelector('.modal')) quitGame();
+});
+
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Rohstoffe fliegen vom Feld zum Spieler
@@ -2487,6 +2552,7 @@ function onPanelClick(e) {
   else if (a === 'new') location.reload();
   else if (a === 'sound') toggleSound();
   else if (a === 'quit') quitGame();
+  else if (a === 'zoom') toggleZoom();
   else if (['roll', 'road', 'settlement', 'city', 'dev', 'end'].includes(a)) act(a);
 }
 $('#side').addEventListener('click', onPanelClick);
@@ -2550,6 +2616,31 @@ $('#joinBtn').addEventListener('click', () => { $('#hostBtn').disabled = $('#joi
   $('#netName').focus();
 })();
 if (window.NO_ONLINE) $('#online').hidden = true;
+
+// Installieren anbieten, solange das Spiel nicht als App läuft
+(() => {
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (standalone || window.NO_ONLINE) return;
+  let evt = null;
+  addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    evt = e;
+    $('#installCard').hidden = false;
+    $('#installBtn').hidden = false;
+  });
+  $('#installBtn').addEventListener('click', async () => {
+    if (!evt) return;
+    evt.prompt();
+    await evt.userChoice.catch(() => null);
+    evt = null;
+    $('#installCard').hidden = true;
+  });
+  addEventListener('appinstalled', () => { $('#installCard').hidden = true; });
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    $('#installText').innerHTML = 'Tippe in Safari unten auf <b>Teilen ⬆️</b> und dann auf <b>„Zum Home-Bildschirm“</b>. Dann startet Inselsiedler im Vollbild und läuft auch ohne Internet.';
+    $('#installCard').hidden = false;
+  }
+})();
 
 $('#startBtn').addEventListener('click', () => {
   SPEED = +$('#speed').value;

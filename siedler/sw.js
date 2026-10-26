@@ -1,6 +1,6 @@
 // Offline-Modus für Inselsiedler: Spiel, Symbole und Schriften werden zwischengespeichert.
 // Seiten kommen bevorzugt aus dem Netz (damit Updates ankommen), sonst aus dem Speicher.
-const CACHE = 'inselsiedler-v1';
+const CACHE = 'inselsiedler-v2';
 const CORE = [
   './', './index.html', './manifest.webmanifest',
   './icon.svg', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-32.png',

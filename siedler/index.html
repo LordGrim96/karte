@@ -1074,16 +1074,20 @@ function tradeDialog() {
       else if (ds.gp) give[ds.gp]++;
       else if (ds.tm) get[ds.tm]--;
       else if (ds.tp) get[ds.tp]++;
-      else if ('offer' in ds) {
-        const partner = G.players.find(o => o !== p && (o.ai
-          ? aiAcceptTrade(o, give, get, p)
-          : RES.every(r => o.res[r] >= get[r]) && confirm(`${o.name}: Tauschst du ${fmtRes(get)} gegen ${fmtRes(give)} mit ${p.name}?`)));
+      else if ('offer' in ds || ds.accept) {
+        const partner = ds.accept ? G.players[+ds.accept] : G.players.find(o => o !== p && o.ai && aiAcceptTrade(o, give, get, p));
         if (partner) {
           RES.forEach(r => { p.res[r] += get[r] - give[r]; partner.res[r] += give[r] - get[r]; });
           log(`🤝 ${pname(p)} tauscht ${fmtRes(give)} gegen ${fmtRes(get)} mit ${pname(partner)}.`);
           msg = `${partner.name} nimmt an!`;
           RES.forEach(r => { give[r] = 0; get[r] = 0; });
-        } else msg = 'Niemand nimmt dein Angebot an.';
+        } else {
+          // Menschliche Mitspieler am selben Gerät entscheiden selbst
+          const hs = G.players.filter(o => o !== p && !o.ai && RES.every(r => o.res[r] >= get[r]));
+          msg = hs.length
+            ? `Keiner der Computer will. Mitspieler: ${hs.map(o => `<button data-accept="${o.id}">${o.name} nimmt an</button>`).join(' ')}`
+            : 'Niemand nimmt dein Angebot an.';
+        }
       }
       else if ('close' in ds) { G.busy = false; render(); return close(); }
       render();

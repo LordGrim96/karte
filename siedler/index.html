@@ -2076,6 +2076,11 @@ $('#guide').addEventListener('click', e => {
 $('#resumeBtn').addEventListener('click', resumeGame);
 $('#discardSave').addEventListener('click', () => { clearSave(); $('#resume').hidden = true; });
 showSavedGame();
+
+// Offline-Modus (nur wenn die Seite über einen Webserver läuft, z. B. GitHub Pages)
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* ohne Offline-Modus weiterspielen */ }));
+}
 $('#nPlayers').addEventListener('change', () => { drawPlayerRows(); $('#bigNote').hidden = +$('#nPlayers').value < 5; });
 drawPlayerRows();
 

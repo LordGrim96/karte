@@ -50,6 +50,9 @@
   /* Start screen */
   #start { max-width: 560px; margin: 0 auto; padding: 32px 16px; }
   #start h1 { font-size: 2.4em; }
+  .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 12px; margin-bottom: 8px; }
+  .settings label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: .85em; }
+  .settings select { color: var(--text); font-size: 1.05rem; }
   .prow { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
   .prow .sw { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #0008; flex: none; }
   .prow input { flex: 1; min-width: 0; }
@@ -156,6 +159,17 @@
   .cnt button { padding: 2px 9px; }
   .msg { min-height: 1.3em; color: var(--accent); }
   .btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
+  .chart { display: flex; gap: 4px; align-items: stretch; height: 150px; margin: 8px 0 2px; }
+  .chart .bar { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .chart .c { font-size: .75em; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .chart .col { flex: 1; width: 100%; position: relative; display: flex; align-items: flex-end; }
+  .chart .b { width: 100%; background: linear-gradient(#f3d567, #c98f12); border-radius: 4px 4px 0 0; min-height: 2px; }
+  .chart .b.seven { background: linear-gradient(#ff8a80, #c62828); }
+  .chart i { position: absolute; left: -2px; right: -2px; height: 2px; background: var(--text); opacity: .8; }
+  .chart label { font-size: .8em; font-weight: 700; }
+  .small { font-size: .85em; }
+  .muted { color: var(--muted); }
+  .tscroll { overflow-x: auto; }
   #toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #000d; padding: 8px 16px; border-radius: 20px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 20; }
   #toast.show { opacity: 1; }
 
@@ -204,14 +218,16 @@
 <div id="start">
   <h1>Inselsiedler</h1>
   <svg class="hero" id="heroBoard" viewBox="-335 -300 670 600" aria-hidden="true"></svg>
-  <p>Besiedle die Insel, sammle Rohstoffe, handle geschickt und erreiche als Erster <b>10 Siegpunkte</b>.</p>
+  <p>Besiedle die Insel, sammle Rohstoffe, handle geschickt und erreiche als Erster die nötigen Siegpunkte.</p>
   <div class="card">
-    <div class="row">
-      <span>Spieler:</span>
-      <select id="nPlayers"><option>2</option><option>3</option><option selected>4</option></select>
-      <span style="margin-left:12px">Tempo:</span>
-      <select id="speed"><option value="1">Normal</option><option value="0.5">Schnell</option><option value="1.6">Langsam</option></select>
+    <div class="settings">
+      <label>Spieler <select id="nPlayers"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
+      <label>Siegpunkte <select id="winVp"><option>8</option><option selected>10</option><option>12</option><option>15</option></select></label>
+      <label>Brett <select id="boardType"><option value="random">Zufällig</option><option value="balanced">Ausgewogen</option></select></label>
+      <label>Computer <select id="level"><option value="easy">Leicht</option><option value="normal" selected>Mittel</option><option value="hard">Schwer</option></select></label>
+      <label>Tempo <select id="speed"><option value="1">Normal</option><option value="0.5">Schnell</option><option value="1.6">Langsam</option></select></label>
     </div>
+    <p class="small muted" id="bigNote" hidden>Ab 5 Spielern wird die große Insel mit 30 Feldern und 11 Häfen gespielt.</p>
     <div id="prows"></div>
     <div class="btns"><button class="primary" id="startBtn">Spiel starten</button></div>
   </div>
@@ -407,9 +423,8 @@ const DEV = {
   plenty:   { name: 'Erfindung',   icon: '🎁', desc: 'Nimm 2 beliebige Rohstoffe aus der Bank.' },
   monopoly: { name: 'Monopol',     icon: '💰', desc: 'Alle anderen geben dir alle Karten eines Rohstoffs.' },
 };
-const COLORS = ['#e53935', '#1e88e5', '#fb8c00', '#f2f2f2'];
-const DEFAULT_NAMES = ['Du', 'Anna', 'Bruno', 'Clara'];
-const WIN_VP = 10;
+const COLORS = ['#e53935', '#1e88e5', '#fb8c00', '#f2f2f2', '#8e24aa', '#26a69a'];
+const DEFAULT_NAMES = ['Du', 'Anna', 'Bruno', 'Clara', 'Dora', 'Emil'];
 const S = 60, SQ3 = Math.sqrt(3);
 const DICE = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
@@ -423,28 +438,68 @@ const emptyRes = () => Object.fromEntries(RES.map(r => [r, 0]));
 let G = null;
 
 // ---------- Spielbrett ----------
-function buildBoard() {
+// big = große Insel für 5–6 Spieler, balanced = ausgewogene Verteilung
+function buildBoard(big = false, balanced = false) {
   const coords = [];
-  for (let q = -2; q <= 2; q++) for (let r = -2; r <= 2; r++) if (Math.abs(q + r) <= 2) coords.push([q, r]);
-  const tiles = shuffle([
-    ...Array(4).fill('holz'), ...Array(3).fill('lehm'), ...Array(4).fill('wolle'),
-    ...Array(4).fill('getreide'), ...Array(3).fill('erz'), 'wueste',
-  ]);
-  const hexes = coords.map(([q, r], i) => ({ id: i, q, r, x: S * SQ3 * (q + r / 2), y: S * 1.5 * r, res: tiles[i], num: 0, v: [] }));
+  if (big) {
+    // Reihen mit 3-4-5-6-5-4-3 Feldern
+    for (let r = -3; r <= 3; r++) for (let q = Math.max(-3, -3 - r); q <= Math.min(3, 3 - r) - 1; q++) coords.push([q, r]);
+  } else {
+    for (let q = -2; q <= 2; q++) for (let r = -2; r <= 2; r++) if (Math.abs(q + r) <= 2) coords.push([q, r]);
+  }
+  const shift = big ? S * SQ3 / 2 : 0;
+  const counts = big
+    ? { holz: 6, lehm: 5, wolle: 6, getreide: 6, erz: 5, wueste: 2 }
+    : { holz: 4, lehm: 3, wolle: 4, getreide: 4, erz: 3, wueste: 1 };
+  const nums = big
+    ? [2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 8, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12]
+    : [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
+  const tilePool = Object.entries(counts).flatMap(([r, n]) => Array(n).fill(r));
+
+  const hexes = coords.map(([q, r], i) => ({ id: i, q, r, x: S * SQ3 * (q + r / 2) + shift, y: S * 1.5 * r, res: null, num: 0, v: [] }));
   const byKey = {};
   hexes.forEach(h => byKey[h.q + ',' + h.r] = h);
   const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
   hexes.forEach(h => h.nb = DIRS.map(([dq, dr]) => byKey[(h.q + dq) + ',' + (h.r + dr)]).filter(Boolean).map(n => n.id));
 
-  // Zahlen verteilen, 6 und 8 nicht nebeneinander
-  const nums = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
+  // Felder und Zahlen verteilen, 6 und 8 nie nebeneinander
   const red = n => n === 6 || n === 8;
-  for (let tries = 0; tries < 1000; tries++) {
-    const ns = shuffle(nums.slice());
-    let k = 0;
-    hexes.forEach(h => h.num = h.res === 'wueste' ? 0 : ns[k++]);
-    if (!hexes.some(h => red(h.num) && h.nb.some(n => red(hexes[n].num)))) break;
+  const layout = () => {
+    const tiles = shuffle(tilePool.slice());
+    hexes.forEach((h, i) => h.res = tiles[i]);
+    for (let tries = 0; tries < 2000; tries++) {
+      const ns = shuffle(nums.slice());
+      let k = 0;
+      hexes.forEach(h => h.num = h.res === 'wueste' ? 0 : ns[k++]);
+      if (!hexes.some(h => red(h.num) && h.nb.some(n => red(hexes[n].num)))) break;
+    }
+    return hexes.map(h => [h.res, h.num]);
+  };
+  // Bewertung: gleiche Landschaften nebeneinander, gleiche Zahlen nebeneinander, ungleiche Ertragschancen je Rohstoff
+  const unfairness = () => {
+    let s = 0;
+    hexes.forEach(h => h.nb.forEach(n => {
+      if (n < h.id) return;
+      if (hexes[n].res === h.res) s += 2;
+      if (h.num && hexes[n].num === h.num) s += 1.5;
+    }));
+    const totalPips = hexes.reduce((t, h) => t + pips(h.num), 0);
+    const land = hexes.length - counts.wueste;
+    RES.forEach(r => {
+      const got = hexes.filter(h => h.res === r).reduce((t, h) => t + pips(h.num), 0);
+      s += Math.abs(got - totalPips * counts[r] / land) * 0.8;
+    });
+    return s;
+  };
+  let best = layout();
+  if (balanced) {
+    let bs = unfairness();
+    for (let i = 0; i < 400; i++) {
+      const cand = layout(), sc = unfairness();
+      if (sc < bs) { bs = sc; best = cand; }
+    }
   }
+  hexes.forEach((h, i) => [h.res, h.num] = best[i]);
 
   // Ecken und Kanten
   const verts = [], edges = [], emap = {};
@@ -476,26 +531,39 @@ function buildBoard() {
     const mx = (verts[e.v[0]].x + verts[e.v[1]].x) / 2, my = (verts[e.v[0]].y + verts[e.v[1]].y) / 2;
     return { e, mx, my, ang: Math.atan2(my, mx) };
   }).sort((a, b) => a.ang - b.ang);
-  const ptypes = shuffle(['any', 'any', 'any', 'any', ...RES]);
+  const ptypes = shuffle(big ? ['any', 'any', 'any', 'any', 'any', ...RES, 'wolle'] : ['any', 'any', 'any', 'any', ...RES]);
   const off = Math.floor(Math.random() * 3);
   const ports = ptypes.map((type, i) => {
-    const c = coast[(Math.round(i * coast.length / 9) + off) % coast.length];
+    const c = coast[(Math.round(i * coast.length / ptypes.length) + off) % coast.length];
     c.e.v.forEach(vid => verts[vid].port = type);
     return { type, edge: c.e.id, mx: c.mx, my: c.my };
   });
 
-  return { hexes, verts, edges, ports, robber: hexes.find(h => h.res === 'wueste').id };
+  // Umriss der Insel (konvexe Hülle aller Ecken) für Meer und Rahmen
+  const pts = verts.map(v => [v.x, v.y]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lower = [], upper = [];
+  pts.forEach(p => { while (lower.length > 1 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop(); lower.push(p); });
+  pts.slice().reverse().forEach(p => { while (upper.length > 1 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop(); upper.push(p); });
+  const hull = lower.slice(0, -1).concat(upper.slice(0, -1)).map(([x, y]) => [Math.round(x * 10) / 10, Math.round(y * 10) / 10]);
+
+  return { hexes, verts, edges, ports, hull, big, robber: hexes.find(h => h.res === 'wueste').id };
 }
 
 // ---------- Spielstart ----------
-function newGame(cfg) {
-  const board = buildBoard();
-  const deck = shuffle([
+function newGame(cfg, opts) {
+  const big = cfg.length > 4;
+  const board = buildBoard(big, opts.balanced);
+  const deck = shuffle(big ? [
+    ...Array(20).fill('knight'), ...Array(5).fill('vp'),
+    ...Array(3).fill('road'), ...Array(3).fill('plenty'), ...Array(3).fill('monopoly'),
+  ] : [
     ...Array(14).fill('knight'), ...Array(5).fill('vp'),
     ...Array(2).fill('road'), ...Array(2).fill('plenty'), ...Array(2).fill('monopoly'),
   ]);
   G = {
     ...board, deck, seed: Math.floor(Math.random() * 1e6),
+    winVp: opts.winVp, level: opts.level,
     players: cfg.map((c, i) => ({
       id: i, name: c.name, color: COLORS[i], ai: c.ai,
       res: emptyRes(), dev: [], knights: 0,
@@ -505,14 +573,19 @@ function newGame(cfg) {
     cur: 0, turn: 0, phase: 'setup', mode: null, busy: false,
     dice: null, hot: [], log: [], devPlayed: false,
     setupOrder: [], setupStep: 0, lastSetupV: null, freeRoads: 0, pending: null,
+    stats: { rolls: Array(13).fill(0), gained: cfg.map(() => emptyRes()), stolen: cfg.map(() => 0), lost: cfg.map(() => 0) },
   };
-  $('#start').hidden = true;
-  $('#heroBoard').innerHTML = ''; // doppelte SVG-IDs vermeiden
-  $('#game').hidden = false;
-  log('Neues Spiel gestartet. Aufbauphase!');
+  showGame();
+  log(`Neues Spiel gestartet: ${G.winVp} Siegpunkte zum Sieg${big ? ', große Insel' : ''}. Aufbauphase!`);
   const n = G.players.length;
   G.setupOrder = [...Array(n).keys(), ...[...Array(n).keys()].reverse()];
   nextSetup();
+}
+
+function showGame() {
+  $('#start').hidden = true;
+  $('#heroBoard').innerHTML = ''; // doppelte SVG-IDs vermeiden
+  $('#game').hidden = false;
 }
 
 // ---------- Hilfsfunktionen ----------
@@ -635,7 +708,7 @@ function checkWin() {
   if (G.phase === 'over') return true;
   if (G.phase === 'setup') return false;
   const p = cur();
-  if (vp(p) < WIN_VP) return false;
+  if (vp(p) < G.winVp) return false;
   G.phase = 'over';
   G.mode = null;
   log(`🎉 ${pname(p)} gewinnt mit ${vp(p)} Siegpunkten!`);
@@ -686,7 +759,7 @@ function giveInitial(pid, vid) {
   const got = emptyRes();
   G.verts[vid].hexes.forEach(h => {
     const r = G.hexes[h].res;
-    if (r !== 'wueste') { p.res[r]++; got[r]++; }
+    if (r !== 'wueste') { p.res[r]++; got[r]++; G.stats.gained[pid][r]++; }
   });
   if (fmtRes(got)) log(`${pname(p)} erhält ${fmtRes(got)}.`);
 }
@@ -694,6 +767,7 @@ function giveInitial(pid, vid) {
 function rollDice() {
   const a = 1 + Math.floor(Math.random() * 6), b = 1 + Math.floor(Math.random() * 6);
   G.dice = [a, b];
+  G.stats.rolls[a + b]++;
   G.diceAnim = true;
   const s = a + b;
   log(`🎲 ${pname(cur())} würfelt <b>${s}</b>.`);
@@ -712,6 +786,7 @@ function distribute(n) {
       if (v.owner === null) return;
       const amt = v.city ? 2 : 1;
       G.players[v.owner].res[h.res] += amt;
+      G.stats.gained[v.owner][h.res] += amt;
       gains[v.owner][h.res] += amt;
     });
   });
@@ -724,6 +799,7 @@ function steal(fromId, toId) {
   if (!pool.length) return;
   const r = pool[Math.floor(Math.random() * pool.length)];
   from.res[r]--; to.res[r]++;
+  G.stats.lost[fromId]++; G.stats.stolen[toId]++;
   const seen = !to.ai || !from.ai;
   log(`🦹 ${pname(to)} zieht eine Karte von ${pname(from)}${seen && humans().length === 1 ? ` (${RINFO[r].icon})` : ''}.`);
 }
@@ -1109,7 +1185,7 @@ function robberHurts(pid) {
 }
 
 function aiAcceptTrade(ai, receive, give, offerer) {
-  if (vp(offerer, false) >= WIN_VP - 2) return false;
+  if (vp(offerer, false) >= G.winVp - 2) return false;
   if (RES.some(r => ai.res[r] < give[r])) return false;
   const target = aiTarget(ai, bestSettlementSpot(ai.id), aiBestRoad(ai.id));
   const miss = aiMissing(ai, target);
@@ -1311,11 +1387,34 @@ function tradeDialog() {
   });
 }
 
+function statsHtml() {
+  const st = G.stats;
+  const n = st.rolls.reduce((a, b) => a + b, 0);
+  const max = Math.max(1, ...st.rolls, n / 6); // n/6 = erwartete Anzahl Siebenen, die häufigste Zahl
+  const bars = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(k => {
+    const exp = n * (k === 7 ? 6 : pips(k)) / 36;
+    return `<div class="bar"><span class="c">${st.rolls[k]}</span><div class="col"><div class="b ${k === 7 ? 'seven' : ''}" style="height:${st.rolls[k] / max * 100}%"></div>
+      <i style="bottom:${exp / max * 100}%" title="erwartet ${exp.toFixed(1)}"></i></div><label>${k}</label></div>`;
+  }).join('');
+  const rows = G.players.map(p => {
+    const g = st.gained[p.id];
+    const sum = RES.reduce((t, r) => t + g[r], 0);
+    return `<tr><td><span class="dot" style="background:${p.color}"></span> ${p.name}</td><td><b>${sum}</b></td>
+      <td class="small">${fmtRes(g) || '–'}</td><td>${p.knights}</td><td>${p.roadLen}</td><td>${st.stolen[p.id]} / ${st.lost[p.id]}</td></tr>`;
+  }).join('');
+  return `<h3>🎲 Gewürfelte Zahlen (${n} Würfe)</h3>
+    <div class="chart">${bars}</div>
+    <p class="small muted">Balken = tatsächlich gewürfelt, Strich = statistisch erwartet.</p>
+    <h3>📊 Spieler</h3>
+    <div class="tscroll"><table class="gt"><tr><th>Spieler</th><th>Ertrag</th><th>Rohstoffe</th><th>⚔️</th><th>🛣️</th><th>🦹 geklaut / verloren</th></tr>${rows}</table></div>`;
+}
+
 function showGameOver(winner) {
   const ranking = G.players.slice().sort((a, b) => vp(b) - vp(a));
   modal((box, close) => {
     box.innerHTML = `<h2>🎉 ${winner.name} gewinnt!</h2>
       <table class="trade">${ranking.map((p, i) => `<tr><td>${i + 1}. <span class="dot" style="background:${p.color}"></span> ${p.name}</td><td><b>${vp(p)}</b> SP</td></tr>`).join('')}</table>
+      ${statsHtml()}
       <div class="btns"><button data-board>Brett ansehen</button><button class="primary" data-new>Neues Spiel</button></div>`;
     box.onclick = e => {
       const b = e.target.closest('button');
@@ -1415,13 +1514,16 @@ function renderBoard(target = $('#board')) {
   const p = cur();
   const human = !p.ai && G.phase !== 'over';
   const m = human ? G.mode : null;
-  const seaPts = r => Array.from({ length: 6 }, (_, i) => {
-    const a = Math.PI / 180 * (60 * i);
-    return `${(r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a)).toFixed(1)}`;
-  }).join(' ');
+  // Meer und Rahmen: Inselumriss mit dicker, runder Kontur = gleichmäßiger Abstand zur Küste
+  const hull = G.hull.map(pt => pt.join(',')).join(' ');
+  const xs = G.hull.map(pt => pt[0]), ys = G.hull.map(pt => pt[1]);
+  const M = 88;
+  target.setAttribute('viewBox', `${Math.min(...xs) - M} ${Math.min(...ys) - M} ${Math.max(...xs) - Math.min(...xs) + 2 * M} ${Math.max(...ys) - Math.min(...ys) + 2 * M}`);
   let s = BOARD_DEFS;
-  s += `<polygon points="${seaPts(S * 5.35)}" fill="#7a5a2b" stroke="#4e3816" stroke-width="4" stroke-linejoin="round"/>`;
-  s += `<polygon points="${seaPts(S * 5.2)}" fill="url(#sea)"/><polygon points="${seaPts(S * 5.2)}" fill="url(#waves)"/>`;
+  s += `<polygon points="${hull}" fill="#4e3816" stroke="#4e3816" stroke-width="${2 * 86}" stroke-linejoin="round"/>
+    <polygon points="${hull}" fill="#7a5a2b" stroke="#7a5a2b" stroke-width="${2 * 82}" stroke-linejoin="round"/>
+    <polygon points="${hull}" fill="url(#sea)" stroke="url(#sea)" stroke-width="${2 * 72}" stroke-linejoin="round"/>
+    <polygon points="${hull}" fill="url(#waves)" stroke="url(#waves)" stroke-width="${2 * 72}" stroke-linejoin="round"/>`;
 
   // Häfen: Steg aus Holz + Schild
   G.ports.forEach(pt => {
@@ -1707,7 +1809,7 @@ $('#guide').addEventListener('click', e => {
   G = null;
 })();
 
-$('#nPlayers').addEventListener('change', drawPlayerRows);
+$('#nPlayers').addEventListener('change', () => { drawPlayerRows(); $('#bigNote').hidden = +$('#nPlayers').value < 5; });
 drawPlayerRows();
 
 $('#startBtn').addEventListener('click', () => {
@@ -1716,7 +1818,7 @@ $('#startBtn').addEventListener('click', () => {
     name: r.querySelector('input').value.replace(/[<>&"]/g, '').trim() || DEFAULT_NAMES[i],
     ai: r.querySelector('select').value === 'ai',
   }));
-  newGame(cfg);
+  newGame(cfg, { winVp: +$('#winVp').value, balanced: $('#boardType').value === 'balanced', level: $('#level').value });
 });
 </script>
 </body>

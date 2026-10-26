@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0d1726">
+<title>Spielesammlung</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../siedler/favicon-32.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Nunito:wght@400;700&display=swap">
+<style>
+  :root { --bg: #0d1726; --card: #172634; --line: #2c4157; --text: #eef3f7; --muted: #9fb3c4; --accent: #ffcf4a; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: radial-gradient(circle at 30% 0%, #1b3a5c, var(--bg) 65%); color: var(--text);
+    font: 16px/1.5 "Nunito", system-ui, sans-serif;
+    padding: 40px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left));
+  }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { font-family: "Cinzel", Georgia, serif; font-size: clamp(1.8rem, 6vw, 2.6rem); margin: 0 0 4px; color: var(--accent); text-wrap: balance; }
+  p.lead { color: var(--muted); margin: 0 0 28px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  a.game {
+    display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 16px; text-decoration: none; color: inherit;
+    background: var(--card); border: 1px solid var(--line); transition: transform .15s, border-color .15s;
+  }
+  a.game:hover, a.game:focus-visible { transform: translateY(-3px); border-color: var(--accent); outline: none; }
+  .art { aspect-ratio: 1; max-width: 100%; border-radius: 22%; overflow: hidden; width: 96px; box-shadow: 0 6px 18px #0008; display: grid; place-items: center; }
+  .art img { width: 100%; height: 100%; display: block; }
+  .art.bs { background: radial-gradient(circle at 40% 30%, #3b1d6e, #04040f); font-size: 54px; }
+  h2 { margin: 0; font-size: 1.25rem; }
+  .game p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tags span { font-size: .78rem; border: 1px solid var(--line); border-radius: 12px; padding: 1px 8px; color: var(--muted); }
+  footer { margin-top: 32px; color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Spielesammlung</h1>
+  <p class="lead">Wähle ein Spiel. Beide laufen direkt im Browser, auch auf dem Handy.</p>
+  <div class="grid">
+    <a class="game" href="../siedler/">
+      <div class="art"><img src="../siedler/icon-192.png" alt=""></div>
+      <h2>Inselsiedler</h2>
+      <p>Besiedle die Insel, handle mit Rohstoffen und sammle als Erster genug Siegpunkte.</p>
+      <div class="tags"><span>2–6 Spieler</span><span>Computergegner</span><span>Online</span><span>Offline spielbar</span></div>
+    </a>
+    <a class="game" href="../">
+      <div class="art bs" aria-hidden="true">⚔</div>
+      <h2>Battle Spirits Brave</h2>
+      <p>Kartenduell mit Spirits, Brave-Fusionen und 3D-Hologrammen auf dem Spielfeld.</p>
+      <div class="tags"><span>Kartenspiel</span><span>3D</span></div>
+    </a>
+  </div>
+  <footer>Tipp: Öffne ein Spiel und lege es über „Zum Home-Bildschirm“ als App auf dein Handy.</footer>
+</main>
+</body>
+</html>

@@ -50,6 +50,17 @@
   /* Start screen */
   #start { max-width: 560px; margin: 0 auto; padding: 32px 16px; }
   #start h1 { font-size: 2.4em; }
+  .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 12px; margin-bottom: 8px; }
+  .settings label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: .85em; }
+  .settings select { color: var(--text); font-size: 1.05rem; }
+  .netform { display: grid; grid-template-columns: 1fr auto; gap: 8px 10px; align-items: end; }
+  .netform label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: .85em; }
+  .netform input { color: var(--text); font-size: 1.05rem; }
+  #joinCode { text-transform: uppercase; letter-spacing: .2em; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .code { font: 800 2.4em/1.1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .25em; color: var(--accent); margin: 4px 0 8px; }
+  ul.lobby { list-style: none; padding: 0; margin: 6px 0 10px; display: grid; gap: 4px; }
+  ul.lobby li { display: flex; align-items: center; gap: 8px; }
+  #netPanel:not(:empty) { margin-top: 12px; padding-top: 10px; border-top: 1px solid #2a3f52; }
   .prow { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
   .prow .sw { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #0008; flex: none; }
   .prow input { flex: 1; min-width: 0; }
@@ -144,9 +155,8 @@
   @keyframes pulse { from { opacity: .75; } to { opacity: 1; } }
 
   /* Modal */
-  #modal { position: fixed; inset: 0; background: #0009; display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
-  #modal[hidden] { display: none; }
-  #modalBox { background: var(--panel); border-radius: 14px; padding: 18px 20px; width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 60px #000a; }
+  .modal { position: fixed; inset: 0; background: #0009; display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
+  .modalBox { background: var(--panel); border-radius: 14px; padding: 18px 20px; width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 60px #000a; }
   .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
   .row > span.lbl { width: 70px; color: var(--muted); }
   table.trade { border-collapse: collapse; width: 100%; }
@@ -156,6 +166,26 @@
   .cnt button { padding: 2px 9px; }
   .msg { min-height: 1.3em; color: var(--accent); }
   .btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
+  .chart { display: flex; gap: 4px; align-items: stretch; height: 150px; margin: 8px 0 2px; }
+  .chart .bar { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .chart .c { font-size: .75em; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .chart .col { flex: 1; width: 100%; position: relative; display: flex; align-items: flex-end; }
+  .chart .b { width: 100%; background: linear-gradient(#f3d567, #c98f12); border-radius: 4px 4px 0 0; min-height: 2px; }
+  .chart .b.seven { background: linear-gradient(#ff8a80, #c62828); }
+  .chart i { position: absolute; left: -2px; right: -2px; height: 2px; background: var(--text); opacity: .8; }
+  .chart label { font-size: .8em; font-weight: 700; }
+  .small { font-size: .85em; }
+  .muted { color: var(--muted); }
+  .tscroll { overflow-x: auto; }
+  .hbtns { display: flex; gap: 6px; }
+  .fly { position: fixed; left: 0; top: 0; font-size: 26px; pointer-events: none; z-index: 40; margin: -16px 0 0 -16px; filter: drop-shadow(0 2px 3px #0009); }
+  .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+  .pop { animation: pop .5s cubic-bezier(.3, 1.7, .5, 1) both; transform-box: fill-box; transform-origin: 50% 90%; }
+  .pop-c { transform-origin: 50% 50%; }
+  .drop { animation: drop .5s cubic-bezier(.3, 1.4, .5, 1) both; }
+  @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+  @keyframes drop { from { transform: translateY(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .pop, .drop, .dice.shake span.d, .ddice.shake span.d, .hl-v, .hex.pick polygon.tile { animation: none !important; } }
   #toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #000d; padding: 8px 16px; border-radius: 20px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 20; }
   #toast.show { opacity: 1; }
 
@@ -173,12 +203,13 @@
     .sp { flex: none; display: flex; align-items: center; gap: 4px; background: var(--panel2); border: 2px solid transparent; border-radius: 16px; padding: 3px 9px; font-size: .85em; white-space: nowrap; }
     .sp.active { border-color: var(--accent); }
     .sp small { color: var(--muted); }
-    #strip button { flex: none; margin-left: auto; padding: 3px 10px; border-radius: 16px; }
+    #strip button { flex: none; padding: 3px 10px; border-radius: 16px; }
+    #strip button[data-act=sound] { margin-left: auto; }
     #boardWrap { height: auto; display: block; }
     #board { height: auto; max-height: none; display: block; }
     #hint { top: 6px; font-size: .85em; }
     #side { border-left: 0; border-top: 1px solid #2a3f52; }
-    #side .plist, #side .dice, #side .handbox, #side .actions, #side .sidehead button { display: none; }
+    #side .plist, #side .dice, #side .handbox, #side .actions, #side .sidehead .hbtns { display: none; }
     #dock {
       display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 8;
       background: var(--panel); border-top: 1px solid #355068; box-shadow: 0 -6px 20px #0008;
@@ -204,16 +235,34 @@
 <div id="start">
   <h1>Inselsiedler</h1>
   <svg class="hero" id="heroBoard" viewBox="-335 -300 670 600" aria-hidden="true"></svg>
-  <p>Besiedle die Insel, sammle Rohstoffe, handle geschickt und erreiche als Erster <b>10 Siegpunkte</b>.</p>
+  <p>Besiedle die Insel, sammle Rohstoffe, handle geschickt und erreiche als Erster die nötigen Siegpunkte.</p>
+  <div class="card" id="resume" hidden>
+    <h3>💾 Gespeichertes Spiel</h3>
+    <p id="resumeInfo"></p>
+    <div class="btns"><button id="discardSave">Verwerfen</button><button class="primary" id="resumeBtn">Weiterspielen</button></div>
+  </div>
   <div class="card">
-    <div class="row">
-      <span>Spieler:</span>
-      <select id="nPlayers"><option>2</option><option>3</option><option selected>4</option></select>
-      <span style="margin-left:12px">Tempo:</span>
-      <select id="speed"><option value="1">Normal</option><option value="0.5">Schnell</option><option value="1.6">Langsam</option></select>
+    <div class="settings">
+      <label>Spieler <select id="nPlayers"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
+      <label>Siegpunkte <select id="winVp"><option>8</option><option selected>10</option><option>12</option><option>15</option></select></label>
+      <label>Brett <select id="boardType"><option value="random">Zufällig</option><option value="balanced">Ausgewogen</option></select></label>
+      <label>Computer <select id="level"><option value="easy">Leicht</option><option value="normal" selected>Mittel</option><option value="hard">Schwer</option></select></label>
+      <label>Tempo <select id="speed"><option value="1">Normal</option><option value="0.5">Schnell</option><option value="1.6">Langsam</option></select></label>
     </div>
+    <p class="small muted" id="bigNote" hidden>Ab 5 Spielern wird die große Insel mit 30 Feldern und 11 Häfen gespielt.</p>
     <div id="prows"></div>
     <div class="btns"><button class="primary" id="startBtn">Spiel starten</button></div>
+  </div>
+  <div class="card" id="online">
+    <h3>🌐 Online mit Freunden</h3>
+    <p class="small muted">Jeder spielt auf seinem eigenen Gerät. Einer erstellt einen Raum, die anderen treten mit dem Code bei.</p>
+    <div class="netform">
+      <label>Dein Name <input id="netName" maxlength="14" autocomplete="nickname"></label>
+      <button class="primary" id="hostBtn">Raum erstellen</button>
+      <label>Raum-Code <input id="joinCode" maxlength="5" autocapitalize="characters" autocomplete="off" placeholder="K7QXM"></label>
+      <button id="joinBtn">Beitreten</button>
+    </div>
+    <div id="netPanel"></div>
   </div>
   <div class="card intro">
     <p><b>Neu hier?</b> Die Anleitung erklärt Schritt für Schritt, wie das Spiel funktioniert.</p>
@@ -231,7 +280,6 @@
   <div id="dock"></div>
 </div>
 
-<div id="modal" hidden><div id="modalBox"></div></div>
 <div id="guide" hidden>
   <div class="gbox">
     <div class="ghead">
@@ -242,11 +290,12 @@
       <a href="#g-ziel">Ziel</a><a href="#g-brett">Spielbrett</a><a href="#g-aufbau">Aufbau</a><a href="#g-zug">Dein Zug</a>
       <a href="#g-bauen">Bauen</a><a href="#g-sieben">Die 7 &amp; Räuber</a><a href="#g-handel">Handeln</a>
       <a href="#g-karten">Entwicklungskarten</a><a href="#g-punkte">Siegpunkte</a><a href="#g-tipps">Tipps</a><a href="#g-bedienung">Bedienung</a>
+      <a href="#g-einstellungen">Einstellungen</a><a href="#g-online">Online spielen</a><a href="#g-app">Als App</a>
     </nav>
     <div class="gbody">
       <section id="g-ziel">
         <h3>🎯 Ziel des Spiels</h3>
-        <p>Ihr besiedelt gemeinsam eine Insel. Wer als Erster <b>10 Siegpunkte</b> hat, gewinnt sofort. Punkte bekommst du vor allem für Siedlungen und Städte.</p>
+        <p>Ihr besiedelt gemeinsam eine Insel. Wer als Erster die nötigen <b>Siegpunkte</b> hat (normalerweise 10, einstellbar), gewinnt sofort. Punkte bekommst du vor allem für Siedlungen und Städte.</p>
       </section>
 
       <section id="g-brett">
@@ -261,6 +310,7 @@
           <tr><td>⛰️ Gebirge</td><td>Erz</td><td>3</td></tr>
           <tr><td>🏜️ Wüste</td><td>nichts</td><td>1</td></tr>
         </table>
+        <p>Bei <b>5–6 Spielern</b> wird die große Insel gespielt: 30 Felder (6 Wald, 5 Hügel, 6 Weide, 6 Acker, 5 Gebirge, 2 Wüsten), 11 Häfen und 34 Entwicklungskarten.</p>
         <p><b>Zahlenplättchen:</b> Auf jedem Feld liegt eine Zahl von 2 bis 12. Wird sie gewürfelt, liefert das Feld Rohstoffe. Die <b>Punkte unter der Zahl</b> zeigen, wie oft sie fällt: 5 Punkte (die roten <b style="color:#ff7a70">6</b> und <b style="color:#ff7a70">8</b>) kommen am häufigsten, 1 Punkt (2 und 12) am seltensten.</p>
         <p><b>Ecken und Kanten:</b> Siedlungen und Städte stehen auf den <b>Ecken</b> der Felder, Straßen auf den <b>Kanten</b>. Eine Ecke grenzt an bis zu 3 Felder. Deshalb sind Ecken zwischen drei guten Zahlen besonders wertvoll.</p>
         <p><b>Häfen ⚓:</b> Am Rand liegen 9 Häfen. Hast du eine Siedlung oder Stadt an einer der beiden Ecken mit Steg, tauschst du günstiger mit der Bank (siehe <a href="#g-handel">Handeln</a>).</p>
@@ -365,6 +415,45 @@
         </ul>
       </section>
 
+      <section id="g-einstellungen">
+        <h3>⚙️ Einstellungen &amp; Speichern</h3>
+        <table class="gt">
+          <tr><th>Einstellung</th><th>Bedeutung</th></tr>
+          <tr><td>Spieler</td><td>2 bis 6. Ab 5 Spielern gibt es die große Insel.</td></tr>
+          <tr><td>Siegpunkte</td><td>8 für eine kurze Partie, 10 normal, 12 oder 15 für lange Spiele.</td></tr>
+          <tr><td>Brett</td><td><b>Zufällig</b> mischt frei. <b>Ausgewogen</b> verteilt Landschaften und Zahlen fairer, damit kein Rohstoff zu selten wird.</td></tr>
+          <tr><td>Computer</td><td><b>Leicht</b> spielt eher zufällig. <b>Mittel</b> baut gezielt und bietet Tausche an. <b>Schwer</b> achtet auf seltene Rohstoffe und blockiert Führende mit dem Räuber.</td></tr>
+          <tr><td>Tempo</td><td>Wie schnell die Computer ihre Züge machen.</td></tr>
+        </table>
+        <p><b>Speichern:</b> Das Spiel wird automatisch im Browser gespeichert. Schließt du die Seite, findest du beim nächsten Öffnen oben <b>„Weiterspielen“</b>. Online-Spiele werden nicht gespeichert.</p>
+        <p><b>Ton:</b> Mit 🔊 schaltest du die Geräusche an oder aus.</p>
+        <p><b>Statistik:</b> Am Spielende siehst du, wie oft jede Zahl gewürfelt wurde (verglichen mit der Erwartung) und wer wie viele Rohstoffe bekommen hat.</p>
+      </section>
+
+      <section id="g-online">
+        <h3>🌐 Online spielen</h3>
+        <p>Jeder spielt auf seinem eigenen Handy oder Computer. Ihr müsst nicht im selben WLAN sein.</p>
+        <ol>
+          <li>Einer tippt auf <b>„Raum erstellen“</b> und ist damit Gastgeber. Es erscheint ein <b>Code aus 5 Zeichen</b>.</li>
+          <li>Die anderen geben ihren Namen und den Code ein und tippen auf <b>„Beitreten“</b>. Einfacher geht es mit dem Einladungslink, den der Gastgeber kopieren und verschicken kann.</li>
+          <li>Der Gastgeber kann Computergegner dazunehmen und tippt auf <b>„Spiel starten“</b>.</li>
+        </ol>
+        <ul>
+          <li>Der Gastgeber führt das Spiel. Lass seine Seite deshalb offen, bis die Partie vorbei ist.</li>
+          <li>Verliert ein Gast die Verbindung, übernimmt der Computer. Tritt er mit <b>demselben Namen</b> wieder bei, spielt er weiter.</li>
+          <li>Für den Online-Modus braucht ihr Internet. Er funktioniert über die GitHub-Seite des Spiels, nicht in der claude.ai-Vorschau.</li>
+        </ul>
+      </section>
+
+      <section id="g-app">
+        <h3>📱 Als App auf dem Handy</h3>
+        <ul>
+          <li><b>iPhone (Safari):</b> Teilen ⬆️ → „Zum Home-Bildschirm“.</li>
+          <li><b>Android (Chrome):</b> Menü ⋮ → „App installieren“ oder „Zum Startbildschirm hinzufügen“.</li>
+        </ul>
+        <p>Danach startet das Spiel im Vollbild. Spiele gegen den Computer und am selben Gerät funktionieren dann auch <b>ohne Internet</b>.</p>
+      </section>
+
       <section id="g-bedienung">
         <h3>🖱️ Bedienung</h3>
         <ul>
@@ -374,6 +463,7 @@
           <li>Bei einer 7 werden die Felder gestrichelt umrandet: Klicke ein Feld an, um den Räuber dorthin zu setzen.</li>
           <li>In der Spielerübersicht: 🃏 Rohstoffkarten · 📜 Entwicklungskarten · ⚔️ gespielte Ritter · 🛣️ längste Straße.</li>
           <li>Spielen mehrere Menschen an einem Gerät, wird vor jedem Zug gefragt, wer dran ist. So sieht niemand die Karten der anderen.</li>
+          <li>Computergegner können dir einen Tausch anbieten. Du entscheidest im Fenster mit <b>Annehmen</b> oder <b>Ablehnen</b>.</li>
         </ul>
       </section>
     </div>
@@ -407,9 +497,8 @@ const DEV = {
   plenty:   { name: 'Erfindung',   icon: '🎁', desc: 'Nimm 2 beliebige Rohstoffe aus der Bank.' },
   monopoly: { name: 'Monopol',     icon: '💰', desc: 'Alle anderen geben dir alle Karten eines Rohstoffs.' },
 };
-const COLORS = ['#e53935', '#1e88e5', '#fb8c00', '#f2f2f2'];
-const DEFAULT_NAMES = ['Du', 'Anna', 'Bruno', 'Clara'];
-const WIN_VP = 10;
+const COLORS = ['#e53935', '#1e88e5', '#fb8c00', '#f2f2f2', '#8e24aa', '#26a69a'];
+const DEFAULT_NAMES = ['Du', 'Anna', 'Bruno', 'Clara', 'Dora', 'Emil'];
 const S = 60, SQ3 = Math.sqrt(3);
 const DICE = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
@@ -423,28 +512,68 @@ const emptyRes = () => Object.fromEntries(RES.map(r => [r, 0]));
 let G = null;
 
 // ---------- Spielbrett ----------
-function buildBoard() {
+// big = große Insel für 5–6 Spieler, balanced = ausgewogene Verteilung
+function buildBoard(big = false, balanced = false) {
   const coords = [];
-  for (let q = -2; q <= 2; q++) for (let r = -2; r <= 2; r++) if (Math.abs(q + r) <= 2) coords.push([q, r]);
-  const tiles = shuffle([
-    ...Array(4).fill('holz'), ...Array(3).fill('lehm'), ...Array(4).fill('wolle'),
-    ...Array(4).fill('getreide'), ...Array(3).fill('erz'), 'wueste',
-  ]);
-  const hexes = coords.map(([q, r], i) => ({ id: i, q, r, x: S * SQ3 * (q + r / 2), y: S * 1.5 * r, res: tiles[i], num: 0, v: [] }));
+  if (big) {
+    // Reihen mit 3-4-5-6-5-4-3 Feldern
+    for (let r = -3; r <= 3; r++) for (let q = Math.max(-3, -3 - r); q <= Math.min(3, 3 - r) - 1; q++) coords.push([q, r]);
+  } else {
+    for (let q = -2; q <= 2; q++) for (let r = -2; r <= 2; r++) if (Math.abs(q + r) <= 2) coords.push([q, r]);
+  }
+  const shift = big ? S * SQ3 / 2 : 0;
+  const counts = big
+    ? { holz: 6, lehm: 5, wolle: 6, getreide: 6, erz: 5, wueste: 2 }
+    : { holz: 4, lehm: 3, wolle: 4, getreide: 4, erz: 3, wueste: 1 };
+  const nums = big
+    ? [2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 8, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12]
+    : [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
+  const tilePool = Object.entries(counts).flatMap(([r, n]) => Array(n).fill(r));
+
+  const hexes = coords.map(([q, r], i) => ({ id: i, q, r, x: S * SQ3 * (q + r / 2) + shift, y: S * 1.5 * r, res: null, num: 0, v: [] }));
   const byKey = {};
   hexes.forEach(h => byKey[h.q + ',' + h.r] = h);
   const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
   hexes.forEach(h => h.nb = DIRS.map(([dq, dr]) => byKey[(h.q + dq) + ',' + (h.r + dr)]).filter(Boolean).map(n => n.id));
 
-  // Zahlen verteilen, 6 und 8 nicht nebeneinander
-  const nums = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
+  // Felder und Zahlen verteilen, 6 und 8 nie nebeneinander
   const red = n => n === 6 || n === 8;
-  for (let tries = 0; tries < 1000; tries++) {
-    const ns = shuffle(nums.slice());
-    let k = 0;
-    hexes.forEach(h => h.num = h.res === 'wueste' ? 0 : ns[k++]);
-    if (!hexes.some(h => red(h.num) && h.nb.some(n => red(hexes[n].num)))) break;
+  const layout = () => {
+    const tiles = shuffle(tilePool.slice());
+    hexes.forEach((h, i) => h.res = tiles[i]);
+    for (let tries = 0; tries < 2000; tries++) {
+      const ns = shuffle(nums.slice());
+      let k = 0;
+      hexes.forEach(h => h.num = h.res === 'wueste' ? 0 : ns[k++]);
+      if (!hexes.some(h => red(h.num) && h.nb.some(n => red(hexes[n].num)))) break;
+    }
+    return hexes.map(h => [h.res, h.num]);
+  };
+  // Bewertung: gleiche Landschaften nebeneinander, gleiche Zahlen nebeneinander, ungleiche Ertragschancen je Rohstoff
+  const unfairness = () => {
+    let s = 0;
+    hexes.forEach(h => h.nb.forEach(n => {
+      if (n < h.id) return;
+      if (hexes[n].res === h.res) s += 2;
+      if (h.num && hexes[n].num === h.num) s += 1.5;
+    }));
+    const totalPips = hexes.reduce((t, h) => t + pips(h.num), 0);
+    const land = hexes.length - counts.wueste;
+    RES.forEach(r => {
+      const got = hexes.filter(h => h.res === r).reduce((t, h) => t + pips(h.num), 0);
+      s += Math.abs(got - totalPips * counts[r] / land) * 0.8;
+    });
+    return s;
+  };
+  let best = layout();
+  if (balanced) {
+    let bs = unfairness();
+    for (let i = 0; i < 400; i++) {
+      const cand = layout(), sc = unfairness();
+      if (sc < bs) { bs = sc; best = cand; }
+    }
   }
+  hexes.forEach((h, i) => [h.res, h.num] = best[i]);
 
   // Ecken und Kanten
   const verts = [], edges = [], emap = {};
@@ -476,28 +605,41 @@ function buildBoard() {
     const mx = (verts[e.v[0]].x + verts[e.v[1]].x) / 2, my = (verts[e.v[0]].y + verts[e.v[1]].y) / 2;
     return { e, mx, my, ang: Math.atan2(my, mx) };
   }).sort((a, b) => a.ang - b.ang);
-  const ptypes = shuffle(['any', 'any', 'any', 'any', ...RES]);
+  const ptypes = shuffle(big ? ['any', 'any', 'any', 'any', 'any', ...RES, 'wolle'] : ['any', 'any', 'any', 'any', ...RES]);
   const off = Math.floor(Math.random() * 3);
   const ports = ptypes.map((type, i) => {
-    const c = coast[(Math.round(i * coast.length / 9) + off) % coast.length];
+    const c = coast[(Math.round(i * coast.length / ptypes.length) + off) % coast.length];
     c.e.v.forEach(vid => verts[vid].port = type);
     return { type, edge: c.e.id, mx: c.mx, my: c.my };
   });
 
-  return { hexes, verts, edges, ports, robber: hexes.find(h => h.res === 'wueste').id };
+  // Umriss der Insel (konvexe Hülle aller Ecken) für Meer und Rahmen
+  const pts = verts.map(v => [v.x, v.y]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lower = [], upper = [];
+  pts.forEach(p => { while (lower.length > 1 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop(); lower.push(p); });
+  pts.slice().reverse().forEach(p => { while (upper.length > 1 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop(); upper.push(p); });
+  const hull = lower.slice(0, -1).concat(upper.slice(0, -1)).map(([x, y]) => [Math.round(x * 10) / 10, Math.round(y * 10) / 10]);
+
+  return { hexes, verts, edges, ports, hull, big, robber: hexes.find(h => h.res === 'wueste').id };
 }
 
 // ---------- Spielstart ----------
-function newGame(cfg) {
-  const board = buildBoard();
-  const deck = shuffle([
+function newGame(cfg, opts) {
+  const big = cfg.length > 4;
+  const board = buildBoard(big, opts.balanced);
+  const deck = shuffle(big ? [
+    ...Array(20).fill('knight'), ...Array(5).fill('vp'),
+    ...Array(3).fill('road'), ...Array(3).fill('plenty'), ...Array(3).fill('monopoly'),
+  ] : [
     ...Array(14).fill('knight'), ...Array(5).fill('vp'),
     ...Array(2).fill('road'), ...Array(2).fill('plenty'), ...Array(2).fill('monopoly'),
   ]);
   G = {
     ...board, deck, seed: Math.floor(Math.random() * 1e6),
+    winVp: opts.winVp, level: opts.level, net: !!opts.net,
     players: cfg.map((c, i) => ({
-      id: i, name: c.name, color: COLORS[i], ai: c.ai,
+      id: i, name: c.name, color: COLORS[i], ai: c.ai, remote: !!c.remote,
       res: emptyRes(), dev: [], knights: 0,
       roads: 15, settlements: 5, cities: 4,
       roadLen: 0, longest: false, army: false,
@@ -505,14 +647,19 @@ function newGame(cfg) {
     cur: 0, turn: 0, phase: 'setup', mode: null, busy: false,
     dice: null, hot: [], log: [], devPlayed: false,
     setupOrder: [], setupStep: 0, lastSetupV: null, freeRoads: 0, pending: null,
+    stats: { rolls: Array(13).fill(0), gained: cfg.map(() => emptyRes()), stolen: cfg.map(() => 0), lost: cfg.map(() => 0) },
   };
-  $('#start').hidden = true;
-  $('#heroBoard').innerHTML = ''; // doppelte SVG-IDs vermeiden
-  $('#game').hidden = false;
-  log('Neues Spiel gestartet. Aufbauphase!');
+  showGame();
+  log(`Neues Spiel gestartet: ${G.winVp} Siegpunkte zum Sieg${big ? ', große Insel' : ''}. Aufbauphase!`);
   const n = G.players.length;
   G.setupOrder = [...Array(n).keys(), ...[...Array(n).keys()].reverse()];
   nextSetup();
+}
+
+function showGame() {
+  $('#start').hidden = true;
+  $('#heroBoard').innerHTML = ''; // doppelte SVG-IDs vermeiden
+  $('#game').hidden = false;
 }
 
 // ---------- Hilfsfunktionen ----------
@@ -520,8 +667,11 @@ const cur = () => G.players[G.cur];
 const total = p => RES.reduce((s, r) => s + p.res[r], 0);
 const canAfford = (p, cost) => Object.entries(cost).every(([r, n]) => p.res[r] >= n);
 const pay = (p, cost) => { for (const [r, n] of Object.entries(cost)) p.res[r] -= n; };
-const humans = () => G.players.filter(p => !p.ai);
-const humanTurn = () => G && !cur().ai && G.phase !== 'setup' && G.phase !== 'over';
+// Spieler, die an diesem Gerät sitzen (online: nur der eigene)
+const isClient = () => NET.role === 'client';
+const isLocal = p => isClient() ? p.id === NET.me : !p.ai && !p.remote;
+const localPlayers = () => G.players.filter(isLocal);
+const humanTurn = () => G && isLocal(cur()) && G.phase !== 'setup' && G.phase !== 'over';
 const fmtRes = obj => RES.filter(r => obj[r]).map(r => `${obj[r]}${RINFO[r].icon}`).join(' ');
 const pname = p => `<b style="color:${p.color}">${p.name}</b>`;
 
@@ -551,6 +701,7 @@ function log(html) {
 
 let toastTimer;
 function toast(msg) {
+  if (NET.role === 'host' && NET.actor !== null && G && G.players[NET.actor].remote) return netSendTo(NET.actor, { t: 'toast', msg });
   const t = $('#toast');
   t.textContent = msg;
   t.classList.add('show');
@@ -635,11 +786,14 @@ function checkWin() {
   if (G.phase === 'over') return true;
   if (G.phase === 'setup') return false;
   const p = cur();
-  if (vp(p) < WIN_VP) return false;
+  if (vp(p) < G.winVp) return false;
   G.phase = 'over';
   G.mode = null;
   log(`🎉 ${pname(p)} gewinnt mit ${vp(p)} Siegpunkten!`);
+  clearSave();
   render();
+  Sound.play('win');
+  confetti();
   showGameOver(p);
   return true;
 }
@@ -650,6 +804,8 @@ function buildRoad(pid, eid, paid) {
   if (paid) pay(p, COST.road);
   G.edges[eid].owner = pid;
   p.roads--;
+  G.fresh = { e: eid };
+  Sound.play('road');
   log(`${pname(p)} baut eine Straße.`);
   updateLongest();
 }
@@ -659,6 +815,8 @@ function buildSettlement(pid, vid, paid) {
   if (paid) pay(p, COST.settlement);
   G.verts[vid].owner = pid;
   p.settlements--;
+  G.fresh = { v: vid };
+  Sound.play('build');
   log(`${pname(p)} baut eine Siedlung.`);
   updateLongest();
 }
@@ -668,6 +826,8 @@ function buildCity(pid, vid) {
   pay(p, COST.city);
   G.verts[vid].city = true;
   p.cities--;
+  G.fresh = { v: vid };
+  Sound.play('build');
   p.settlements++;
   log(`${pname(p)} baut eine Stadt.`);
 }
@@ -677,6 +837,7 @@ function buyDev(pid) {
   pay(p, COST.dev);
   const type = G.deck.pop();
   p.dev.push({ type, turn: G.turn });
+  Sound.play('card');
   log(`${pname(p)} kauft eine Entwicklungskarte.`);
   return type;
 }
@@ -686,7 +847,7 @@ function giveInitial(pid, vid) {
   const got = emptyRes();
   G.verts[vid].hexes.forEach(h => {
     const r = G.hexes[h].res;
-    if (r !== 'wueste') { p.res[r]++; got[r]++; }
+    if (r !== 'wueste') { p.res[r]++; got[r]++; G.stats.gained[pid][r]++; }
   });
   if (fmtRes(got)) log(`${pname(p)} erhält ${fmtRes(got)}.`);
 }
@@ -694,7 +855,9 @@ function giveInitial(pid, vid) {
 function rollDice() {
   const a = 1 + Math.floor(Math.random() * 6), b = 1 + Math.floor(Math.random() * 6);
   G.dice = [a, b];
+  G.stats.rolls[a + b]++;
   G.diceAnim = true;
+  Sound.play('dice');
   const s = a + b;
   log(`🎲 ${pname(cur())} würfelt <b>${s}</b>.`);
   G.hot = G.hexes.filter(h => h.num === s).map(h => h.id);
@@ -712,10 +875,13 @@ function distribute(n) {
       if (v.owner === null) return;
       const amt = v.city ? 2 : 1;
       G.players[v.owner].res[h.res] += amt;
+      G.stats.gained[v.owner][h.res] += amt;
       gains[v.owner][h.res] += amt;
+      (G.fx = G.fx || []).push({ hex: h.id, pid: v.owner, res: h.res });
     });
   });
   G.players.forEach((p, i) => { if (fmtRes(gains[i])) log(`${pname(p)} erhält ${fmtRes(gains[i])}.`); });
+  if (G.players.some((p, i) => !p.ai && fmtRes(gains[i]))) setTimeout(() => Sound.play('gain'), 600 * SPEED);
 }
 
 function steal(fromId, toId) {
@@ -724,8 +890,9 @@ function steal(fromId, toId) {
   if (!pool.length) return;
   const r = pool[Math.floor(Math.random() * pool.length)];
   from.res[r]--; to.res[r]++;
+  G.stats.lost[fromId]++; G.stats.stolen[toId]++;
   const seen = !to.ai || !from.ai;
-  log(`🦹 ${pname(to)} zieht eine Karte von ${pname(from)}${seen && humans().length === 1 ? ` (${RINFO[r].icon})` : ''}.`);
+  log(`🦹 ${pname(to)} zieht eine Karte von ${pname(from)}${seen && !G.net && localPlayers().length === 1 ? ` (${RINFO[r].icon})` : ''}.`);
 }
 
 async function handleSeven() {
@@ -735,7 +902,7 @@ async function handleSeven() {
     const t = total(p);
     if (t <= 7) continue;
     const n = Math.floor(t / 2);
-    const disc = p.ai ? aiDiscard(p, n) : await discardDialog(p, n);
+    const disc = p.ai ? aiDiscard(p, n) : await ask(p, 'discard', { n });
     RES.forEach(r => p.res[r] -= disc[r]);
     log(`${pname(p)} wirft ${n} Karten ab.`);
     render();
@@ -757,6 +924,8 @@ async function robberFlow(pid) {
     hid = await new Promise(res => G.pending = res);
   }
   G.robber = hid;
+  G.fresh = { robber: true };
+  Sound.play('robber');
   const h = G.hexes[hid];
   log(`🦹 ${pname(p)} versetzt den Räuber auf ${RINFO[h.res].land}${h.num ? ' (' + h.num + ')' : ''}.`);
   render();
@@ -766,7 +935,7 @@ async function robberFlow(pid) {
   let victim;
   if (victims.length === 1) victim = victims[0];
   else if (p.ai) victim = victims.sort((a, b) => vp(G.players[b], false) * 2 + total(G.players[b]) - vp(G.players[a], false) * 2 - total(G.players[a]))[0];
-  else victim = await chooseVictim(victims);
+  else victim = await ask(p, 'victim', { ids: victims });
   steal(victim, pid);
   render();
 }
@@ -798,11 +967,11 @@ async function playDev(pid, idx) {
       await new Promise(res => G.pending = res);
     }
   } else if (card.type === 'plenty') {
-    const picks = p.ai ? aiPlentyPicks(p) : await chooseResources('Erfindung: Wähle 2 Rohstoffe', 2);
+    const picks = p.ai ? aiPlentyPicks(p) : await ask(p, 'resources', { title: 'Erfindung: Wähle 2 Rohstoffe', count: 2 });
     picks.forEach(r => p.res[r]++);
     log(`${pname(p)} nimmt ${picks.map(r => RINFO[r].icon).join(' ')} aus der Bank.`);
   } else if (card.type === 'monopoly') {
-    const r = p.ai ? aiMonoRes(pid).r : (await chooseResources('Monopol: Wähle einen Rohstoff', 1))[0];
+    const r = p.ai ? aiMonoRes(pid).r : (await ask(p, 'resources', { title: 'Monopol: Wähle einen Rohstoff', count: 1 }))[0];
     let sum = 0;
     G.players.forEach(o => { if (o !== p) { sum += o.res[r]; o.res[r] = 0; } });
     p.res[r] += sum;
@@ -829,6 +998,7 @@ async function nextSetup() {
   const second = G.setupStep >= G.players.length;
   render();
   if (p.ai) {
+    saveGame();
     await sleep(500);
     aiSetup(pid, second);
     G.setupStep++;
@@ -836,7 +1006,7 @@ async function nextSetup() {
     await sleep(300);
     nextSetup();
   } else {
-    await handoff(p);
+    if (isLocal(p)) await handoff(p);
     G.mode = 'setupSettlement';
     render();
   }
@@ -845,12 +1015,13 @@ async function nextSetup() {
 async function beginTurn() {
   G.phase = 'roll';
   G.devPlayed = false;
+  G.offered = false;
   G.mode = null;
   log(`— ${pname(cur())} ist am Zug —`);
   if (checkWin()) return;
   render();
-  if (cur().ai) aiTurn();
-  else { await handoff(cur()); render(); }
+  if (cur().ai) { saveGame(); aiTurn(); }
+  else if (isLocal(cur())) { await handoff(cur()); Sound.play('turn'); render(); }
 }
 
 function endTurn() {
@@ -863,7 +1034,7 @@ function endTurn() {
 
 // ---------- Menschliche Eingaben ----------
 async function humanRoll() {
-  if (!humanTurn() || G.phase !== 'roll' || G.busy) return;
+  if (cur().ai || G.phase !== 'roll' || G.busy || G.mode) return;
   const s = rollDice();
   G.phase = 'main';
   render();
@@ -872,8 +1043,9 @@ async function humanRoll() {
 
 function startMode(mode) {
   const p = cur();
-  if (!humanTurn() || G.phase !== 'main' || G.busy) return;
+  if (p.ai || G.phase !== 'main' || G.busy) return;
   if (G.mode === mode) { G.mode = null; render(); return; }
+  if (G.mode) return;
   const checks = {
     road: [p.roads > 0, 'Keine Straßen mehr übrig.', COST.road, anyRoadOk(p.id), 'Kein Platz für eine Straße.'],
     settlement: [p.settlements > 0, 'Keine Siedlungen mehr übrig.', COST.settlement, G.verts.some(v => settlementOk(p.id, v.id, false)), 'Kein gültiger Bauplatz – baue erst Straßen.'],
@@ -932,7 +1104,7 @@ function onEdge(eid) {
 }
 
 function onHex(hid) {
-  if (G.mode !== 'robber' || hid === G.robber) return;
+  if (G.mode !== 'robber' || hid === G.robber || !G.hexes[hid]) return;
   G.mode = null;
   resolvePending(hid);
 }
@@ -956,6 +1128,15 @@ function production(pid) {
   return pr;
 }
 
+const lvl = () => ({ easy: 0, normal: 1, hard: 2 })[G.level] ?? 1;
+
+// Seltene Rohstoffe sind wertvoller (nur für starke Gegner)
+function scarcity(res) {
+  const tot = r => G.hexes.reduce((t, h) => t + (h.res === r ? pips(h.num) : 0), 0);
+  const avg = RES.reduce((t, r) => t + tot(r), 0) / RES.length;
+  return Math.max(0.7, Math.min(1.5, avg / Math.max(1, tot(res))));
+}
+
 function vertexScore(pid, vid) {
   const v = G.verts[vid];
   const prod = production(pid);
@@ -964,7 +1145,7 @@ function vertexScore(pid, vid) {
   v.hexes.forEach(h => {
     const hx = G.hexes[h];
     if (hx.res === 'wueste') return;
-    const p = pips(hx.num);
+    const p = pips(hx.num) * (lvl() === 2 ? scarcity(hx.res) : 1);
     s += p * (hx.id === G.robber ? 0.4 : 1);
     if (prod[hx.res] === 0 && !seen.has(hx.res)) s += 1.5;
     if ((hx.res === 'lehm' || hx.res === 'erz') && !seen.has(hx.res)) s += 0.5;
@@ -982,7 +1163,7 @@ function argmax(list, score) {
 
 function aiSetup(pid, second) {
   const cands = G.verts.filter(v => settlementOk(pid, v.id, true)).map(v => v.id);
-  const vid = argmax(cands, id => vertexScore(pid, id) + Math.random() * 0.6);
+  const vid = argmax(cands, id => vertexScore(pid, id) + Math.random() * [5, 0.6, 0.15][lvl()]);
   buildSettlement(pid, vid, false);
   if (second) giveInitial(pid, vid);
   const es = G.verts[vid].edges.filter(e => roadOk(pid, e, vid));
@@ -1068,6 +1249,11 @@ function aiDiscard(p, n) {
 }
 
 function aiRobberHex(pid) {
+  if (lvl() === 0) {
+    const ok = G.hexes.filter(h => h.id !== G.robber && !h.v.some(v => G.verts[v].owner === pid));
+    const pool = ok.length ? ok : G.hexes.filter(h => h.id !== G.robber);
+    return pool[Math.floor(Math.random() * pool.length)].id;
+  }
   return argmax(G.hexes.filter(h => h.id !== G.robber).map(h => h.id), hid => {
     const h = G.hexes[hid];
     let s = 0;
@@ -1078,7 +1264,8 @@ function aiRobberHex(pid) {
       if (v.owner === pid) s -= 10 * w;
       else {
         const o = G.players[v.owner];
-        s += w * pips(h.num) * (1 + vp(o, false) / 5) + (total(o) > 0 ? 1 : 0);
+        const lead = lvl() === 2 ? 1 + vp(o, false) ** 2 / 12 : 1 + vp(o, false) / 5;
+        s += w * pips(h.num) * lead + (total(o) > 0 ? 1 : 0);
       }
     });
     return s + Math.random() * 0.1;
@@ -1109,7 +1296,7 @@ function robberHurts(pid) {
 }
 
 function aiAcceptTrade(ai, receive, give, offerer) {
-  if (vp(offerer, false) >= WIN_VP - 2) return false;
+  if (vp(offerer, false) >= G.winVp - 2) return false;
   if (RES.some(r => ai.res[r] < give[r])) return false;
   const target = aiTarget(ai, bestSettlementSpot(ai.id), aiBestRoad(ai.id));
   const miss = aiMissing(ai, target);
@@ -1127,7 +1314,7 @@ async function aiAct(p) {
   if (!G.devPlayed) {
     const playable = t => p.dev.findIndex(d => d.type === t && d.turn < G.turn);
     let i;
-    if ((i = playable('knight')) >= 0 && (robberHurts(pid) || (p.knights >= 2 && !p.army) || Math.random() < 0.2)) { await playDev(pid, i); return true; }
+    if ((i = playable('knight')) >= 0 && (robberHurts(pid) || (lvl() > 0 && ((p.knights >= 2 && !p.army) || Math.random() < 0.2)))) { await playDev(pid, i); return true; }
     if ((i = playable('monopoly')) >= 0 && aiMonoRes(pid).count >= 3) { await playDev(pid, i); return true; }
     if ((i = playable('plenty')) >= 0) { await playDev(pid, i); return true; }
     if ((i = playable('road')) >= 0 && p.roads > 0 && aiBestRoad(pid).score > 0) { await playDev(pid, i); return true; }
@@ -1144,21 +1331,52 @@ async function aiAct(p) {
     return true;
   }
   const target = aiTarget(p, spot, br);
-  if (G.deck.length && canAfford(p, COST.dev) && (target === 'dev' || total(p) > 7)) { buyDev(pid); return true; }
+  if (G.deck.length && canAfford(p, COST.dev) && ((target === 'dev' && lvl() > 0) || total(p) > 7)) { buyDev(pid); return true; }
+  if (lvl() >= 1 && !G.offered) {
+    G.offered = true;
+    if (await aiOffer(p, target)) return true;
+  }
+  if (lvl() === 0 && Math.random() < 0.5) return false;
   return aiTrade(p, target);
 }
 
-async function aiTurn() {
+// Computer bietet den anderen einen Tausch an (einmal pro Zug)
+async function aiOffer(p, target) {
+  if (target === 'dev' && !G.deck.length) return false;
+  const cost = COST[target], miss = aiMissing(p, target);
+  const want = RES.filter(r => miss[r] > 0);
+  if (!want.length) return false;
+  const spare = RES.filter(r => !miss[r] && p.res[r] - (cost[r] || 0) >= 1).sort((a, b) => p.res[b] - p.res[a]);
+  if (!spare.length) return false;
+  const give = emptyRes(), get = emptyRes();
+  get[want[Math.floor(Math.random() * want.length)]] = 1;
+  give[spare[0]] = p.res[spare[0]] - (cost[spare[0]] || 0) >= 3 ? 2 : 1; // bei viel Überschuss großzügiger
+  for (const o of shuffle(G.players.filter(o => o !== p && RES.every(r => o.res[r] >= get[r])))) {
+    const ok = o.ai ? aiAcceptTrade(o, give, get, p) : await ask(o, 'offer', { from: p.id, give, get });
+    if (ok && RES.every(r => o.res[r] >= get[r] && p.res[r] >= give[r])) { executeTrade(p, o, give, get); return true; }
+  }
+  return false;
+}
+
+function executeTrade(a, b, give, get) {
+  RES.forEach(r => { a.res[r] += get[r] - give[r]; b.res[r] += give[r] - get[r]; });
+  log(`🤝 ${pname(a)} tauscht ${fmtRes(give)} gegen ${fmtRes(get)} mit ${pname(b)}.`);
+  Sound.play('card');
+}
+
+async function aiTurn(skipRoll = false) {
   const p = cur();
   await sleep(700);
-  const k = p.dev.findIndex(d => d.type === 'knight' && d.turn < G.turn);
-  if (k >= 0 && robberHurts(p.id)) { await playDev(p.id, k); await sleep(400); }
-  if (G.phase === 'over') return;
-  const s = rollDice();
-  G.phase = 'main';
-  render();
-  await sleep(800);
-  if (s === 7) { await handleSeven(); render(); await sleep(500); }
+  if (!skipRoll) {
+    const k = p.dev.findIndex(d => d.type === 'knight' && d.turn < G.turn);
+    if (k >= 0 && robberHurts(p.id)) { await playDev(p.id, k); await sleep(400); }
+    if (G.phase === 'over') return;
+    const s = rollDice();
+    G.phase = 'main';
+    render();
+    await sleep(800);
+    if (s === 7) { await handleSeven(); render(); await sleep(500); }
+  }
   for (let i = 0; i < 20; i++) {
     if (G.phase === 'over') return;
     const did = await aiAct(p);
@@ -1172,17 +1390,45 @@ async function aiTurn() {
 }
 
 // ---------- Dialoge ----------
+// Alle Entscheidungen von Menschen laufen hierüber, für Online-Gäste übers Netz
+async function ask(p, kind, data) {
+  if (p.remote) return netAsk(p, kind, data);
+  return localAsk(p, kind, data);
+}
+
+function localAsk(p, kind, data) {
+  switch (kind) {
+    case 'discard': return discardDialog(p, data.n);
+    case 'victim': return chooseVictim(data.ids);
+    case 'resources': return chooseResources(data.title, data.count);
+    case 'offer': Sound.play('turn'); return offerDialog(p, data);
+  }
+}
+
+function offerDialog(p, data) {
+  const from = G.players[data.from];
+  return modal((box, close) => {
+    box.innerHTML = `<h2>🤝 Tauschangebot</h2>
+      <p>${localPlayers().length > 1 ? `<b>${p.name}</b>: ` : ''}${pname(from)} bietet dir <b>${fmtRes(data.give)}</b> und möchte dafür <b>${fmtRes(data.get)}</b>.</p>
+      <p class="small muted">Deine Karten:</p><div class="hand">${handHtml(p)}</div>
+      <div class="btns"><button data-no>Ablehnen</button><button class="primary" data-yes>Annehmen</button></div>`;
+    box.onclick = e => { const b = e.target.closest('button'); if (b) close('yes' in b.dataset); };
+  });
+}
+// Jeder Dialog bekommt eine eigene Ebene, damit sich Dialoge stapeln können
 function modal(setup) {
   return new Promise(resolve => {
-    const box = $('#modalBox');
-    box.onclick = null;
-    $('#modal').hidden = false;
-    setup(box, v => { $('#modal').hidden = true; box.onclick = null; resolve(v); });
+    const wrap = document.createElement('div');
+    wrap.className = 'modal';
+    wrap.innerHTML = '<div class="modalBox" role="dialog" aria-modal="true"></div>';
+    document.body.appendChild(wrap);
+    const box = wrap.firstChild;
+    setup(box, v => { wrap.remove(); resolve(v); });
   });
 }
 
 async function handoff(p) {
-  if (humans().length <= 1) return;
+  if (localPlayers().length <= 1) return;
   await modal((box, close) => {
     box.innerHTML = `<h2><span class="dot" style="background:${p.color}"></span> ${p.name} ist dran</h2>
       <p>Gib das Gerät an ${p.name} weiter.</p><div class="btns"><button class="primary">Los geht's</button></div>`;
@@ -1245,70 +1491,104 @@ function chooseVictim(ids) {
   });
 }
 
-function tradeDialog() {
-  const p = cur();
-  const give = emptyRes(), get = emptyRes();
-  let bg = RES.find(r => p.res[r] >= rate(p.id, r)) || 'holz', bget = RES.find(r => r !== bg);
-  G.busy = true;
+function tradeBank(pid, give, get) {
+  const p = G.players[pid];
+  const rt = rate(pid, give);
+  if (!RES.includes(give) || !RES.includes(get) || give === get || p.res[give] < rt || G.phase !== 'main') return 'Tausch nicht möglich.';
+  p.res[give] -= rt; p.res[get]++;
+  log(`${pname(p)} tauscht ${rt}${RINFO[give].icon} gegen 1${RINFO[get].icon} (Bank).`);
   render();
+  return 'Getauscht!';
+}
+
+async function tradeOffer(pid, give, get) {
+  const p = G.players[pid];
+  const clean = o => Object.fromEntries(RES.map(r => [r, Math.max(0, Math.floor(+(o && o[r]) || 0))]));
+  give = clean(give); get = clean(get);
+  const gs = RES.reduce((t, r) => t + give[r], 0), ts = RES.reduce((t, r) => t + get[r], 0);
+  if (!gs || !ts || G.phase !== 'main' || RES.some(r => p.res[r] < give[r])) return 'Tausch nicht möglich.';
+  const others = G.players.filter(o => o !== p && RES.every(r => o.res[r] >= get[r]));
+  const ai = others.find(o => o.ai && aiAcceptTrade(o, give, get, p));
+  if (ai) { executeTrade(p, ai, give, get); render(); return `${ai.name} nimmt an!`; }
+  for (const o of others.filter(o => !o.ai)) {
+    const ok = await ask(o, 'offer', { from: pid, give, get });
+    if (ok && RES.every(r => o.res[r] >= get[r] && p.res[r] >= give[r])) { executeTrade(p, o, give, get); render(); return `${o.name} nimmt an!`; }
+  }
+  return 'Niemand nimmt dein Angebot an.';
+}
+
+function tradeDialog() {
+  const pid = G.cur;
+  const me = () => G.players[pid];
+  const give = emptyRes(), get = emptyRes();
+  let bg = RES.find(r => me().res[r] >= rate(pid, r)) || 'holz', bget = RES.find(r => r !== bg);
+  let waiting = false;
+  if (!isClient()) { G.busy = true; render(); }
   return modal((box, close) => {
     const draw = (msg = '') => {
-      const rt = rate(p.id, bg);
+      const p = me();
+      const rt = rate(pid, bg);
       const gs = RES.reduce((s, r) => s + give[r], 0), ts = RES.reduce((s, r) => s + get[r], 0);
       box.innerHTML = `<h2>🤝 Handeln</h2>
         <div class="hand">${RES.map(r => `<span class="chip">${RINFO[r].icon} <b>${p.res[r]}</b></span>`).join('')}</div>
         <h3>Bank &amp; Häfen</h3>
-        <div class="row"><span class="lbl">Gib</span>${RES.map(r => `<button class="chip ${bg === r ? 'sel' : ''}" data-bg="${r}">${rate(p.id, r)}× ${RINFO[r].icon}</button>`).join('')}</div>
+        <div class="row"><span class="lbl">Gib</span>${RES.map(r => `<button class="chip ${bg === r ? 'sel' : ''}" data-bg="${r}">${rate(pid, r)}× ${RINFO[r].icon}</button>`).join('')}</div>
         <div class="row"><span class="lbl">Erhalte</span>${RES.map(r => `<button class="chip ${bget === r ? 'sel' : ''}" data-bget="${r}">1× ${RINFO[r].icon}</button>`).join('')}</div>
-        <div class="row"><button class="primary" data-bank ${p.res[bg] >= rt && bg !== bget ? '' : 'disabled'}>${rt}${RINFO[bg].icon} → 1${RINFO[bget].icon} tauschen</button></div>
+        <div class="row"><button class="primary" data-bank ${p.res[bg] >= rt && bg !== bget && !waiting ? '' : 'disabled'}>${rt}${RINFO[bg].icon} → 1${RINFO[bget].icon} tauschen</button></div>
         <h3>Mit Mitspielern</h3>
         <table class="trade"><tr><td></td><td>Du gibst</td><td>Du willst</td></tr>
         ${RES.map(r => `<tr><td>${RINFO[r].icon} ${RINFO[r].name}</td>
           <td><span class="cnt"><button data-gm="${r}" ${give[r] ? '' : 'disabled'}>−</button><b>${give[r]}</b><button data-gp="${r}" ${give[r] < p.res[r] ? '' : 'disabled'}>+</button></span></td>
           <td><span class="cnt"><button data-tm="${r}" ${get[r] ? '' : 'disabled'}>−</button><b>${get[r]}</b><button data-tp="${r}">+</button></span></td></tr>`).join('')}
         </table>
-        <div class="row"><button class="primary" data-offer ${gs && ts ? '' : 'disabled'}>Angebot machen</button></div>
-        <p class="msg">${msg}</p>
-        <div class="btns"><button data-close>Fertig</button></div>`;
+        <div class="row"><button class="primary" data-offer ${gs && ts && !waiting ? '' : 'disabled'}>Angebot machen</button></div>
+        <p class="msg">${waiting ? 'Warte auf Antwort …' : msg}</p>
+        <div class="btns"><button data-close ${waiting ? 'disabled' : ''}>Fertig</button></div>`;
     };
     draw();
-    box.onclick = e => {
+    box.onclick = async e => {
       const b = e.target.closest('button');
       if (!b || b.disabled) return;
       const ds = b.dataset;
       let msg = '';
       if (ds.bg) bg = ds.bg;
       else if (ds.bget) bget = ds.bget;
-      else if ('bank' in ds) {
-        const rt = rate(p.id, bg);
-        p.res[bg] -= rt; p.res[bget]++;
-        log(`${pname(p)} tauscht ${rt}${RINFO[bg].icon} gegen 1${RINFO[bget].icon} (Bank).`);
-        msg = 'Getauscht!';
-      }
       else if (ds.gm) give[ds.gm]--;
       else if (ds.gp) give[ds.gp]++;
       else if (ds.tm) get[ds.tm]--;
       else if (ds.tp) get[ds.tp]++;
-      else if ('offer' in ds || ds.accept) {
-        const partner = ds.accept ? G.players[+ds.accept] : G.players.find(o => o !== p && o.ai && aiAcceptTrade(o, give, get, p));
-        if (partner) {
-          RES.forEach(r => { p.res[r] += get[r] - give[r]; partner.res[r] += give[r] - get[r]; });
-          log(`🤝 ${pname(p)} tauscht ${fmtRes(give)} gegen ${fmtRes(get)} mit ${pname(partner)}.`);
-          msg = `${partner.name} nimmt an!`;
-          RES.forEach(r => { give[r] = 0; get[r] = 0; });
-        } else {
-          // Menschliche Mitspieler am selben Gerät entscheiden selbst
-          const hs = G.players.filter(o => o !== p && !o.ai && RES.every(r => o.res[r] >= get[r]));
-          msg = hs.length
-            ? `Keiner der Computer will. Mitspieler: ${hs.map(o => `<button data-accept="${o.id}">${o.name} nimmt an</button>`).join(' ')}`
-            : 'Niemand nimmt dein Angebot an.';
-        }
+      else if ('bank' in ds || 'offer' in ds) {
+        waiting = true; draw();
+        msg = 'bank' in ds ? await act('bank', { give: bg, get: bget }) : await act('offer', { give, get });
+        waiting = false;
+        if ('offer' in ds && /nimmt an/.test(msg || '')) RES.forEach(r => { give[r] = 0; get[r] = 0; });
       }
-      else if ('close' in ds) { G.busy = false; render(); return close(); }
-      render();
-      draw(msg);
+      else if ('close' in ds) { if (!isClient()) { G.busy = false; render(); } return close(); }
+      draw(msg || '');
     };
   });
+}
+
+function statsHtml() {
+  const st = G.stats;
+  const n = st.rolls.reduce((a, b) => a + b, 0);
+  const max = Math.max(1, ...st.rolls, n / 6); // n/6 = erwartete Anzahl Siebenen, die häufigste Zahl
+  const bars = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(k => {
+    const exp = n * (k === 7 ? 6 : pips(k)) / 36;
+    return `<div class="bar"><span class="c">${st.rolls[k]}</span><div class="col"><div class="b ${k === 7 ? 'seven' : ''}" style="height:${st.rolls[k] / max * 100}%"></div>
+      <i style="bottom:${exp / max * 100}%" title="erwartet ${exp.toFixed(1)}"></i></div><label>${k}</label></div>`;
+  }).join('');
+  const rows = G.players.map(p => {
+    const g = st.gained[p.id];
+    const sum = RES.reduce((t, r) => t + g[r], 0);
+    return `<tr><td><span class="dot" style="background:${p.color}"></span> ${p.name}</td><td><b>${sum}</b></td>
+      <td class="small">${fmtRes(g) || '–'}</td><td>${p.knights}</td><td>${p.roadLen}</td><td>${st.stolen[p.id]} / ${st.lost[p.id]}</td></tr>`;
+  }).join('');
+  return `<h3>🎲 Gewürfelte Zahlen (${n} Würfe)</h3>
+    <div class="chart">${bars}</div>
+    <p class="small muted">Balken = tatsächlich gewürfelt, Strich = statistisch erwartet.</p>
+    <h3>📊 Spieler</h3>
+    <div class="tscroll"><table class="gt"><tr><th>Spieler</th><th>Ertrag</th><th>Rohstoffe</th><th>⚔️</th><th>🛣️</th><th>🦹 geklaut / verloren</th></tr>${rows}</table></div>`;
 }
 
 function showGameOver(winner) {
@@ -1316,6 +1596,7 @@ function showGameOver(winner) {
   modal((box, close) => {
     box.innerHTML = `<h2>🎉 ${winner.name} gewinnt!</h2>
       <table class="trade">${ranking.map((p, i) => `<tr><td>${i + 1}. <span class="dot" style="background:${p.color}"></span> ${p.name}</td><td><b>${vp(p)}</b> SP</td></tr>`).join('')}</table>
+      ${statsHtml()}
       <div class="btns"><button data-board>Brett ansehen</button><button class="primary" data-new>Neues Spiel</button></div>`;
     box.onclick = e => {
       const b = e.target.closest('button');
@@ -1413,15 +1694,18 @@ function citySvg(x, y, c) {
 
 function renderBoard(target = $('#board')) {
   const p = cur();
-  const human = !p.ai && G.phase !== 'over';
+  const human = isLocal(p) && G.phase !== 'over';
   const m = human ? G.mode : null;
-  const seaPts = r => Array.from({ length: 6 }, (_, i) => {
-    const a = Math.PI / 180 * (60 * i);
-    return `${(r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a)).toFixed(1)}`;
-  }).join(' ');
+  // Meer und Rahmen: Inselumriss mit dicker, runder Kontur = gleichmäßiger Abstand zur Küste
+  const hull = G.hull.map(pt => pt.join(',')).join(' ');
+  const xs = G.hull.map(pt => pt[0]), ys = G.hull.map(pt => pt[1]);
+  const M = 88;
+  target.setAttribute('viewBox', `${Math.min(...xs) - M} ${Math.min(...ys) - M} ${Math.max(...xs) - Math.min(...xs) + 2 * M} ${Math.max(...ys) - Math.min(...ys) + 2 * M}`);
   let s = BOARD_DEFS;
-  s += `<polygon points="${seaPts(S * 5.35)}" fill="#7a5a2b" stroke="#4e3816" stroke-width="4" stroke-linejoin="round"/>`;
-  s += `<polygon points="${seaPts(S * 5.2)}" fill="url(#sea)"/><polygon points="${seaPts(S * 5.2)}" fill="url(#waves)"/>`;
+  s += `<polygon points="${hull}" fill="#4e3816" stroke="#4e3816" stroke-width="${2 * 86}" stroke-linejoin="round"/>
+    <polygon points="${hull}" fill="#7a5a2b" stroke="#7a5a2b" stroke-width="${2 * 82}" stroke-linejoin="round"/>
+    <polygon points="${hull}" fill="url(#sea)" stroke="url(#sea)" stroke-width="${2 * 72}" stroke-linejoin="round"/>
+    <polygon points="${hull}" fill="url(#waves)" stroke="url(#waves)" stroke-width="${2 * 72}" stroke-linejoin="round"/>`;
 
   // Häfen: Steg aus Holz + Schild
   G.ports.forEach(pt => {
@@ -1480,22 +1764,23 @@ function renderBoard(target = $('#board')) {
     const [a, b] = e.v.map(v => G.verts[v]);
     const x1 = a.x + (b.x - a.x) * 0.16, y1 = a.y + (b.y - a.y) * 0.16, x2 = a.x + (b.x - a.x) * 0.84, y2 = a.y + (b.y - a.y) * 0.84;
     const c = G.players[e.owner].color;
-    s += `<g filter="url(#shadow)"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#1b1b1b" stroke-width="11" stroke-linecap="round"/>
+    s += `<g class="${G.fresh && G.fresh.e === e.id ? 'pop pop-c' : ''}"><g filter="url(#shadow)"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#1b1b1b" stroke-width="11" stroke-linecap="round"/>
       <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="7.5" stroke-linecap="round"/></g>
-      <line x1="${x1}" y1="${y1 - 1.5}" x2="${x2}" y2="${y2 - 1.5}" stroke="${shade(c, 0.45)}" stroke-width="2" stroke-linecap="round" opacity=".8"/>`;
+      <line x1="${x1}" y1="${y1 - 1.5}" x2="${x2}" y2="${y2 - 1.5}" stroke="${shade(c, 0.45)}" stroke-width="2" stroke-linecap="round" opacity=".8"/></g>`;
   });
 
   // Gebäude
   G.verts.forEach(v => {
     if (v.owner === null) return;
     const c = G.players[v.owner].color;
-    s += v.city ? citySvg(v.x, v.y, c) : settlementSvg(v.x, v.y, c);
+    const svg = v.city ? citySvg(v.x, v.y, c) : settlementSvg(v.x, v.y, c);
+    s += G.fresh && G.fresh.v === v.id ? `<g class="pop">${svg}</g>` : svg;
   });
 
   // Räuber
   const rh = G.hexes[G.robber];
   const rx = rh.x - 31, ry = rh.y + 6;
-  s += `<g class="noev"><ellipse cx="${rx}" cy="${ry + 14}" rx="11" ry="3.5" fill="#000" opacity=".4"/>
+  s += `<g class="noev ${G.fresh && G.fresh.robber ? 'drop' : ''}"><ellipse cx="${rx}" cy="${ry + 14}" rx="11" ry="3.5" fill="#000" opacity=".4"/>
     <path d="M${rx - 9} ${ry + 14} Q${rx - 10} ${ry - 4} ${rx} ${ry - 7} Q${rx + 10} ${ry - 4} ${rx + 9} ${ry + 14} Z" fill="url(#cloak)" stroke="#000" stroke-width="1.2"/>
     <circle cx="${rx}" cy="${ry - 12}" r="7" fill="url(#cloak)" stroke="#000" stroke-width="1.2"/>
     <path d="M${rx - 3.5} ${ry - 12} h7" stroke="#e33" stroke-width="1.6" stroke-linecap="round"/></g>`;
@@ -1527,7 +1812,7 @@ function renderBoard(target = $('#board')) {
 function hintText() {
   const p = cur();
   if (G.phase === 'over') return 'Spiel beendet';
-  if (p.ai) return `${p.name} ist am Zug …`;
+  if (!isLocal(p)) return `${p.name} ist am Zug …`;
   return {
     setupSettlement: `${p.name}: Setze eine Siedlung`,
     setupRoad: `${p.name}: Setze eine Straße an deine Siedlung`,
@@ -1545,18 +1830,18 @@ function costHtml(cost) {
 
 function renderSide() {
   const p = cur();
-  const viewer = !p.ai ? p : humans()[0];
+  const viewer = isLocal(p) ? p : localPlayers()[0];
   const my = humanTurn() && viewer === p;
   const canAct = my && G.phase === 'main' && !G.busy && G.mode !== 'freeRoad';
   const phaseTxt = G.phase === 'setup' ? 'Aufbauphase' : G.phase === 'roll' ? 'würfelt' : G.phase === 'over' ? 'Spielende' : 'baut & handelt';
 
-  let h = `<div class="sidehead"><div class="turn"><span class="dot" style="background:${p.color}"></span>${p.name} <span style="color:var(--muted);font-weight:400;font-family:Nunito,system-ui,sans-serif">– ${phaseTxt}</span></div><button data-guide>📖 Anleitung</button></div>`;
+  let h = `<div class="sidehead"><div class="turn"><span class="dot" style="background:${p.color}"></span>${p.name} <span style="color:var(--muted);font-weight:400;font-family:Nunito,system-ui,sans-serif">– ${phaseTxt}</span></div><span class="hbtns"><button data-act="sound" aria-label="Ton an/aus">${Sound.on ? '🔊' : '🔇'}</button><button data-guide>📖 Anleitung</button></span></div>`;
   h += `<div class="dice ${G.diceAnim ? 'shake' : ''}">${G.dice ? `<span class="d">${DICE[G.dice[0]]}</span><span class="d">${DICE[G.dice[1]]}</span><span class="sum">= ${G.dice[0] + G.dice[1]}</span>` : '<span class="sum">Noch nicht gewürfelt</span>'}</div>`;
 
   h += '<div class="plist">';
   G.players.forEach(o => {
     const shown = o === viewer ? vp(o) : vp(o, false);
-    h += `<div class="pl ${o === p ? 'active' : ''}"><div class="top"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>${o.ai ? ' 🤖' : ''}<span class="vp">⭐ ${shown}</span></div>
+    h += `<div class="pl ${o === p ? 'active' : ''}" data-pid="${o.id}"><div class="top"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>${o.ai ? ' 🤖' : ''}<span class="vp">⭐ ${shown}</span></div>
       <small>🃏 ${total(o)} · 📜 ${o.dev.length} · ⚔️ ${o.knights} · 🛣️ ${o.roadLen}</small>
       ${o.longest ? '<span class="badge">Längste Straße +2</span>' : ''}${o.army ? '<span class="badge">Größte Rittermacht +2</span>' : ''}</div>`;
   });
@@ -1582,8 +1867,8 @@ function renderSide() {
   $('#side').innerHTML = h;
 
   // Handy: Spielerleiste oben
-  $('#strip').innerHTML = G.players.map(o => `<div class="sp ${o === p ? 'active' : ''}"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>
-    ⭐${o === viewer ? vp(o) : vp(o, false)} <small>🃏${total(o)}</small>${o.longest ? ' 🛣️' : ''}${o.army ? ' ⚔️' : ''}</div>`).join('') + '<button data-guide aria-label="Anleitung">📖</button>';
+  $('#strip').innerHTML = G.players.map(o => `<div class="sp ${o === p ? 'active' : ''}" data-pid="${o.id}"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>
+    ⭐${o === viewer ? vp(o) : vp(o, false)} <small>🃏${total(o)}</small>${o.longest ? ' 🛣️' : ''}${o.army ? ' ⚔️' : ''}</div>`).join('') + `<button data-act="sound" aria-label="Ton an/aus">${Sound.on ? '🔊' : '🔇'}</button><button data-guide aria-label="Anleitung">📖</button>`;
 
   // Handy: Karten und Aktionen unten
   const rollOk = my && G.phase === 'roll' && !G.busy && !G.mode;
@@ -1621,7 +1906,7 @@ function devListHtml(pl, my) {
 
 async function devDialog() {
   const p = cur();
-  const viewer = !p.ai ? p : humans()[0];
+  const viewer = isLocal(p) ? p : localPlayers()[0];
   const idx = await modal((box, close) => {
     box.innerHTML = `<h2>📜 Entwicklungskarten</h2>${devListHtml(viewer, humanTurn() && viewer === p)}
       <p style="color:var(--muted)">Eine Karte pro Zug, nicht im Zug des Kaufs.</p><div class="btns"><button data-x>Schließen</button></div>`;
@@ -1631,52 +1916,554 @@ async function devDialog() {
       close(b.dataset.dev !== undefined ? +b.dataset.dev : null);
     };
   });
-  if (idx !== null) await playDev(G.cur, idx);
+  if (idx !== null) act('devplay', idx);
 }
 
 function render() {
   if (!G) return;
+  if (NET.role === 'host') hostBroadcast();
   renderBoard();
   renderSide();
   G.diceAnim = false;
+  G.fresh = null;
   $('#hint').textContent = hintText();
+  if (G.fx && G.fx.length) { const f = G.fx; G.fx = []; runFlights(f); }
+  if (!G.busy && !G.pending && G.phase !== 'over' && !cur().ai && G.mode !== 'robber' && G.mode !== 'freeRoad') saveGame();
+}
+
+// ---------- Online-Mehrspieler ----------
+// Ein Gerät ist Gastgeber und führt das Spiel; Gäste schicken nur Aktionen und bekommen den Spielstand.
+// Die Verbindung läuft direkt zwischen den Geräten (WebRTC über PeerJS).
+const NET = { role: null, me: null, code: null, peer: null, conns: new Map(), hostConn: null, lobby: [], asks: new Map(), reqs: new Map(), seq: 0, actor: null };
+const ROOM_PREFIX = 'inselsiedler-raum-';
+const PEER_URLS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js',
+  'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js',
+];
+
+async function loadPeer() {
+  if (new URLSearchParams(location.search).has('nettest')) return LocalPeer; // Test mit zwei Fenstern im selben Browser
+  if (window.Peer) return window.Peer;
+  for (const src of PEER_URLS) {
+    try {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = src; s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      if (window.Peer) return window.Peer;
+    } catch { /* nächste Quelle probieren */ }
+  }
+  throw new Error('Online-Modus konnte nicht geladen werden. Bist du mit dem Internet verbunden?');
+}
+
+// Ersatz für PeerJS zum Testen: Fenster im selben Browser sprechen über einen BroadcastChannel
+class LocalPeer {
+  constructor(id) {
+    this.id = id || 'gast-' + Math.random().toString(36).slice(2, 9);
+    this.handlers = {}; this.conns = {};
+    this.bc = new BroadcastChannel('inselsiedler-nettest');
+    this.bc.onmessage = e => this.onMsg(e.data);
+    setTimeout(() => this.emit('open', this.id), 10);
+  }
+  on(ev, fn) { this.handlers[ev] = fn; }
+  emit(ev, ...a) { this.handlers[ev] && this.handlers[ev](...a); }
+  connect(to) {
+    const c = new LocalConn(this, to, Math.random().toString(36).slice(2));
+    this.conns[c.cid] = c;
+    this.bc.postMessage({ k: 'connect', from: this.id, to, cid: c.cid });
+    setTimeout(() => { if (!c.open) this.emit('error', { type: 'peer-unavailable' }); }, 1500);
+    return c;
+  }
+  onMsg(m) {
+    if (m.to !== this.id) return;
+    if (m.k === 'connect') {
+      const c = new LocalConn(this, m.from, m.cid);
+      this.conns[m.cid] = c;
+      this.bc.postMessage({ k: 'accept', from: this.id, to: m.from, cid: m.cid });
+      this.emit('connection', c);
+      setTimeout(() => c.setOpen(), 0);
+    } else if (m.k === 'accept') this.conns[m.cid] && this.conns[m.cid].setOpen();
+    else if (m.k === 'data') this.conns[m.cid] && this.conns[m.cid].emit('data', m.payload);
+    else if (m.k === 'close') this.conns[m.cid] && this.conns[m.cid].emit('close');
+  }
+  destroy() { Object.values(this.conns).forEach(c => c.close()); this.bc.close(); }
+}
+class LocalConn {
+  constructor(peer, other, cid) { this.peer = peer; this.peerId = other; this.cid = cid; this.open = false; this.handlers = {}; }
+  on(ev, fn) { this.handlers[ev] = fn; }
+  emit(ev, ...a) { this.handlers[ev] && this.handlers[ev](...a); }
+  setOpen() { this.open = true; this.emit('open'); }
+  send(payload) { this.peer.bc.postMessage({ k: 'data', to: this.peerId, cid: this.cid, payload }); }
+  close() { if (!this.open) return; this.open = false; this.peer.bc.postMessage({ k: 'close', to: this.peerId, cid: this.cid }); }
+}
+
+// Beim Verlassen der Seite sauber abmelden, damit die anderen es sofort merken
+addEventListener('pagehide', () => { try { NET.peer && NET.peer.destroy(); } catch { } });
+
+const randomCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+const netName = () => ($('#netName').value.replace(/[<>&"]/g, '').trim() || 'Spieler').slice(0, 14);
+
+function netStatus(html) { $('#netPanel').innerHTML = html; }
+function netFail(msg) {
+  netStatus(`<p class="msg">${msg}</p>`);
+  NET.role = null;
+  $('#hostBtn').disabled = $('#joinBtn').disabled = false;
+}
+
+// --- Gastgeber ---
+async function hostRoom() {
+  let PeerCls;
+  try { PeerCls = await loadPeer(); } catch (e) { return netFail(e.message); }
+  NET.role = 'host';
+  NET.me = 0;
+  NET.code = randomCode();
+  netStatus('<p>Raum wird erstellt …</p>');
+  const peer = NET.peer = new PeerCls(ROOM_PREFIX + NET.code);
+  peer.on('open', () => drawHostLobby());
+  peer.on('error', err => {
+    if (err && err.type === 'unavailable-id') { peer.destroy(); return hostRoom(); }
+    netFail(`Verbindungsfehler: ${(err && err.type) || err}. Versuch es noch einmal.`);
+  });
+  peer.on('connection', conn => {
+    conn.on('data', msg => hostOnData(conn, msg));
+    conn.on('close', () => hostOnClose(conn));
+  });
+}
+
+function drawHostLobby() {
+  const link = location.origin + location.pathname + '?raum=' + NET.code;
+  const total = 1 + NET.lobby.length;
+  netStatus(`<p>Raum-Code für deine Freunde:</p>
+    <div class="code">${NET.code}</div>
+    <div class="row"><button id="copyLink">🔗 Einladungslink kopieren</button></div>
+    <p class="small muted" id="linkText">${link}</p>
+    <h4>Im Raum (${total}/6)</h4>
+    <ul class="lobby"><li><span class="dot" style="background:${COLORS[0]}"></span> ${netName()} (du, Gastgeber)</li>
+      ${NET.lobby.map((l, i) => `<li><span class="dot" style="background:${COLORS[i + 1]}"></span> ${l.name}</li>`).join('')}</ul>
+    <label class="small muted">Computergegner dazu
+      <select id="netAi">${Array.from({ length: 6 - total + 1 }, (_, i) => `<option ${i === 0 ? 'selected' : ''}>${i}</option>`).join('')}</select></label>
+    <p class="small muted">Siegpunkte, Brett, Computerstärke und Tempo kommen aus den Einstellungen oben.</p>
+    <div class="btns"><button class="primary" id="netStart" ${total >= 2 ? '' : 'disabled'}>Spiel starten</button></div>
+    ${total < 2 ? '<p class="small muted">Warte auf Mitspieler … oder füge Computergegner hinzu.</p>' : ''}`);
+  $('#netAi').addEventListener('change', () => { $('#netStart').disabled = 1 + NET.lobby.length + +$('#netAi').value < 2; });
+  $('#copyLink').addEventListener('click', () => {
+    navigator.clipboard.writeText(link).then(() => toast('Link kopiert')).catch(() => {
+      const r = document.createRange(); r.selectNodeContents($('#linkText'));
+      getSelection().removeAllRanges(); getSelection().addRange(r);
+      toast('Link markiert – jetzt kopieren');
+    });
+  });
+  $('#netStart').addEventListener('click', hostStart);
+}
+
+function hostOnData(conn, msg) {
+  if (!msg || typeof msg !== 'object') return;
+  if (msg.t === 'hello') {
+    const name = String(msg.name || 'Gast').replace(/[<>&"]/g, '').slice(0, 14);
+    if (!G) {
+      if (NET.lobby.length >= 5) return conn.send({ t: 'full' });
+      NET.lobby.push({ name, conn });
+      drawHostLobby();
+      NET.lobby.forEach(l => l.conn.send({ t: 'lobby', names: [netName(), ...NET.lobby.map(x => x.name)] }));
+    } else {
+      // Wieder verbinden: Spieler mit gleichem Namen, der die Verbindung verloren hat
+      const p = G.players.find(p => p.wasRemote && p.ai && p.name === name);
+      if (!p) return conn.send({ t: 'full' });
+      p.ai = false; p.remote = true; conn.pid = p.id;
+      NET.conns.set(p.id, conn);
+      log(`🔌 ${pname(p)} ist wieder da.`);
+      render();
+    }
+    return;
+  }
+  if (conn.pid === undefined || !G) return;
+  if (msg.t === 'act') {
+    Promise.resolve(performAct(conn.pid, msg.a, msg.arg)).then(v => conn.send({ t: 'reply', rid: msg.rid, v: typeof v === 'string' ? v : null }));
+  } else if (msg.t === 'answer') {
+    const a = NET.asks.get(msg.id);
+    if (a && a.pid === conn.pid) { NET.asks.delete(msg.id); a.resolve(checkAnswer(G.players[a.pid], a.kind, a.data, msg.v)); }
+  }
+}
+
+function hostOnClose(conn) {
+  if (!G) {
+    NET.lobby = NET.lobby.filter(l => l.conn !== conn);
+    drawHostLobby();
+    return;
+  }
+  const p = G.players[conn.pid];
+  if (!p || NET.conns.get(p.id) !== conn) return;
+  NET.conns.delete(p.id);
+  p.remote = false; p.ai = true; p.wasRemote = true;
+  log(`🔌 ${pname(p)} hat die Verbindung verloren – der Computer übernimmt.`);
+  // offene Fragen an diesen Spieler beantwortet der Computer
+  NET.asks.forEach((a, id) => { if (a.pid === p.id) { NET.asks.delete(id); a.resolve(fallbackAnswer(p, a.kind, a.data)); } });
+  if (G.cur === p.id && G.phase !== 'over') {
+    if (G.mode === 'robber') { G.mode = null; resolvePending(aiRobberHex(p.id)); }
+    else if (G.mode === 'freeRoad') { G.mode = null; resolvePending(); }
+    else if (G.phase === 'setup') { G.mode = null; nextSetup(); }
+    else if (!G.busy) aiTurn(G.phase === 'main');
+  }
+  render();
+}
+
+function hostStart() {
+  const nAi = +$('#netAi').value;
+  const cfg = [
+    { name: netName(), ai: false },
+    ...NET.lobby.map(l => ({ name: l.name, ai: false, remote: true })),
+    ...Array.from({ length: nAi }, (_, i) => ({ name: '🤖 ' + DEFAULT_NAMES[1 + i], ai: true })),
+  ].slice(0, 6);
+  NET.lobby.forEach((l, i) => { l.conn.pid = i + 1; NET.conns.set(i + 1, l.conn); });
+  NET.lobby = [];
+  SPEED = +$('#speed').value;
+  newGame(cfg, { winVp: +$('#winVp').value, balanced: $('#boardType').value === 'balanced', level: $('#level').value, net: true });
+}
+
+function netSendTo(pid, msg) {
+  const c = NET.conns.get(pid);
+  if (c && c.open) c.send(msg);
+}
+
+function hostBroadcast() {
+  if (!NET.conns.size) return;
+  const { pending, ...g } = G;
+  NET.conns.forEach((c, pid) => c.open && c.send({ t: 'state', g, you: pid }));
+}
+
+function netAsk(p, kind, data) {
+  return new Promise(resolve => {
+    const c = NET.conns.get(p.id);
+    if (!c || !c.open) return resolve(fallbackAnswer(p, kind, data));
+    const id = ++NET.seq;
+    NET.asks.set(id, { resolve, pid: p.id, kind, data });
+    c.send({ t: 'ask', id, kind, data });
+  });
+}
+
+function fallbackAnswer(p, kind, data) {
+  if (kind === 'discard') return aiDiscard(p, data.n);
+  if (kind === 'victim') return data.ids[0];
+  if (kind === 'resources') return Array.from({ length: data.count }, () => RES[Math.floor(Math.random() * RES.length)]);
+  return false;
+}
+
+// Antworten von Gästen prüfen, bevor sie das Spiel verändern
+function checkAnswer(p, kind, data, v) {
+  if (kind === 'discard') {
+    const ok = v && RES.every(r => Number.isInteger(v[r]) && v[r] >= 0 && v[r] <= p.res[r]) && RES.reduce((t, r) => t + v[r], 0) === data.n;
+    return ok ? v : fallbackAnswer(p, kind, data);
+  }
+  if (kind === 'victim') return data.ids.includes(v) ? v : data.ids[0];
+  if (kind === 'resources') return Array.isArray(v) && v.length === data.count && v.every(r => RES.includes(r)) ? v : fallbackAnswer(p, kind, data);
+  return v === true;
+}
+
+// --- Gast ---
+async function joinRoom(code) {
+  code = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length !== 5) return netFail('Der Raum-Code hat 5 Zeichen.');
+  let PeerCls;
+  try { PeerCls = await loadPeer(); } catch (e) { return netFail(e.message); }
+  NET.role = 'client';
+  NET.code = code;
+  netStatus(`<p>Verbinde mit Raum <b>${code}</b> …</p>`);
+  const peer = NET.peer = new PeerCls();
+  peer.on('error', err => {
+    const t = err && err.type;
+    if (G) return;
+    netFail(t === 'peer-unavailable' ? `Raum ${code} wurde nicht gefunden. Stimmt der Code?` : 'Verbindungsfehler: ' + (t || err));
+  });
+  peer.on('open', () => {
+    const conn = NET.hostConn = peer.connect(ROOM_PREFIX + code, { reliable: true });
+    conn.on('open', () => conn.send({ t: 'hello', name: netName() }));
+    conn.on('data', clientOnData);
+    conn.on('close', () => {
+      if (G && G.phase === 'over') return;
+      modal((box, close) => {
+        box.innerHTML = `<h2>🔌 Verbindung verloren</h2><p>Die Verbindung zum Gastgeber ist abgebrochen. Tritt dem Raum erneut mit demselben Namen bei, um weiterzuspielen.</p>
+          <div class="btns"><button class="primary">Zum Start</button></div>`;
+        box.onclick = e => { if (e.target.closest('button')) { close(); location.href = location.pathname + '?raum=' + code; } };
+      });
+    });
+  });
+}
+
+function clientOnData(msg) {
+  if (!msg || typeof msg !== 'object') return;
+  if (msg.t === 'lobby') {
+    netStatus(`<p>Verbunden mit Raum <b>${NET.code}</b>. Warte, bis der Gastgeber startet …</p>
+      <ul class="lobby">${msg.names.map((n, i) => `<li><span class="dot" style="background:${COLORS[i]}"></span> ${n}${n === netName() ? ' (du)' : ''}</li>`).join('')}</ul>`);
+  } else if (msg.t === 'full') {
+    netFail('Der Raum ist voll oder das Spiel läuft schon.');
+  } else if (msg.t === 'state') {
+    const prev = G;
+    NET.me = msg.you;
+    G = msg.g;
+    if (!prev) showGame();
+    clientEffects(prev, G);
+    render();
+    if (G.phase === 'over' && (!prev || prev.phase !== 'over')) { Sound.play('win'); confetti(); showGameOver(cur()); }
+  } else if (msg.t === 'ask') {
+    Promise.resolve(localAsk(G.players[NET.me], msg.kind, msg.data)).then(v => NET.hostConn.send({ t: 'answer', id: msg.id, v }));
+  } else if (msg.t === 'reply') {
+    const f = NET.reqs.get(msg.rid);
+    NET.reqs.delete(msg.rid);
+    f && f(msg.v);
+  } else if (msg.t === 'toast') toast(msg.msg);
+}
+
+function netRequest(a, arg) {
+  return new Promise(resolve => {
+    if (!NET.hostConn || !NET.hostConn.open) return resolve(null);
+    const rid = ++NET.seq;
+    NET.reqs.set(rid, resolve);
+    NET.hostConn.send({ t: 'act', a, arg, rid });
+    setTimeout(() => { if (NET.reqs.has(rid)) { NET.reqs.delete(rid); resolve(null); } }, 120000);
+  });
+}
+
+// Töne für Gäste aus der Änderung des Spielstands ableiten
+function clientEffects(prev, g) {
+  if (g.diceAnim) Sound.play('dice');
+  if (g.fresh && g.fresh.v !== undefined) Sound.play('build');
+  if (g.fresh && g.fresh.e !== undefined) Sound.play('road');
+  if (g.fresh && g.fresh.robber) Sound.play('robber');
+  if (prev && g.cur === NET.me && (prev.cur !== g.cur || prev.phase !== g.phase) && ['roll', 'setup'].includes(g.phase)) Sound.play('turn');
+  if (g.fx && g.fx.some(f => f.pid === NET.me)) setTimeout(() => Sound.play('gain'), 600);
+}
+
+// ---------- Sound (im Browser erzeugt, keine Dateien) ----------
+const Sound = {
+  on: true,
+  ctx: null,
+  init() {
+    try {
+      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+    } catch { this.ctx = null; }
+  },
+  tone(freq, dur, type = 'sine', vol = 0.2, when = 0, slide = 0) {
+    const c = this.ctx, t = c.currentTime + when;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.linearRampToValueAtTime(freq + slide, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(c.destination);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  },
+  noise(dur, vol, when, freq) {
+    const c = this.ctx, t = c.currentTime + when;
+    const buf = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = buf;
+    f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 1.2;
+    g.gain.value = vol;
+    src.connect(f).connect(g).connect(c.destination);
+    src.start(t);
+  },
+  play(name) {
+    if (!this.on || !this.ctx || this.ctx.state !== 'running') return;
+    try {
+      switch (name) {
+        case 'dice': for (let i = 0; i < 7; i++) this.noise(0.05, 0.5, i * 0.06 + Math.random() * 0.02, 2000 + Math.random() * 2500); break;
+        case 'build': this.tone(150, 0.16, 'triangle', 0.35); this.noise(0.1, 0.35, 0, 600); this.tone(300, 0.1, 'triangle', 0.15, 0.08); break;
+        case 'road': this.tone(240, 0.08, 'triangle', 0.25); this.tone(320, 0.1, 'triangle', 0.2, 0.07); break;
+        case 'card': this.tone(880, 0.08, 'sine', 0.18); this.tone(1320, 0.12, 'sine', 0.14, 0.07); break;
+        case 'gain': [0, 0.07, 0.14].forEach((w, i) => this.tone(880 + i * 220, 0.08, 'square', 0.05, w)); break;
+        case 'robber': this.tone(160, 0.6, 'sawtooth', 0.12, 0, -70); this.tone(120, 0.6, 'sawtooth', 0.08, 0.05, -50); break;
+        case 'turn': this.tone(660, 0.1, 'sine', 0.16); this.tone(990, 0.16, 'sine', 0.14, 0.1); break;
+        case 'win': [523, 659, 784, 1047, 784, 1047].forEach((f, i) => this.tone(f, 0.22, 'triangle', 0.22, i * 0.13)); break;
+      }
+    } catch { /* Ton ist Nebensache */ }
+  },
+};
+try { Sound.on = localStorage.getItem('inselsiedler-sound') !== 'off'; } catch { }
+document.addEventListener('pointerdown', () => Sound.init());
+function toggleSound() {
+  Sound.on = !Sound.on;
+  try { localStorage.setItem('inselsiedler-sound', Sound.on ? 'on' : 'off'); } catch { }
+  if (Sound.on) { Sound.init(); Sound.play('card'); }
+  render();
+}
+
+// ---------- Animationen ----------
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Rohstoffe fliegen vom Feld zum Spieler
+function runFlights(list) {
+  if (reducedMotion() || !list.length) return;
+  const svg = $('#board');
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return;
+  list.forEach((f, i) => {
+    const target = [...document.querySelectorAll(`[data-pid="${f.pid}"]`)].find(el => el.offsetParent !== null);
+    if (!target) return;
+    const pt = svg.createSVGPoint();
+    pt.x = G.hexes[f.hex].x; pt.y = G.hexes[f.hex].y;
+    const s = pt.matrixTransform(ctm);
+    const tb = target.getBoundingClientRect();
+    const tx = tb.left + Math.min(40, tb.width / 2), ty = tb.top + tb.height / 2;
+    const el = document.createElement('div');
+    el.className = 'fly';
+    el.textContent = RINFO[f.res].icon;
+    document.body.appendChild(el);
+    const anim = el.animate([
+      { transform: `translate(${s.x}px, ${s.y}px) scale(.4)`, opacity: 0 },
+      { transform: `translate(${s.x}px, ${s.y - 30}px) scale(1.3)`, opacity: 1, offset: 0.25 },
+      { transform: `translate(${tx}px, ${ty}px) scale(.6)`, opacity: 0.3 },
+    ], { duration: 950, delay: 250 + i * 90, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'both' });
+    anim.onfinish = () => el.remove();
+  });
+}
+
+function confetti() {
+  if (reducedMotion()) return;
+  const cv = document.createElement('canvas');
+  cv.className = 'confetti';
+  document.body.appendChild(cv);
+  const ctx = cv.getContext('2d');
+  const W = cv.width = innerWidth, H = cv.height = innerHeight;
+  const cols = ['#ffcf4a', '#e53935', '#1e88e5', '#5ccf7a', '#fb8c00', '#f2f2f2', '#8e24aa'];
+  const parts = Array.from({ length: 180 }, () => ({
+    x: W / 2 + (Math.random() - 0.5) * W * 0.3, y: H * 0.35,
+    vx: (Math.random() - 0.5) * 14, vy: -Math.random() * 14 - 4,
+    w: 6 + Math.random() * 6, h: 4 + Math.random() * 4, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
+    c: cols[Math.floor(Math.random() * cols.length)],
+  }));
+  const start = performance.now();
+  (function frame(now) {
+    ctx.clearRect(0, 0, W, H);
+    parts.forEach(p => {
+      p.vy += 0.35; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+    });
+    if (now - start < 4000) requestAnimationFrame(frame); else cv.remove();
+  })(start);
+}
+
+// ---------- Spielstand speichern ----------
+const SAVE_KEY = 'inselsiedler-save-v1';
+function saveGame() {
+  if (!G || G.phase === 'over' || G.net) return;
+  try {
+    const { pending, fx, fresh, ...rest } = G;
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ ...rest, speed: SPEED, savedAt: Date.now() }));
+  } catch { /* Speichern ist optional */ }
+}
+function loadSave() {
+  try { const j = localStorage.getItem(SAVE_KEY); return j ? JSON.parse(j) : null; } catch { return null; }
+}
+function clearSave() {
+  try { localStorage.removeItem(SAVE_KEY); } catch { }
+}
+
+function resumeGame() {
+  const data = loadSave();
+  if (!data) return;
+  G = { ...data, pending: null, busy: false, fx: [], fresh: null };
+  SPEED = data.speed || 1;
+  showGame();
+  log('💾 Spiel fortgesetzt.');
+  if (G.phase === 'setup') {
+    if (!cur().ai && G.mode === 'setupRoad') render();
+    else { G.mode = null; nextSetup(); }
+    return;
+  }
+  if (!['road', 'settlement', 'city'].includes(G.mode)) G.mode = null;
+  render();
+  if (cur().ai) aiTurn();
+}
+
+function showSavedGame() {
+  const d = loadSave();
+  if (!d || !d.players) return;
+  const when = new Date(d.savedAt || Date.now()).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+  $('#resume').hidden = false;
+  const pts = p => d.verts.reduce((t, v) => t + (v.owner === p.id ? (v.city ? 2 : 1) : 0), 0) + (p.longest ? 2 : 0) + (p.army ? 2 : 0);
+  $('#resumeInfo').innerHTML = `${d.players.map(p => `<span class="dot" style="background:${p.color}"></span> ${p.name} ⭐${pts(p)}`).join(' &nbsp;')}<br><span class="small muted">Gespeichert am ${when}${d.phase === 'setup' ? ' · Aufbauphase' : ` · Zug ${d.turn}`}</span>`;
 }
 
 // ---------- Events ----------
+// Jede Spieleraktion läuft über act(): am Gastgeber-Gerät direkt, als Online-Gast über das Netz
+function act(a, arg) {
+  if (!G) return Promise.resolve();
+  if (isClient()) return netRequest(a, arg);
+  if (!isLocal(cur())) return Promise.resolve();
+  return Promise.resolve(performAct(G.cur, a, arg));
+}
+
+function performAct(pid, a, arg) {
+  if (!G || pid !== G.cur || G.phase === 'over' || cur().ai) return;
+  NET.actor = pid;
+  try {
+    switch (a) {
+      case 'roll': return humanRoll();
+      case 'road': case 'settlement': case 'city': return startMode(a);
+      case 'cancel': if (['road', 'settlement', 'city'].includes(G.mode)) { G.mode = null; render(); } return;
+      case 'vertex': return onVertex(+arg);
+      case 'edge': return onEdge(+arg);
+      case 'hex': return onHex(+arg);
+      case 'dev': return buyDevAct();
+      case 'devplay': return playDevAct(+arg);
+      case 'bank': return tradeBank(pid, arg && arg.give, arg && arg.get);
+      case 'offer': return tradeOffer(pid, arg && arg.give, arg && arg.get);
+      case 'end': if (G.phase === 'main' && !G.busy && !G.mode) endTurn(); return;
+    }
+  } finally {
+    NET.actor = null;
+  }
+}
+
+function buyDevAct() {
+  const p = cur();
+  if (G.phase !== 'main' || G.busy || G.mode || !G.deck.length) return;
+  if (!canAfford(p, COST.dev)) return toast('Nicht genug Rohstoffe.');
+  const type = buyDev(p.id);
+  toast(`Du erhältst: ${DEV[type].icon} ${DEV[type].name}`);
+  render();
+  checkWin();
+}
+
+function playDevAct(idx) {
+  const p = cur(), d = p.dev[idx];
+  if (!d || d.type === 'vp' || d.turn >= G.turn || G.devPlayed || G.busy || G.mode || !['roll', 'main'].includes(G.phase)) return;
+  return playDev(p.id, idx);
+}
+
 $('#board').addEventListener('click', e => {
   const t = e.target.closest('[data-v],[data-e],[data-h]');
   if (!t || !G) return;
-  if (t.dataset.v !== undefined) onVertex(+t.dataset.v);
-  else if (t.dataset.e !== undefined) onEdge(+t.dataset.e);
-  else onHex(+t.dataset.h);
+  if (t.dataset.v !== undefined) act('vertex', +t.dataset.v);
+  else if (t.dataset.e !== undefined) act('edge', +t.dataset.e);
+  else act('hex', +t.dataset.h);
 });
 
-async function onPanelClick(e) {
+function onPanelClick(e) {
   const b = e.target.closest('button');
-  if (!b || b.disabled) return;
-  if (b.dataset.dev !== undefined) { await playDev(G.cur, +b.dataset.dev); return; }
+  if (!b || b.disabled || !G) return;
+  if (b.dataset.dev !== undefined) return act('devplay', +b.dataset.dev);
   const a = b.dataset.act;
-  if (a === 'roll') humanRoll();
-  else if (a === 'road' || a === 'settlement' || a === 'city') startMode(a);
-  else if (a === 'dev') {
-    const p = cur();
-    if (!canAfford(p, COST.dev)) return toast('Nicht genug Rohstoffe.');
-    const type = buyDev(p.id);
-    toast(`Du erhältst: ${DEV[type].icon} ${DEV[type].name}`);
-    render();
-    checkWin();
-  }
-  else if (a === 'trade') tradeDialog();
+  if (a === 'trade') tradeDialog();
   else if (a === 'devlist') devDialog();
   else if (a === 'new') location.reload();
-  else if (a === 'end') endTurn();
+  else if (a === 'sound') toggleSound();
+  else if (['roll', 'road', 'settlement', 'city', 'dev', 'end'].includes(a)) act(a);
 }
 $('#side').addEventListener('click', onPanelClick);
+$('#strip').addEventListener('click', onPanelClick);
 $('#dock').addEventListener('click', onPanelClick);
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('#guide').hidden) { $('#guide').hidden = true; return; }
-  if (e.key === 'Escape' && G && ['road', 'settlement', 'city'].includes(G.mode)) { G.mode = null; render(); }
+  if (e.key === 'Escape' && G && ['road', 'settlement', 'city'].includes(G.mode)) act('cancel');
 });
 
 // ---------- Startbildschirm ----------
@@ -1707,8 +2494,30 @@ $('#guide').addEventListener('click', e => {
   G = null;
 })();
 
-$('#nPlayers').addEventListener('change', drawPlayerRows);
+$('#resumeBtn').addEventListener('click', resumeGame);
+$('#discardSave').addEventListener('click', () => { clearSave(); $('#resume').hidden = true; });
+showSavedGame();
+
+// Offline-Modus (nur wenn die Seite über einen Webserver läuft, z. B. GitHub Pages)
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* ohne Offline-Modus weiterspielen */ }));
+}
+$('#nPlayers').addEventListener('change', () => { drawPlayerRows(); $('#bigNote').hidden = +$('#nPlayers').value < 5; });
 drawPlayerRows();
+
+// Online-Bereich
+try { $('#netName').value = localStorage.getItem('inselsiedler-name') || ''; } catch { }
+$('#netName').addEventListener('change', () => { try { localStorage.setItem('inselsiedler-name', netName()); } catch { } });
+$('#hostBtn').addEventListener('click', () => { $('#hostBtn').disabled = $('#joinBtn').disabled = true; hostRoom(); });
+$('#joinBtn').addEventListener('click', () => { $('#hostBtn').disabled = $('#joinBtn').disabled = true; joinRoom($('#joinCode').value); });
+(() => {
+  const code = new URLSearchParams(location.search).get('raum');
+  if (!code) return;
+  $('#joinCode').value = code.toUpperCase().slice(0, 5);
+  $('#online').scrollIntoView({ block: 'center' });
+  $('#netName').focus();
+})();
+if (window.NO_ONLINE) $('#online').hidden = true;
 
 $('#startBtn').addEventListener('click', () => {
   SPEED = +$('#speed').value;
@@ -1716,7 +2525,7 @@ $('#startBtn').addEventListener('click', () => {
     name: r.querySelector('input').value.replace(/[<>&"]/g, '').trim() || DEFAULT_NAMES[i],
     ai: r.querySelector('select').value === 'ai',
   }));
-  newGame(cfg);
+  newGame(cfg, { winVp: +$('#winVp').value, balanced: $('#boardType').value === 'balanced', level: $('#level').value });
 });
 </script>
 </body>

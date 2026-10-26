@@ -1,0 +1,1333 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inselsiedler</title>
+<style>
+  :root {
+    --bg: #0d2233;
+    --panel: #172634;
+    --panel2: #1f3243;
+    --text: #eef3f7;
+    --muted: #9fb3c4;
+    --accent: #ffcf4a;
+    --good: #5ccf7a;
+    --bad: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(circle at 30% 20%, #16405f, var(--bg) 70%);
+    color: var(--text);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  button {
+    font: inherit; color: inherit; cursor: pointer;
+    background: var(--panel2); border: 1px solid #355068; border-radius: 8px;
+    padding: 7px 11px;
+  }
+  button:hover:not(:disabled) { background: #2a4560; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.primary { background: #c98f12; border-color: #e7b23a; color: #1b1300; font-weight: 700; }
+  button.primary:hover:not(:disabled) { background: #e2a520; }
+  button.on { outline: 2px solid var(--accent); }
+  h1, h2, h3, h4 { margin: .3em 0; }
+
+  /* Start screen */
+  #start { max-width: 560px; margin: 0 auto; padding: 32px 16px; }
+  #start h1 { font-size: 2.4em; }
+  .prow { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+  .prow .sw { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #0008; flex: none; }
+  .prow input { flex: 1; min-width: 0; }
+  input, select {
+    font: inherit; color: var(--text); background: var(--panel2);
+    border: 1px solid #355068; border-radius: 8px; padding: 7px 9px;
+  }
+  .card { background: var(--panel); border-radius: 12px; padding: 14px 16px; margin: 14px 0; }
+  details summary { cursor: pointer; font-weight: 600; }
+
+  /* Game layout */
+  #game { display: grid; grid-template-columns: minmax(0, 1fr) 360px; height: 100vh; }
+  #boardWrap { position: relative; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  #board { width: 100%; height: 100%; max-height: 100vh; user-select: none; }
+  #hint {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    background: #000a; padding: 6px 14px; border-radius: 20px; font-weight: 600;
+    pointer-events: none; white-space: nowrap; max-width: 95%; overflow: hidden; text-overflow: ellipsis;
+  }
+  #hint:empty { display: none; }
+  #side { background: var(--panel); overflow-y: auto; padding: 12px 14px; border-left: 1px solid #2a3f52; }
+  .turn { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.05em; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; border: 2px solid #0008; flex: none; }
+  .dice { display: flex; gap: 6px; align-items: center; margin: 8px 0; font-size: 2.4em; line-height: 1; }
+  .dice .sum { font-size: .45em; color: var(--muted); margin-left: 6px; }
+  .dice.shake span.d { animation: shake .5s; display: inline-block; }
+  @keyframes shake {
+    0% { transform: rotate(0) } 25% { transform: rotate(-25deg) scale(1.15) }
+    50% { transform: rotate(20deg) } 75% { transform: rotate(-10deg) } 100% { transform: rotate(0) }
+  }
+  .pl { background: var(--panel2); border-radius: 10px; padding: 7px 10px; margin: 6px 0; border: 2px solid transparent; }
+  .pl.active { border-color: var(--accent); }
+  .pl .top { display: flex; align-items: center; gap: 7px; }
+  .pl .vp { margin-left: auto; font-weight: 800; }
+  .pl small { color: var(--muted); }
+  .badge { display: inline-block; font-size: .78em; background: #3a2d0a; color: var(--accent); border-radius: 6px; padding: 1px 6px; margin: 3px 4px 0 0; }
+  .hand { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; background: var(--panel2); border-radius: 8px; padding: 5px 8px; border: 1px solid #355068; }
+  .chip b { font-size: 1.05em; }
+  .chip.sel { outline: 2px solid var(--accent); }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 8px 0; }
+  .actions button { text-align: left; }
+  .actions button small { display: block; color: var(--muted); font-size: .8em; }
+  .actions .wide { grid-column: span 2; text-align: center; }
+  .dev { display: flex; align-items: center; gap: 8px; background: var(--panel2); border-radius: 8px; padding: 5px 8px; margin: 4px 0; }
+  .dev .nm { flex: 1; }
+  .dev small { color: var(--muted); display: block; font-size: .8em; }
+  #log { font-size: .86em; color: var(--muted); max-height: 220px; overflow-y: auto; background: #0e1a25; border-radius: 8px; padding: 6px 8px; }
+  #log div { padding: 1px 0; border-bottom: 1px solid #ffffff08; }
+  #log b { color: var(--text); }
+
+  /* Board */
+  .hex polygon.tile { stroke: #f3e3b8; stroke-width: 3; }
+  .hex.hot polygon.tile { stroke: var(--accent); stroke-width: 6; }
+  .hex.pick { cursor: pointer; }
+  .hex.pick polygon.tile { stroke: #fff; stroke-width: 5; stroke-dasharray: 10 6; animation: dash 1s linear infinite; }
+  .hex.pick:hover polygon.tile { filter: brightness(1.2); }
+  @keyframes dash { to { stroke-dashoffset: -32; } }
+  .noev { pointer-events: none; }
+  .hl-v { fill: #ffffffcc; stroke: #000; stroke-width: 2; cursor: pointer; animation: pulse 1s ease-in-out infinite alternate; }
+  .hl-v:hover { fill: var(--accent); }
+  .hl-e { stroke: #ffffffaa; stroke-width: 11; stroke-linecap: round; cursor: pointer; stroke-dasharray: 6 5; }
+  .hl-e:hover { stroke: var(--accent); stroke-dasharray: none; }
+  @keyframes pulse { from { opacity: .55; } to { opacity: 1; } }
+
+  /* Modal */
+  #modal { position: fixed; inset: 0; background: #0009; display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
+  #modal[hidden] { display: none; }
+  #modalBox { background: var(--panel); border-radius: 14px; padding: 18px 20px; width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 60px #000a; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
+  .row > span.lbl { width: 70px; color: var(--muted); }
+  table.trade { border-collapse: collapse; width: 100%; }
+  table.trade td { padding: 3px 4px; text-align: center; }
+  table.trade td:first-child { text-align: left; }
+  .cnt { display: inline-flex; align-items: center; gap: 6px; }
+  .cnt button { padding: 2px 9px; }
+  .msg { min-height: 1.3em; color: var(--accent); }
+  .btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
+  #toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #000d; padding: 8px 16px; border-radius: 20px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 20; }
+  #toast.show { opacity: 1; }
+
+  @media (max-width: 860px) {
+    #game { grid-template-columns: 1fr; height: auto; }
+    #boardWrap { height: 62vh; }
+    #side { border-left: 0; border-top: 1px solid #2a3f52; }
+  }
+</style>
+</head>
+<body>
+
+<div id="start">
+  <h1>🏝️ Inselsiedler</h1>
+  <p>Besiedle die Insel, sammle Rohstoffe, handle geschickt und erreiche als Erster <b>10 Siegpunkte</b>.</p>
+  <div class="card">
+    <div class="row">
+      <span>Spieler:</span>
+      <select id="nPlayers"><option>2</option><option>3</option><option selected>4</option></select>
+      <span style="margin-left:12px">Tempo:</span>
+      <select id="speed"><option value="1">Normal</option><option value="0.5">Schnell</option><option value="1.6">Langsam</option></select>
+    </div>
+    <div id="prows"></div>
+    <div class="btns"><button class="primary" id="startBtn">Spiel starten</button></div>
+  </div>
+  <div class="card">
+    <details>
+      <summary>Spielregeln (kurz)</summary>
+      <ul>
+        <li><b>Aufbau:</b> Jeder setzt reihum eine Siedlung und eine Straße, danach in umgekehrter Reihenfolge eine zweite. Für die zweite Siedlung gibt es sofort Rohstoffe der angrenzenden Felder.</li>
+        <li><b>Würfeln:</b> Jedes Feld mit der gewürfelten Zahl liefert Rohstoffe an angrenzende Siedlungen (1) und Städte (2).</li>
+        <li><b>Die 7:</b> Wer mehr als 7 Karten hat, gibt die Hälfte ab. Dann versetzt du den Räuber und ziehst einer Person dort eine Karte. Das Feld mit dem Räuber liefert nichts.</li>
+        <li><b>Bauen:</b> Straße 🌲🧱 · Siedlung 🌲🧱🐑🌾 · Stadt 🌾🌾⛰️⛰️⛰️ · Entwicklungskarte 🐑🌾⛰️.</li>
+        <li><b>Abstandsregel:</b> Zwischen zwei Siedlungen müssen mindestens zwei Kanten liegen.</li>
+        <li><b>Handel:</b> 4:1 mit der Bank, 3:1 oder 2:1 an Häfen, oder mit Mitspielern.</li>
+        <li><b>Boni:</b> Längste Handelsstraße (ab 5 Straßen) und Größte Rittermacht (ab 3 Rittern) bringen je 2 Siegpunkte.</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
+<div id="game" hidden>
+  <div id="boardWrap">
+    <svg id="board" viewBox="-370 -350 740 700"></svg>
+    <div id="hint"></div>
+  </div>
+  <aside id="side"></aside>
+</div>
+
+<div id="modal" hidden><div id="modalBox"></div></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ---------- Konstanten ----------
+const RES = ['holz', 'lehm', 'wolle', 'getreide', 'erz'];
+const RINFO = {
+  holz:     { name: 'Holz',     icon: '🌲', tile: '#2e7d32', land: 'Wald' },
+  lehm:     { name: 'Lehm',     icon: '🧱', tile: '#c2602a', land: 'Hügel' },
+  wolle:    { name: 'Wolle',    icon: '🐑', tile: '#8fc94e', land: 'Weide' },
+  getreide: { name: 'Getreide', icon: '🌾', tile: '#e9bd2b', land: 'Acker' },
+  erz:      { name: 'Erz',      icon: '⛰️', tile: '#8b8c99', land: 'Gebirge' },
+  wueste:   { name: 'Wüste',    icon: '🏜️', tile: '#e3cf98', land: 'Wüste' },
+};
+const COST = {
+  road:       { holz: 1, lehm: 1 },
+  settlement: { holz: 1, lehm: 1, wolle: 1, getreide: 1 },
+  city:       { getreide: 2, erz: 3 },
+  dev:        { wolle: 1, getreide: 1, erz: 1 },
+};
+const DEV = {
+  knight:   { name: 'Ritter',      icon: '⚔️', desc: 'Versetze den Räuber und ziehe eine Karte.' },
+  vp:       { name: 'Siegpunkt',   icon: '🏆', desc: '+1 Siegpunkt (zählt automatisch).' },
+  road:     { name: 'Straßenbau',  icon: '🛤️', desc: 'Baue 2 Straßen kostenlos.' },
+  plenty:   { name: 'Erfindung',   icon: '🎁', desc: 'Nimm 2 beliebige Rohstoffe aus der Bank.' },
+  monopoly: { name: 'Monopol',     icon: '💰', desc: 'Alle anderen geben dir alle Karten eines Rohstoffs.' },
+};
+const COLORS = ['#e53935', '#1e88e5', '#fb8c00', '#f2f2f2'];
+const DEFAULT_NAMES = ['Du', 'Anna', 'Bruno', 'Clara'];
+const WIN_VP = 10;
+const S = 60, SQ3 = Math.sqrt(3);
+const DICE = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+
+let SPEED = 1;
+const sleep = ms => new Promise(r => setTimeout(r, ms * SPEED));
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pips = n => n ? 6 - Math.abs(7 - n) : 0;
+const $ = s => document.querySelector(s);
+const emptyRes = () => Object.fromEntries(RES.map(r => [r, 0]));
+
+let G = null;
+
+// ---------- Spielbrett ----------
+function buildBoard() {
+  const coords = [];
+  for (let q = -2; q <= 2; q++) for (let r = -2; r <= 2; r++) if (Math.abs(q + r) <= 2) coords.push([q, r]);
+  const tiles = shuffle([
+    ...Array(4).fill('holz'), ...Array(3).fill('lehm'), ...Array(4).fill('wolle'),
+    ...Array(4).fill('getreide'), ...Array(3).fill('erz'), 'wueste',
+  ]);
+  const hexes = coords.map(([q, r], i) => ({ id: i, q, r, x: S * SQ3 * (q + r / 2), y: S * 1.5 * r, res: tiles[i], num: 0, v: [] }));
+  const byKey = {};
+  hexes.forEach(h => byKey[h.q + ',' + h.r] = h);
+  const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+  hexes.forEach(h => h.nb = DIRS.map(([dq, dr]) => byKey[(h.q + dq) + ',' + (h.r + dr)]).filter(Boolean).map(n => n.id));
+
+  // Zahlen verteilen, 6 und 8 nicht nebeneinander
+  const nums = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
+  const red = n => n === 6 || n === 8;
+  for (let tries = 0; tries < 1000; tries++) {
+    const ns = shuffle(nums.slice());
+    let k = 0;
+    hexes.forEach(h => h.num = h.res === 'wueste' ? 0 : ns[k++]);
+    if (!hexes.some(h => red(h.num) && h.nb.some(n => red(hexes[n].num)))) break;
+  }
+
+  // Ecken und Kanten
+  const verts = [], edges = [], emap = {};
+  hexes.forEach(h => {
+    for (let i = 0; i < 6; i++) {
+      const a = Math.PI / 180 * (60 * i - 30);
+      const x = h.x + S * Math.cos(a), y = h.y + S * Math.sin(a);
+      let v = verts.find(v => Math.hypot(v.x - x, v.y - y) < 1);
+      if (!v) { v = { id: verts.length, x, y, hexes: [], adj: [], edges: [], owner: null, city: false, port: null }; verts.push(v); }
+      v.hexes.push(h.id);
+      h.v.push(v.id);
+    }
+    for (let i = 0; i < 6; i++) {
+      const a = h.v[i], b = h.v[(i + 1) % 6];
+      const k = Math.min(a, b) + '-' + Math.max(a, b);
+      let e = emap[k];
+      if (!e) {
+        e = emap[k] = { id: edges.length, v: [a, b], owner: null, hexes: [] };
+        edges.push(e);
+        verts[a].edges.push(e.id); verts[b].edges.push(e.id);
+        verts[a].adj.push(b); verts[b].adj.push(a);
+      }
+      e.hexes.push(h.id);
+    }
+  });
+
+  // Häfen an der Küste, gleichmäßig verteilt
+  const coast = edges.filter(e => e.hexes.length === 1).map(e => {
+    const mx = (verts[e.v[0]].x + verts[e.v[1]].x) / 2, my = (verts[e.v[0]].y + verts[e.v[1]].y) / 2;
+    return { e, mx, my, ang: Math.atan2(my, mx) };
+  }).sort((a, b) => a.ang - b.ang);
+  const ptypes = shuffle(['any', 'any', 'any', 'any', ...RES]);
+  const off = Math.floor(Math.random() * 3);
+  const ports = ptypes.map((type, i) => {
+    const c = coast[(Math.round(i * coast.length / 9) + off) % coast.length];
+    c.e.v.forEach(vid => verts[vid].port = type);
+    return { type, edge: c.e.id, mx: c.mx, my: c.my };
+  });
+
+  return { hexes, verts, edges, ports, robber: hexes.find(h => h.res === 'wueste').id };
+}
+
+// ---------- Spielstart ----------
+function newGame(cfg) {
+  const board = buildBoard();
+  const deck = shuffle([
+    ...Array(14).fill('knight'), ...Array(5).fill('vp'),
+    ...Array(2).fill('road'), ...Array(2).fill('plenty'), ...Array(2).fill('monopoly'),
+  ]);
+  G = {
+    ...board, deck,
+    players: cfg.map((c, i) => ({
+      id: i, name: c.name, color: COLORS[i], ai: c.ai,
+      res: emptyRes(), dev: [], knights: 0,
+      roads: 15, settlements: 5, cities: 4,
+      roadLen: 0, longest: false, army: false,
+    })),
+    cur: 0, turn: 0, phase: 'setup', mode: null, busy: false,
+    dice: null, hot: [], log: [], devPlayed: false,
+    setupOrder: [], setupStep: 0, lastSetupV: null, freeRoads: 0, pending: null,
+  };
+  $('#start').hidden = true;
+  $('#game').hidden = false;
+  log('Neues Spiel gestartet. Aufbauphase!');
+  const n = G.players.length;
+  G.setupOrder = [...Array(n).keys(), ...[...Array(n).keys()].reverse()];
+  nextSetup();
+}
+
+// ---------- Hilfsfunktionen ----------
+const cur = () => G.players[G.cur];
+const total = p => RES.reduce((s, r) => s + p.res[r], 0);
+const canAfford = (p, cost) => Object.entries(cost).every(([r, n]) => p.res[r] >= n);
+const pay = (p, cost) => { for (const [r, n] of Object.entries(cost)) p.res[r] -= n; };
+const humans = () => G.players.filter(p => !p.ai);
+const humanTurn = () => G && !cur().ai && G.phase !== 'setup' && G.phase !== 'over';
+const fmtRes = obj => RES.filter(r => obj[r]).map(r => `${obj[r]}${RINFO[r].icon}`).join(' ');
+const pname = p => `<b style="color:${p.color}">${p.name}</b>`;
+
+function vp(p, withHidden = true) {
+  let s = 0;
+  G.verts.forEach(v => { if (v.owner === p.id) s += v.city ? 2 : 1; });
+  if (p.longest) s += 2;
+  if (p.army) s += 2;
+  if (withHidden) s += p.dev.filter(d => d.type === 'vp').length;
+  return s;
+}
+
+function rate(pid, r) {
+  let best = 4;
+  G.verts.forEach(v => {
+    if (v.owner !== pid || !v.port) return;
+    if (v.port === 'any') best = Math.min(best, 3);
+    else if (v.port === r) best = 2;
+  });
+  return best;
+}
+
+function log(html) {
+  G.log.unshift(html);
+  if (G.log.length > 80) G.log.pop();
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ---------- Regeln ----------
+function freeSpot(vid) {
+  const v = G.verts[vid];
+  return v.owner === null && v.adj.every(a => G.verts[a].owner === null);
+}
+
+function settlementOk(pid, vid, setup) {
+  if (!freeSpot(vid)) return false;
+  if (setup) return true;
+  return G.verts[vid].edges.some(e => G.edges[e].owner === pid);
+}
+
+function roadOk(pid, eid, fromVert = null) {
+  const e = G.edges[eid];
+  if (e.owner !== null) return false;
+  if (fromVert !== null) return e.v.includes(fromVert);
+  return e.v.some(vid => {
+    const v = G.verts[vid];
+    if (v.owner === pid) return true;
+    if (v.owner !== null) return false;
+    return v.edges.some(x => x !== eid && G.edges[x].owner === pid);
+  });
+}
+
+const cityOk = (pid, vid) => G.verts[vid].owner === pid && !G.verts[vid].city;
+const anyRoadOk = pid => G.edges.some(e => roadOk(pid, e.id));
+
+function longestRoad(pid) {
+  let best = 0;
+  const used = new Set();
+  function dfs(vid, len) {
+    if (len > best) best = len;
+    const v = G.verts[vid];
+    if (len > 0 && v.owner !== null && v.owner !== pid) return; // fremde Siedlung unterbricht
+    for (const eid of v.edges) {
+      const e = G.edges[eid];
+      if (e.owner !== pid || used.has(eid)) continue;
+      used.add(eid);
+      dfs(e.v[0] === vid ? e.v[1] : e.v[0], len + 1);
+      used.delete(eid);
+    }
+  }
+  G.edges.forEach(e => { if (e.owner === pid) e.v.forEach(v => dfs(v, 0)); });
+  return best;
+}
+
+function updateLongest() {
+  const lens = G.players.map(p => longestRoad(p.id));
+  G.players.forEach((p, i) => p.roadLen = lens[i]);
+  const holder = G.players.find(p => p.longest);
+  const max = Math.max(...lens);
+  if (holder && lens[holder.id] === max && max >= 5) return;
+  G.players.forEach(p => p.longest = false);
+  if (max >= 5) {
+    const top = G.players.filter(p => lens[p.id] === max);
+    if (top.length === 1) {
+      top[0].longest = true;
+      log(`🛣️ ${pname(top[0])} hat jetzt die Längste Handelsstraße (${max}).`);
+    }
+  } else if (holder) {
+    log(`🛣️ ${pname(holder)} verliert die Längste Handelsstraße.`);
+  }
+}
+
+function updateArmy(p) {
+  const holder = G.players.find(x => x.army);
+  if (p.knights >= 3 && holder !== p && (!holder || p.knights > holder.knights)) {
+    if (holder) holder.army = false;
+    p.army = true;
+    log(`🏰 ${pname(p)} hat jetzt die Größte Rittermacht (${p.knights}).`);
+  }
+}
+
+function checkWin() {
+  if (G.phase === 'over') return true;
+  if (G.phase === 'setup') return false;
+  const p = cur();
+  if (vp(p) < WIN_VP) return false;
+  G.phase = 'over';
+  G.mode = null;
+  log(`🎉 ${pname(p)} gewinnt mit ${vp(p)} Siegpunkten!`);
+  render();
+  showGameOver(p);
+  return true;
+}
+
+// ---------- Aktionen ----------
+function buildRoad(pid, eid, paid) {
+  const p = G.players[pid];
+  if (paid) pay(p, COST.road);
+  G.edges[eid].owner = pid;
+  p.roads--;
+  log(`${pname(p)} baut eine Straße.`);
+  updateLongest();
+}
+
+function buildSettlement(pid, vid, paid) {
+  const p = G.players[pid];
+  if (paid) pay(p, COST.settlement);
+  G.verts[vid].owner = pid;
+  p.settlements--;
+  log(`${pname(p)} baut eine Siedlung.`);
+  updateLongest();
+}
+
+function buildCity(pid, vid) {
+  const p = G.players[pid];
+  pay(p, COST.city);
+  G.verts[vid].city = true;
+  p.cities--;
+  p.settlements++;
+  log(`${pname(p)} baut eine Stadt.`);
+}
+
+function buyDev(pid) {
+  const p = G.players[pid];
+  pay(p, COST.dev);
+  const type = G.deck.pop();
+  p.dev.push({ type, turn: G.turn });
+  log(`${pname(p)} kauft eine Entwicklungskarte.`);
+  return type;
+}
+
+function giveInitial(pid, vid) {
+  const p = G.players[pid];
+  const got = emptyRes();
+  G.verts[vid].hexes.forEach(h => {
+    const r = G.hexes[h].res;
+    if (r !== 'wueste') { p.res[r]++; got[r]++; }
+  });
+  if (fmtRes(got)) log(`${pname(p)} erhält ${fmtRes(got)}.`);
+}
+
+function rollDice() {
+  const a = 1 + Math.floor(Math.random() * 6), b = 1 + Math.floor(Math.random() * 6);
+  G.dice = [a, b];
+  G.diceAnim = true;
+  const s = a + b;
+  log(`🎲 ${pname(cur())} würfelt <b>${s}</b>.`);
+  G.hot = G.hexes.filter(h => h.num === s).map(h => h.id);
+  if (s !== 7) distribute(s);
+  return s;
+}
+
+function distribute(n) {
+  const gains = G.players.map(() => emptyRes());
+  G.hexes.forEach(h => {
+    if (h.num !== n) return;
+    if (h.id === G.robber) { log(`🦹 Der Räuber blockiert ${RINFO[h.res].land} (${n}).`); return; }
+    h.v.forEach(vid => {
+      const v = G.verts[vid];
+      if (v.owner === null) return;
+      const amt = v.city ? 2 : 1;
+      G.players[v.owner].res[h.res] += amt;
+      gains[v.owner][h.res] += amt;
+    });
+  });
+  G.players.forEach((p, i) => { if (fmtRes(gains[i])) log(`${pname(p)} erhält ${fmtRes(gains[i])}.`); });
+}
+
+function steal(fromId, toId) {
+  const from = G.players[fromId], to = G.players[toId];
+  const pool = RES.flatMap(r => Array(from.res[r]).fill(r));
+  if (!pool.length) return;
+  const r = pool[Math.floor(Math.random() * pool.length)];
+  from.res[r]--; to.res[r]++;
+  const seen = !to.ai || !from.ai;
+  log(`🦹 ${pname(to)} zieht eine Karte von ${pname(from)}${seen && humans().length === 1 ? ` (${RINFO[r].icon})` : ''}.`);
+}
+
+async function handleSeven() {
+  G.busy = true;
+  render();
+  for (const p of G.players) {
+    const t = total(p);
+    if (t <= 7) continue;
+    const n = Math.floor(t / 2);
+    const disc = p.ai ? aiDiscard(p, n) : await discardDialog(p, n);
+    RES.forEach(r => p.res[r] -= disc[r]);
+    log(`${pname(p)} wirft ${n} Karten ab.`);
+    render();
+  }
+  await robberFlow(G.cur);
+  G.busy = false;
+}
+
+async function robberFlow(pid) {
+  const p = G.players[pid];
+  G.busy = true;
+  let hid;
+  if (p.ai) {
+    await sleep(400);
+    hid = aiRobberHex(pid);
+  } else {
+    G.mode = 'robber';
+    render();
+    hid = await new Promise(res => G.pending = res);
+  }
+  G.robber = hid;
+  const h = G.hexes[hid];
+  log(`🦹 ${pname(p)} versetzt den Räuber auf ${RINFO[h.res].land}${h.num ? ' (' + h.num + ')' : ''}.`);
+  render();
+  const victims = [...new Set(h.v.map(v => G.verts[v].owner).filter(o => o !== null && o !== pid))]
+    .filter(o => total(G.players[o]) > 0);
+  if (!victims.length) return;
+  let victim;
+  if (victims.length === 1) victim = victims[0];
+  else if (p.ai) victim = victims.sort((a, b) => vp(G.players[b], false) * 2 + total(G.players[b]) - vp(G.players[a], false) * 2 - total(G.players[a]))[0];
+  else victim = await chooseVictim(victims);
+  steal(victim, pid);
+  render();
+}
+
+async function playDev(pid, idx) {
+  const p = G.players[pid];
+  const card = p.dev[idx];
+  p.dev.splice(idx, 1);
+  G.devPlayed = true;
+  G.busy = true;
+  log(`${pname(p)} spielt ${DEV[card.type].icon} ${DEV[card.type].name}.`);
+  render();
+  if (card.type === 'knight') {
+    p.knights++;
+    updateArmy(p);
+    await robberFlow(pid);
+  } else if (card.type === 'road') {
+    const n = Math.min(2, p.roads);
+    if (p.ai) {
+      for (let i = 0; i < n; i++) {
+        const br = aiBestRoad(pid);
+        if (br.eid === null) break;
+        buildRoad(pid, br.eid, false);
+      }
+    } else if (n > 0 && anyRoadOk(pid)) {
+      G.freeRoads = n;
+      G.mode = 'freeRoad';
+      render();
+      await new Promise(res => G.pending = res);
+    }
+  } else if (card.type === 'plenty') {
+    const picks = p.ai ? aiPlentyPicks(p) : await chooseResources('Erfindung: Wähle 2 Rohstoffe', 2);
+    picks.forEach(r => p.res[r]++);
+    log(`${pname(p)} nimmt ${picks.map(r => RINFO[r].icon).join(' ')} aus der Bank.`);
+  } else if (card.type === 'monopoly') {
+    const r = p.ai ? aiMonoRes(pid).r : (await chooseResources('Monopol: Wähle einen Rohstoff', 1))[0];
+    let sum = 0;
+    G.players.forEach(o => { if (o !== p) { sum += o.res[r]; o.res[r] = 0; } });
+    p.res[r] += sum;
+    log(`💰 ${pname(p)} erhält ${sum}× ${RINFO[r].icon} durch das Monopol.`);
+  }
+  G.busy = false;
+  render();
+  checkWin();
+}
+
+// ---------- Ablauf ----------
+async function nextSetup() {
+  if (G.setupStep >= G.setupOrder.length) {
+    G.phase = 'roll';
+    G.cur = 0;
+    G.turn = 1;
+    log('Aufbau beendet – das Spiel beginnt!');
+    beginTurn();
+    return;
+  }
+  const pid = G.setupOrder[G.setupStep];
+  G.cur = pid;
+  const p = cur();
+  const second = G.setupStep >= G.players.length;
+  render();
+  if (p.ai) {
+    await sleep(500);
+    aiSetup(pid, second);
+    G.setupStep++;
+    render();
+    await sleep(300);
+    nextSetup();
+  } else {
+    await handoff(p);
+    G.mode = 'setupSettlement';
+    render();
+  }
+}
+
+async function beginTurn() {
+  G.phase = 'roll';
+  G.devPlayed = false;
+  G.mode = null;
+  log(`— ${pname(cur())} ist am Zug —`);
+  if (checkWin()) return;
+  render();
+  if (cur().ai) aiTurn();
+  else { await handoff(cur()); render(); }
+}
+
+function endTurn() {
+  if (G.phase === 'over') return;
+  G.cur = (G.cur + 1) % G.players.length;
+  G.turn++;
+  G.hot = [];
+  beginTurn();
+}
+
+// ---------- Menschliche Eingaben ----------
+async function humanRoll() {
+  if (!humanTurn() || G.phase !== 'roll' || G.busy) return;
+  const s = rollDice();
+  G.phase = 'main';
+  render();
+  if (s === 7) { await handleSeven(); render(); }
+}
+
+function startMode(mode) {
+  const p = cur();
+  if (!humanTurn() || G.phase !== 'main' || G.busy) return;
+  if (G.mode === mode) { G.mode = null; render(); return; }
+  const checks = {
+    road: [p.roads > 0, 'Keine Straßen mehr übrig.', COST.road, anyRoadOk(p.id), 'Kein Platz für eine Straße.'],
+    settlement: [p.settlements > 0, 'Keine Siedlungen mehr übrig.', COST.settlement, G.verts.some(v => settlementOk(p.id, v.id, false)), 'Kein gültiger Bauplatz – baue erst Straßen.'],
+    city: [p.cities > 0, 'Keine Städte mehr übrig.', COST.city, G.verts.some(v => cityOk(p.id, v.id)), 'Du hast keine Siedlung zum Ausbauen.'],
+  }[mode];
+  if (!checks[0]) return toast(checks[1]);
+  if (!canAfford(p, checks[2])) return toast('Nicht genug Rohstoffe.');
+  if (!checks[3]) return toast(checks[4]);
+  G.mode = mode;
+  render();
+}
+
+function onVertex(vid) {
+  const p = cur();
+  if (p.ai || G.phase === 'over') return;
+  if (G.mode === 'setupSettlement' && settlementOk(p.id, vid, true)) {
+    buildSettlement(p.id, vid, false);
+    if (G.setupStep >= G.players.length) giveInitial(p.id, vid);
+    G.lastSetupV = vid;
+    G.mode = 'setupRoad';
+  } else if (G.mode === 'settlement' && settlementOk(p.id, vid, false) && canAfford(p, COST.settlement)) {
+    buildSettlement(p.id, vid, true);
+    G.mode = null;
+  } else if (G.mode === 'city' && cityOk(p.id, vid) && canAfford(p, COST.city)) {
+    buildCity(p.id, vid);
+    G.mode = null;
+  } else return;
+  render();
+  checkWin();
+}
+
+function onEdge(eid) {
+  const p = cur();
+  if (p.ai || G.phase === 'over') return;
+  if (G.mode === 'setupRoad' && roadOk(p.id, eid, G.lastSetupV)) {
+    buildRoad(p.id, eid, false);
+    G.mode = null;
+    G.setupStep++;
+    render();
+    nextSetup();
+    return;
+  }
+  if (G.mode === 'road' && roadOk(p.id, eid) && canAfford(p, COST.road)) {
+    buildRoad(p.id, eid, true);
+    G.mode = null;
+  } else if (G.mode === 'freeRoad' && roadOk(p.id, eid)) {
+    buildRoad(p.id, eid, false);
+    G.freeRoads--;
+    if (G.freeRoads <= 0 || p.roads <= 0 || !anyRoadOk(p.id)) {
+      G.mode = null;
+      resolvePending();
+    }
+  } else return;
+  render();
+  checkWin();
+}
+
+function onHex(hid) {
+  if (G.mode !== 'robber' || hid === G.robber) return;
+  G.mode = null;
+  resolvePending(hid);
+}
+
+function resolvePending(v) {
+  const f = G.pending;
+  G.pending = null;
+  if (f) f(v);
+}
+
+// ---------- KI ----------
+function production(pid) {
+  const pr = emptyRes();
+  G.verts.forEach(v => {
+    if (v.owner !== pid) return;
+    v.hexes.forEach(h => {
+      const hx = G.hexes[h];
+      if (hx.res !== 'wueste') pr[hx.res] += pips(hx.num) * (v.city ? 2 : 1);
+    });
+  });
+  return pr;
+}
+
+function vertexScore(pid, vid) {
+  const v = G.verts[vid];
+  const prod = production(pid);
+  let s = 0;
+  const seen = new Set();
+  v.hexes.forEach(h => {
+    const hx = G.hexes[h];
+    if (hx.res === 'wueste') return;
+    const p = pips(hx.num);
+    s += p * (hx.id === G.robber ? 0.4 : 1);
+    if (prod[hx.res] === 0 && !seen.has(hx.res)) s += 1.5;
+    if ((hx.res === 'lehm' || hx.res === 'erz') && !seen.has(hx.res)) s += 0.5;
+    seen.add(hx.res);
+  });
+  if (v.port) s += v.port === 'any' ? 1 : (prod[v.port] >= 5 ? 2.5 : 0.5);
+  return s;
+}
+
+function argmax(list, score) {
+  let best = null, bs = -Infinity;
+  list.forEach(x => { const s = score(x); if (s > bs) { bs = s; best = x; } });
+  return best;
+}
+
+function aiSetup(pid, second) {
+  const cands = G.verts.filter(v => settlementOk(pid, v.id, true)).map(v => v.id);
+  const vid = argmax(cands, id => vertexScore(pid, id) + Math.random() * 0.6);
+  buildSettlement(pid, vid, false);
+  if (second) giveInitial(pid, vid);
+  const es = G.verts[vid].edges.filter(e => roadOk(pid, e, vid));
+  const eid = argmax(es, e => {
+    const ed = G.edges[e];
+    const other = ed.v[0] === vid ? ed.v[1] : ed.v[0];
+    let s = 0;
+    G.verts[other].adj.forEach(a => { if (a !== vid && freeSpot(a)) s = Math.max(s, vertexScore(pid, a)); });
+    return s + Math.random() * 0.3;
+  });
+  buildRoad(pid, eid, false);
+}
+
+function aiBestRoad(pid) {
+  const valid = G.edges.filter(e => roadOk(pid, e.id));
+  let eid = null, score = -1;
+  valid.forEach(e => {
+    let s = 0;
+    e.v.forEach(vid => {
+      if (freeSpot(vid)) s = Math.max(s, vertexScore(pid, vid) + 2);
+      G.verts[vid].adj.forEach(a => { if (freeSpot(a)) s = Math.max(s, vertexScore(pid, a) * 0.7); });
+    });
+    s += Math.random() * 0.3;
+    if (s > score) { score = s; eid = e.id; }
+  });
+  return { eid, score: eid === null ? 0 : Math.floor(score) };
+}
+
+function bestSettlementSpot(pid) {
+  const c = G.verts.filter(v => settlementOk(pid, v.id, false)).map(v => v.id);
+  return c.length ? argmax(c, id => vertexScore(pid, id)) : null;
+}
+
+function bestCitySpot(pid) {
+  const c = G.verts.filter(v => cityOk(pid, v.id)).map(v => v.id);
+  return c.length ? argmax(c, id => G.verts[id].hexes.reduce((s, h) => s + (h === G.robber ? 0 : pips(G.hexes[h].num)), 0)) : null;
+}
+
+function aiTarget(p, spot, br) {
+  if (spot !== null && p.settlements > 0) return 'settlement';
+  const canCity = p.cities > 0 && G.verts.some(v => cityOk(p.id, v.id));
+  const roadUseful = p.settlements > 0 && p.roads > 0 && br.score > 0;
+  if (canCity && (p.res.erz >= 2 || !roadUseful)) return 'city';
+  if (roadUseful) return 'road';
+  if (canCity) return 'city';
+  return 'dev';
+}
+
+function aiMissing(p, target) {
+  const cost = COST[target];
+  const miss = emptyRes();
+  RES.forEach(r => miss[r] = Math.max(0, (cost[r] || 0) - p.res[r]));
+  return miss;
+}
+
+function aiTrade(p, target) {
+  if (target === 'dev' && !G.deck.length) return false;
+  const cost = COST[target];
+  const miss = aiMissing(p, target);
+  const want = RES.filter(r => miss[r] > 0);
+  if (!want.length) return false;
+  for (const r of shuffle(RES.slice())) {
+    const rt = rate(p.id, r);
+    if (miss[r] === 0 && p.res[r] - (cost[r] || 0) >= rt) {
+      const w = want[Math.floor(Math.random() * want.length)];
+      p.res[r] -= rt;
+      p.res[w]++;
+      log(`${pname(p)} tauscht ${rt}${RINFO[r].icon} gegen 1${RINFO[w].icon} (Bank).`);
+      return true;
+    }
+  }
+  return false;
+}
+
+function aiDiscard(p, n) {
+  const d = emptyRes();
+  const left = { ...p.res };
+  for (let i = 0; i < n; i++) {
+    const r = argmax(RES.filter(r => left[r] > 0), r => left[r] + Math.random() * 0.5);
+    left[r]--; d[r]++;
+  }
+  return d;
+}
+
+function aiRobberHex(pid) {
+  return argmax(G.hexes.filter(h => h.id !== G.robber).map(h => h.id), hid => {
+    const h = G.hexes[hid];
+    let s = 0;
+    h.v.forEach(vid => {
+      const v = G.verts[vid];
+      if (v.owner === null) return;
+      const w = v.city ? 2 : 1;
+      if (v.owner === pid) s -= 10 * w;
+      else {
+        const o = G.players[v.owner];
+        s += w * pips(h.num) * (1 + vp(o, false) / 5) + (total(o) > 0 ? 1 : 0);
+      }
+    });
+    return s + Math.random() * 0.1;
+  });
+}
+
+function aiMonoRes(pid) {
+  let best = { r: 'erz', count: -1 };
+  RES.forEach(r => {
+    const c = G.players.reduce((s, o) => s + (o.id === pid ? 0 : o.res[r]), 0);
+    if (c > best.count) best = { r, count: c };
+  });
+  return best;
+}
+
+function aiPlentyPicks(p) {
+  const target = aiTarget(p, bestSettlementSpot(p.id), aiBestRoad(p.id));
+  const miss = aiMissing(p, target);
+  const picks = [];
+  RES.forEach(r => { for (let i = 0; i < miss[r] && picks.length < 2; i++) picks.push(r); });
+  while (picks.length < 2) picks.push(argmax(RES, r => -p.res[r] + Math.random()));
+  return picks;
+}
+
+function robberHurts(pid) {
+  const h = G.hexes[G.robber];
+  return h.num > 0 && h.v.some(v => G.verts[v].owner === pid);
+}
+
+function aiAcceptTrade(ai, receive, give, offerer) {
+  if (vp(offerer, false) >= WIN_VP - 2) return false;
+  if (RES.some(r => ai.res[r] < give[r])) return false;
+  const target = aiTarget(ai, bestSettlementSpot(ai.id), aiBestRoad(ai.id));
+  const miss = aiMissing(ai, target);
+  const cost = COST[target];
+  let val = 0;
+  RES.forEach(r => {
+    val += receive[r] * (miss[r] > 0 ? 1.6 : 0.9);
+    val -= give[r] * ((cost[r] || 0) >= ai.res[r] ? 1.8 : 1);
+  });
+  return val > 0.2;
+}
+
+async function aiAct(p) {
+  const pid = p.id;
+  if (!G.devPlayed) {
+    const playable = t => p.dev.findIndex(d => d.type === t && d.turn < G.turn);
+    let i;
+    if ((i = playable('knight')) >= 0 && (robberHurts(pid) || (p.knights >= 2 && !p.army) || Math.random() < 0.2)) { await playDev(pid, i); return true; }
+    if ((i = playable('monopoly')) >= 0 && aiMonoRes(pid).count >= 3) { await playDev(pid, i); return true; }
+    if ((i = playable('plenty')) >= 0) { await playDev(pid, i); return true; }
+    if ((i = playable('road')) >= 0 && p.roads > 0 && aiBestRoad(pid).score > 0) { await playDev(pid, i); return true; }
+  }
+  const spot = bestSettlementSpot(pid);
+  if (p.cities > 0 && canAfford(p, COST.city)) {
+    const v = bestCitySpot(pid);
+    if (v !== null) { buildCity(pid, v); return true; }
+  }
+  if (p.settlements > 0 && spot !== null && canAfford(p, COST.settlement)) { buildSettlement(pid, spot, true); return true; }
+  const br = aiBestRoad(pid);
+  if (spot === null && p.settlements > 0 && p.roads > 0 && br.eid !== null && br.score > 0 && canAfford(p, COST.road)) {
+    buildRoad(pid, br.eid, true);
+    return true;
+  }
+  const target = aiTarget(p, spot, br);
+  if (G.deck.length && canAfford(p, COST.dev) && (target === 'dev' || total(p) > 7)) { buyDev(pid); return true; }
+  return aiTrade(p, target);
+}
+
+async function aiTurn() {
+  const p = cur();
+  await sleep(700);
+  const k = p.dev.findIndex(d => d.type === 'knight' && d.turn < G.turn);
+  if (k >= 0 && robberHurts(p.id)) { await playDev(p.id, k); await sleep(400); }
+  if (G.phase === 'over') return;
+  const s = rollDice();
+  G.phase = 'main';
+  render();
+  await sleep(800);
+  if (s === 7) { await handleSeven(); render(); await sleep(500); }
+  for (let i = 0; i < 20; i++) {
+    if (G.phase === 'over') return;
+    const did = await aiAct(p);
+    render();
+    if (checkWin()) return;
+    if (!did) break;
+    await sleep(550);
+  }
+  await sleep(400);
+  endTurn();
+}
+
+// ---------- Dialoge ----------
+function modal(setup) {
+  return new Promise(resolve => {
+    const box = $('#modalBox');
+    box.onclick = null;
+    $('#modal').hidden = false;
+    setup(box, v => { $('#modal').hidden = true; box.onclick = null; resolve(v); });
+  });
+}
+
+async function handoff(p) {
+  if (humans().length <= 1) return;
+  await modal((box, close) => {
+    box.innerHTML = `<h2><span class="dot" style="background:${p.color}"></span> ${p.name} ist dran</h2>
+      <p>Gib das Gerät an ${p.name} weiter.</p><div class="btns"><button class="primary">Los geht's</button></div>`;
+    box.onclick = e => { if (e.target.closest('button')) close(); };
+  });
+}
+
+function discardDialog(p, n) {
+  const d = emptyRes();
+  return modal((box, close) => {
+    const draw = () => {
+      const sum = RES.reduce((s, r) => s + d[r], 0);
+      box.innerHTML = `<h2>🦹 ${p.name}: Wirf ${n} Karten ab</h2>
+        <p>Du hast mehr als 7 Karten. Gewählt: <b>${sum}/${n}</b></p>
+        <table class="trade">${RES.map(r => `<tr><td>${RINFO[r].icon} ${RINFO[r].name} (${p.res[r]})</td>
+          <td><span class="cnt"><button data-m="${r}" ${d[r] ? '' : 'disabled'}>−</button><b>${d[r]}</b>
+          <button data-p="${r}" ${d[r] < p.res[r] && sum < n ? '' : 'disabled'}>+</button></span></td></tr>`).join('')}</table>
+        <div class="btns"><button class="primary" data-ok ${sum === n ? '' : 'disabled'}>Abwerfen</button></div>`;
+    };
+    draw();
+    box.onclick = e => {
+      const b = e.target.closest('button');
+      if (!b || b.disabled) return;
+      if (b.dataset.m) d[b.dataset.m]--;
+      else if (b.dataset.p) d[b.dataset.p]++;
+      else if (b.hasAttribute('data-ok')) return close(d);
+      draw();
+    };
+  });
+}
+
+function chooseResources(title, count) {
+  const picks = [];
+  return modal((box, close) => {
+    const draw = () => {
+      box.innerHTML = `<h2>${title}</h2>
+        <div class="row">${RES.map(r => `<button class="chip" data-r="${r}" ${picks.length < count ? '' : 'disabled'}>${RINFO[r].icon} ${RINFO[r].name}</button>`).join('')}</div>
+        <p>Gewählt: ${picks.map(r => RINFO[r].icon).join(' ') || '–'} ${picks.length ? '<button data-undo>Zurück</button>' : ''}</p>
+        <div class="btns"><button class="primary" data-ok ${picks.length === count ? '' : 'disabled'}>Bestätigen</button></div>`;
+    };
+    draw();
+    box.onclick = e => {
+      const b = e.target.closest('button');
+      if (!b || b.disabled) return;
+      if (b.dataset.r) picks.push(b.dataset.r);
+      else if (b.hasAttribute('data-undo')) picks.pop();
+      else if (b.hasAttribute('data-ok')) return close(picks);
+      draw();
+    };
+  });
+}
+
+function chooseVictim(ids) {
+  return modal((box, close) => {
+    box.innerHTML = `<h2>🦹 Von wem willst du ziehen?</h2><div class="row">${ids.map(id => {
+      const o = G.players[id];
+      return `<button data-id="${id}"><span class="dot" style="background:${o.color}"></span> ${o.name} (${total(o)} Karten)</button>`;
+    }).join('')}</div>`;
+    box.onclick = e => { const b = e.target.closest('button[data-id]'); if (b) close(+b.dataset.id); };
+  });
+}
+
+function tradeDialog() {
+  const p = cur();
+  const give = emptyRes(), get = emptyRes();
+  let bg = RES.find(r => p.res[r] >= rate(p.id, r)) || 'holz', bget = RES.find(r => r !== bg);
+  G.busy = true;
+  render();
+  return modal((box, close) => {
+    const draw = (msg = '') => {
+      const rt = rate(p.id, bg);
+      const gs = RES.reduce((s, r) => s + give[r], 0), ts = RES.reduce((s, r) => s + get[r], 0);
+      box.innerHTML = `<h2>🤝 Handeln</h2>
+        <div class="hand">${RES.map(r => `<span class="chip">${RINFO[r].icon} <b>${p.res[r]}</b></span>`).join('')}</div>
+        <h3>Bank &amp; Häfen</h3>
+        <div class="row"><span class="lbl">Gib</span>${RES.map(r => `<button class="chip ${bg === r ? 'sel' : ''}" data-bg="${r}">${rate(p.id, r)}× ${RINFO[r].icon}</button>`).join('')}</div>
+        <div class="row"><span class="lbl">Erhalte</span>${RES.map(r => `<button class="chip ${bget === r ? 'sel' : ''}" data-bget="${r}">1× ${RINFO[r].icon}</button>`).join('')}</div>
+        <div class="row"><button class="primary" data-bank ${p.res[bg] >= rt && bg !== bget ? '' : 'disabled'}>${rt}${RINFO[bg].icon} → 1${RINFO[bget].icon} tauschen</button></div>
+        <h3>Mit Mitspielern</h3>
+        <table class="trade"><tr><td></td><td>Du gibst</td><td>Du willst</td></tr>
+        ${RES.map(r => `<tr><td>${RINFO[r].icon} ${RINFO[r].name}</td>
+          <td><span class="cnt"><button data-gm="${r}" ${give[r] ? '' : 'disabled'}>−</button><b>${give[r]}</b><button data-gp="${r}" ${give[r] < p.res[r] ? '' : 'disabled'}>+</button></span></td>
+          <td><span class="cnt"><button data-tm="${r}" ${get[r] ? '' : 'disabled'}>−</button><b>${get[r]}</b><button data-tp="${r}">+</button></span></td></tr>`).join('')}
+        </table>
+        <div class="row"><button class="primary" data-offer ${gs && ts ? '' : 'disabled'}>Angebot machen</button></div>
+        <p class="msg">${msg}</p>
+        <div class="btns"><button data-close>Fertig</button></div>`;
+    };
+    draw();
+    box.onclick = e => {
+      const b = e.target.closest('button');
+      if (!b || b.disabled) return;
+      const ds = b.dataset;
+      let msg = '';
+      if (ds.bg) bg = ds.bg;
+      else if (ds.bget) bget = ds.bget;
+      else if ('bank' in ds) {
+        const rt = rate(p.id, bg);
+        p.res[bg] -= rt; p.res[bget]++;
+        log(`${pname(p)} tauscht ${rt}${RINFO[bg].icon} gegen 1${RINFO[bget].icon} (Bank).`);
+        msg = 'Getauscht!';
+      }
+      else if (ds.gm) give[ds.gm]--;
+      else if (ds.gp) give[ds.gp]++;
+      else if (ds.tm) get[ds.tm]--;
+      else if (ds.tp) get[ds.tp]++;
+      else if ('offer' in ds) {
+        const partner = G.players.find(o => o !== p && (o.ai
+          ? aiAcceptTrade(o, give, get, p)
+          : RES.every(r => o.res[r] >= get[r]) && confirm(`${o.name}: Tauschst du ${fmtRes(get)} gegen ${fmtRes(give)} mit ${p.name}?`)));
+        if (partner) {
+          RES.forEach(r => { p.res[r] += get[r] - give[r]; partner.res[r] += give[r] - get[r]; });
+          log(`🤝 ${pname(p)} tauscht ${fmtRes(give)} gegen ${fmtRes(get)} mit ${pname(partner)}.`);
+          msg = `${partner.name} nimmt an!`;
+          RES.forEach(r => { give[r] = 0; get[r] = 0; });
+        } else msg = 'Niemand nimmt dein Angebot an.';
+      }
+      else if ('close' in ds) { G.busy = false; render(); return close(); }
+      render();
+      draw(msg);
+    };
+  });
+}
+
+function showGameOver(winner) {
+  const ranking = G.players.slice().sort((a, b) => vp(b) - vp(a));
+  modal((box, close) => {
+    box.innerHTML = `<h2>🎉 ${winner.name} gewinnt!</h2>
+      <table class="trade">${ranking.map((p, i) => `<tr><td>${i + 1}. <span class="dot" style="background:${p.color}"></span> ${p.name}</td><td><b>${vp(p)}</b> SP</td></tr>`).join('')}</table>
+      <div class="btns"><button data-board>Brett ansehen</button><button class="primary" data-new>Neues Spiel</button></div>`;
+    box.onclick = e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      close();
+      if ('new' in b.dataset) location.reload();
+    };
+  });
+}
+
+// ---------- Darstellung ----------
+function hexPoints(x, y, r) {
+  return Array.from({ length: 6 }, (_, i) => {
+    const a = Math.PI / 180 * (60 * i - 30);
+    return `${(x + r * Math.cos(a)).toFixed(1)},${(y + r * Math.sin(a)).toFixed(1)}`;
+  }).join(' ');
+}
+
+function renderBoard() {
+  const p = cur();
+  const human = !p.ai && G.phase !== 'over';
+  const m = human ? G.mode : null;
+  let s = `<defs>
+    <radialGradient id="sea" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#3b8fc7"/><stop offset="1" stop-color="#1b5b8a"/></radialGradient>
+  </defs>`;
+  const sea = Array.from({ length: 6 }, (_, i) => {
+    const a = Math.PI / 180 * (60 * i);
+    return `${(S * 5.25 * Math.cos(a)).toFixed(1)},${(S * 5.25 * Math.sin(a)).toFixed(1)}`;
+  }).join(' ');
+  s += `<polygon points="${sea}" fill="url(#sea)" stroke="#c9b27a" stroke-width="10" stroke-linejoin="round"/>`;
+
+  // Häfen
+  G.ports.forEach(pt => {
+    const e = G.edges[pt.edge];
+    const len = Math.hypot(pt.mx, pt.my);
+    const px = pt.mx + pt.mx / len * 34, py = pt.my + pt.my / len * 34;
+    e.v.forEach(vid => s += `<line x1="${px}" y1="${py}" x2="${G.verts[vid].x}" y2="${G.verts[vid].y}" stroke="#7a5a2b" stroke-width="5"/>`);
+    s += `<circle cx="${px}" cy="${py}" r="20" fill="#f6ecd0" stroke="#7a5a2b" stroke-width="3"/>`;
+    if (pt.type === 'any') s += `<text x="${px}" y="${py + 5}" text-anchor="middle" font-size="14" font-weight="700" fill="#333">3:1</text>`;
+    else s += `<text x="${px}" y="${py - 2}" text-anchor="middle" font-size="14">${RINFO[pt.type].icon}</text>
+      <text x="${px}" y="${py + 14}" text-anchor="middle" font-size="11" font-weight="700" fill="#333">2:1</text>`;
+  });
+
+  // Felder
+  G.hexes.forEach(h => {
+    const pick = m === 'robber' && h.id !== G.robber;
+    const cls = ['hex', G.hot.includes(h.id) ? 'hot' : '', pick ? 'pick' : ''].join(' ');
+    s += `<g class="${cls}" data-h="${h.id}">
+      <polygon class="tile" points="${hexPoints(h.x, h.y, S - 1.5)}" fill="${RINFO[h.res].tile}"/>
+      <text class="noev" x="${h.x}" y="${h.y - 18}" text-anchor="middle" font-size="26">${RINFO[h.res].icon}</text>`;
+    if (h.num) {
+      const red = h.num === 6 || h.num === 8;
+      const dots = pips(h.num);
+      s += `<g class="noev"><circle cx="${h.x}" cy="${h.y + 14}" r="17" fill="#f6ecd0" stroke="#5b4320" stroke-width="2"/>
+        <text x="${h.x}" y="${h.y + 20}" text-anchor="middle" font-size="17" font-weight="800" fill="${red ? '#c62828' : '#222'}">${h.num}</text>
+        ${Array.from({ length: dots }, (_, i) => `<circle cx="${h.x + (i - (dots - 1) / 2) * 4}" cy="${h.y + 26}" r="1.4" fill="${red ? '#c62828' : '#222'}"/>`).join('')}</g>`;
+    }
+    s += `</g>`;
+  });
+
+  // Straßen
+  G.edges.forEach(e => {
+    if (e.owner === null) return;
+    const [a, b] = e.v.map(v => G.verts[v]);
+    const x1 = a.x + (b.x - a.x) * 0.15, y1 = a.y + (b.y - a.y) * 0.15, x2 = a.x + (b.x - a.x) * 0.85, y2 = a.y + (b.y - a.y) * 0.85;
+    s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#111" stroke-width="12" stroke-linecap="round"/>
+      <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${G.players[e.owner].color}" stroke-width="8" stroke-linecap="round"/>`;
+  });
+
+  // Gebäude
+  G.verts.forEach(v => {
+    if (v.owner === null) return;
+    const c = G.players[v.owner].color, x = v.x, y = v.y;
+    const d = v.city
+      ? `M${x - 14} ${y + 10} V${y - 3} L${x - 7} ${y - 11} L${x} ${y - 3} V${y - 1} H${x + 14} V${y + 10} Z`
+      : `M${x - 10} ${y + 9} V${y - 3} L${x} ${y - 12} L${x + 10} ${y - 3} V${y + 9} Z`;
+    s += `<path d="${d}" fill="${c}" stroke="#111" stroke-width="2.5" stroke-linejoin="round"/>`;
+  });
+
+  // Räuber
+  const rh = G.hexes[G.robber];
+  const rx = rh.x - 30, ry = rh.y + 8;
+  s += `<g class="noev"><ellipse cx="${rx}" cy="${ry + 12}" rx="10" ry="4" fill="#0006"/>
+    <path d="M${rx - 8} ${ry + 12} Q${rx - 9} ${ry - 4} ${rx} ${ry - 6} Q${rx + 9} ${ry - 4} ${rx + 8} ${ry + 12} Z" fill="#2b2b2b" stroke="#000" stroke-width="1.5"/>
+    <circle cx="${rx}" cy="${ry - 11}" r="6.5" fill="#2b2b2b" stroke="#000" stroke-width="1.5"/></g>`;
+
+  // Markierungen gültiger Bauplätze
+  if (m) {
+    const pid = p.id;
+    if (m === 'setupRoad' || m === 'road' || m === 'freeRoad') {
+      G.edges.forEach(e => {
+        if (!(m === 'setupRoad' ? roadOk(pid, e.id, G.lastSetupV) : roadOk(pid, e.id))) return;
+        const [a, b] = e.v.map(v => G.verts[v]);
+        s += `<line class="hl-e" data-e="${e.id}" x1="${a.x + (b.x - a.x) * 0.2}" y1="${a.y + (b.y - a.y) * 0.2}" x2="${a.x + (b.x - a.x) * 0.8}" y2="${a.y + (b.y - a.y) * 0.8}"/>`;
+      });
+    }
+    if (m === 'setupSettlement' || m === 'settlement' || m === 'city') {
+      G.verts.forEach(v => {
+        const ok = m === 'city' ? cityOk(pid, v.id) : settlementOk(pid, v.id, m === 'setupSettlement');
+        if (ok) s += `<circle class="hl-v" data-v="${v.id}" cx="${v.x}" cy="${v.y}" r="${m === 'city' ? 15 : 10}"/>`;
+      });
+    }
+  }
+  $('#board').innerHTML = s;
+}
+
+function hintText() {
+  const p = cur();
+  if (G.phase === 'over') return 'Spiel beendet';
+  if (p.ai) return `${p.name} ist am Zug …`;
+  return {
+    setupSettlement: `${p.name}: Setze eine Siedlung`,
+    setupRoad: `${p.name}: Setze eine Straße an deine Siedlung`,
+    road: 'Wähle eine Kante für die Straße (Esc = abbrechen)',
+    settlement: 'Wähle einen Bauplatz für die Siedlung (Esc = abbrechen)',
+    city: 'Wähle eine Siedlung zum Ausbauen (Esc = abbrechen)',
+    freeRoad: `Straßenbau: noch ${G.freeRoads} kostenlose Straße(n)`,
+    robber: 'Versetze den Räuber auf ein anderes Feld',
+  }[G.mode] || (G.phase === 'roll' ? 'Würfle, um deinen Zug zu beginnen' : '');
+}
+
+function costHtml(cost) {
+  return RES.filter(r => cost[r]).map(r => RINFO[r].icon.repeat(cost[r])).join('');
+}
+
+function renderSide() {
+  const p = cur();
+  const viewer = !p.ai ? p : humans()[0];
+  const my = humanTurn() && viewer === p;
+  const canAct = my && G.phase === 'main' && !G.busy && G.mode !== 'freeRoad';
+  const phaseTxt = G.phase === 'setup' ? 'Aufbauphase' : G.phase === 'roll' ? 'würfelt' : G.phase === 'over' ? 'Spielende' : 'baut & handelt';
+
+  let h = `<div class="turn"><span class="dot" style="background:${p.color}"></span>${p.name} <span style="color:var(--muted);font-weight:400">– ${phaseTxt}</span></div>`;
+  h += `<div class="dice ${G.diceAnim ? 'shake' : ''}">${G.dice ? `<span class="d">${DICE[G.dice[0]]}</span><span class="d">${DICE[G.dice[1]]}</span><span class="sum">= ${G.dice[0] + G.dice[1]}</span>` : '<span class="sum">Noch nicht gewürfelt</span>'}</div>`;
+
+  G.players.forEach(o => {
+    const shown = o === viewer ? vp(o) : vp(o, false);
+    h += `<div class="pl ${o === p ? 'active' : ''}"><div class="top"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>${o.ai ? ' 🤖' : ''}<span class="vp">⭐ ${shown}</span></div>
+      <small>🃏 ${total(o)} · 📜 ${o.dev.length} · ⚔️ ${o.knights} · 🛣️ ${o.roadLen}</small>
+      ${o.longest ? '<span class="badge">Längste Straße +2</span>' : ''}${o.army ? '<span class="badge">Größte Rittermacht +2</span>' : ''}</div>`;
+  });
+
+  if (viewer) {
+    h += `<div class="card" style="padding:10px 12px"><h3>Karten von ${viewer.name}</h3>
+      <div class="hand">${RES.map(r => `<span class="chip" title="${RINFO[r].name}">${RINFO[r].icon} <b>${viewer.res[r]}</b></span>`).join('')}</div>`;
+    if (viewer.dev.length) {
+      h += viewer.dev.map((d, i) => {
+        const ok = my && !G.busy && !G.devPlayed && d.type !== 'vp' && d.turn < G.turn && (G.phase === 'roll' || G.phase === 'main') && !G.mode;
+        const note = d.type === 'vp' ? '' : d.turn >= G.turn ? ' (neu)' : '';
+        return `<div class="dev"><span>${DEV[d.type].icon}</span><span class="nm">${DEV[d.type].name}${note}<small>${DEV[d.type].desc}</small></span>
+          ${d.type !== 'vp' ? `<button data-dev="${i}" ${ok ? '' : 'disabled'}>Spielen</button>` : ''}</div>`;
+      }).join('');
+    }
+    h += `<small style="color:var(--muted)">Vorrat: ${viewer.roads} Straßen · ${viewer.settlements} Siedlungen · ${viewer.cities} Städte</small></div>`;
+  }
+
+  h += `<div class="actions">
+    <button class="primary wide" data-act="roll" ${my && G.phase === 'roll' && !G.busy && !G.mode ? '' : 'disabled'}>🎲 Würfeln</button>
+    <button data-act="road" class="${G.mode === 'road' ? 'on' : ''}" ${canAct ? '' : 'disabled'}>🛤️ Straße<small>${costHtml(COST.road)}</small></button>
+    <button data-act="settlement" class="${G.mode === 'settlement' ? 'on' : ''}" ${canAct ? '' : 'disabled'}>🏠 Siedlung<small>${costHtml(COST.settlement)}</small></button>
+    <button data-act="city" class="${G.mode === 'city' ? 'on' : ''}" ${canAct ? '' : 'disabled'}>🏰 Stadt<small>${costHtml(COST.city)}</small></button>
+    <button data-act="dev" ${canAct && G.deck.length ? '' : 'disabled'}>📜 Entwicklung<small>${costHtml(COST.dev)} · ${G.deck.length} übrig</small></button>
+    <button data-act="trade" ${canAct && !G.mode ? '' : 'disabled'}>🤝 Handeln</button>
+    <button data-act="end" ${canAct && !G.mode ? '' : 'disabled'}>⏭️ Zug beenden</button>
+  </div>`;
+  h += `<h4>Spielverlauf</h4><div id="log">${G.log.map(l => `<div>${l}</div>`).join('')}</div>`;
+  $('#side').innerHTML = h;
+}
+
+function render() {
+  if (!G) return;
+  renderBoard();
+  renderSide();
+  G.diceAnim = false;
+  $('#hint').textContent = hintText();
+}
+
+// ---------- Events ----------
+$('#board').addEventListener('click', e => {
+  const t = e.target.closest('[data-v],[data-e],[data-h]');
+  if (!t || !G) return;
+  if (t.dataset.v !== undefined) onVertex(+t.dataset.v);
+  else if (t.dataset.e !== undefined) onEdge(+t.dataset.e);
+  else onHex(+t.dataset.h);
+});
+
+$('#side').addEventListener('click', async e => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  if (b.dataset.dev !== undefined) { await playDev(G.cur, +b.dataset.dev); return; }
+  const a = b.dataset.act;
+  if (a === 'roll') humanRoll();
+  else if (a === 'road' || a === 'settlement' || a === 'city') startMode(a);
+  else if (a === 'dev') {
+    const p = cur();
+    if (!canAfford(p, COST.dev)) return toast('Nicht genug Rohstoffe.');
+    const type = buyDev(p.id);
+    toast(`Du erhältst: ${DEV[type].icon} ${DEV[type].name}`);
+    render();
+    checkWin();
+  }
+  else if (a === 'trade') tradeDialog();
+  else if (a === 'end') endTurn();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && G && ['road', 'settlement', 'city'].includes(G.mode)) { G.mode = null; render(); }
+});
+
+// ---------- Startbildschirm ----------
+function drawPlayerRows() {
+  const n = +$('#nPlayers').value;
+  const old = [...document.querySelectorAll('.prow')].map(r => ({ name: r.querySelector('input').value, ai: r.querySelector('select').value === 'ai' }));
+  $('#prows').innerHTML = Array.from({ length: n }, (_, i) => {
+    const o = old[i] || { name: DEFAULT_NAMES[i], ai: i > 0 };
+    return `<div class="prow"><span class="sw" style="background:${COLORS[i]}"></span>
+      <input value="${o.name.replace(/"/g, '&quot;')}" maxlength="14">
+      <select><option value="human" ${o.ai ? '' : 'selected'}>Mensch</option><option value="ai" ${o.ai ? 'selected' : ''}>Computer</option></select></div>`;
+  }).join('');
+}
+$('#nPlayers').addEventListener('change', drawPlayerRows);
+drawPlayerRows();
+
+$('#startBtn').addEventListener('click', () => {
+  SPEED = +$('#speed').value;
+  const cfg = [...document.querySelectorAll('.prow')].map((r, i) => ({
+    name: r.querySelector('input').value.replace(/[<>&"]/g, '').trim() || DEFAULT_NAMES[i],
+    ai: r.querySelector('select').value === 'ai',
+  }));
+  newGame(cfg);
+});
+</script>
+</body>
+</html>

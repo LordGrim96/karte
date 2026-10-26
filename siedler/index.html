@@ -196,15 +196,16 @@
   @media (max-width: 860px) {
     #game { display: block; height: auto; padding-bottom: calc(var(--dockH, 160px) + 10px); }
     #strip {
-      display: flex; gap: 6px; overflow-x: auto; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+      display: flex; gap: 6px; align-items: center; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
       background: var(--panel); border-bottom: 1px solid #2a3f52;
       padding: 6px max(10px, env(safe-area-inset-right, 0px)) 6px max(10px, env(safe-area-inset-left, 0px));
     }
     .sp { flex: none; display: flex; align-items: center; gap: 4px; background: var(--panel2); border: 2px solid transparent; border-radius: 16px; padding: 3px 9px; font-size: .85em; white-space: nowrap; }
     .sp.active { border-color: var(--accent); }
     .sp small { color: var(--muted); }
-    #strip button { flex: none; padding: 3px 10px; border-radius: 16px; }
-    #strip button[data-act=sound] { margin-left: auto; }
+    .spl { display: flex; gap: 6px; overflow-x: auto; flex: 1; min-width: 0; scrollbar-width: none; }
+    .sbtns { display: flex; gap: 4px; flex: none; }
+    .sbtns button { padding: 3px 8px; border-radius: 16px; }
     #boardWrap { height: auto; display: block; }
     #board { height: auto; max-height: none; display: block; }
     #hint { top: 6px; font-size: .85em; }
@@ -1835,7 +1836,7 @@ function renderSide() {
   const canAct = my && G.phase === 'main' && !G.busy && G.mode !== 'freeRoad';
   const phaseTxt = G.phase === 'setup' ? 'Aufbauphase' : G.phase === 'roll' ? 'würfelt' : G.phase === 'over' ? 'Spielende' : 'baut & handelt';
 
-  let h = `<div class="sidehead"><div class="turn"><span class="dot" style="background:${p.color}"></span>${p.name} <span style="color:var(--muted);font-weight:400;font-family:Nunito,system-ui,sans-serif">– ${phaseTxt}</span></div><span class="hbtns"><button data-act="sound" aria-label="Ton an/aus">${Sound.on ? '🔊' : '🔇'}</button><button data-guide>📖 Anleitung</button></span></div>`;
+  let h = `<div class="sidehead"><div class="turn"><span class="dot" style="background:${p.color}"></span>${p.name} <span style="color:var(--muted);font-weight:400;font-family:Nunito,system-ui,sans-serif">– ${phaseTxt}</span></div><span class="hbtns"><button data-act="sound" aria-label="Ton an/aus">${Sound.on ? '🔊' : '🔇'}</button><button data-guide>📖 Anleitung</button><button data-act="quit" aria-label="Spiel beenden">🚪 Beenden</button></span></div>`;
   h += `<div class="dice ${G.diceAnim ? 'shake' : ''}">${G.dice ? `<span class="d">${DICE[G.dice[0]]}</span><span class="d">${DICE[G.dice[1]]}</span><span class="sum">= ${G.dice[0] + G.dice[1]}</span>` : '<span class="sum">Noch nicht gewürfelt</span>'}</div>`;
 
   h += '<div class="plist">';
@@ -1867,8 +1868,8 @@ function renderSide() {
   $('#side').innerHTML = h;
 
   // Handy: Spielerleiste oben
-  $('#strip').innerHTML = G.players.map(o => `<div class="sp ${o === p ? 'active' : ''}" data-pid="${o.id}"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>
-    ⭐${o === viewer ? vp(o) : vp(o, false)} <small>🃏${total(o)}</small>${o.longest ? ' 🛣️' : ''}${o.army ? ' ⚔️' : ''}</div>`).join('') + `<button data-act="sound" aria-label="Ton an/aus">${Sound.on ? '🔊' : '🔇'}</button><button data-guide aria-label="Anleitung">📖</button>`;
+  $('#strip').innerHTML = '<div class="spl">' + G.players.map(o => `<div class="sp ${o === p ? 'active' : ''}" data-pid="${o.id}"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>
+    ⭐${o === viewer ? vp(o) : vp(o, false)} <small>🃏${total(o)}</small>${o.longest ? ' 🛣️' : ''}${o.army ? ' ⚔️' : ''}</div>`).join('') + `</div><div class="sbtns"><button data-act="sound" aria-label="Ton an/aus">${Sound.on ? '🔊' : '🔇'}</button><button data-guide aria-label="Anleitung">📖</button><button data-act="quit" aria-label="Spiel beenden">🚪</button></div>`;
 
   // Handy: Karten und Aktionen unten
   const rollOk = my && G.phase === 'roll' && !G.busy && !G.mode;
@@ -2180,7 +2181,7 @@ async function joinRoom(code) {
     conn.on('open', () => conn.send({ t: 'hello', name: netName() }));
     conn.on('data', clientOnData);
     conn.on('close', () => {
-      if (G && G.phase === 'over') return;
+      if (NET.ended || (G && G.phase === 'over')) return;
       modal((box, close) => {
         box.innerHTML = `<h2>🔌 Verbindung verloren</h2><p>Die Verbindung zum Gastgeber ist abgebrochen. Tritt dem Raum erneut mit demselben Namen bei, um weiterzuspielen.</p>
           <div class="btns"><button class="primary">Zum Start</button></div>`;
@@ -2212,6 +2213,13 @@ function clientOnData(msg) {
     NET.reqs.delete(msg.rid);
     f && f(msg.v);
   } else if (msg.t === 'toast') toast(msg.msg);
+  else if (msg.t === 'ended') {
+    NET.ended = true;
+    modal((box, close) => {
+      box.innerHTML = `<h2>🚪 Spiel beendet</h2><p>Der Gastgeber hat das Spiel beendet.</p><div class="btns"><button class="primary">Zum Start</button></div>`;
+      box.onclick = e => { if (e.target.closest('button')) { close(); location.href = location.pathname; } };
+    });
+  }
 }
 
 function netRequest(a, arg) {
@@ -2392,6 +2400,29 @@ function showSavedGame() {
 }
 
 // ---------- Events ----------
+// Spiel verlassen und zurück zum Startbildschirm
+async function quitGame() {
+  const online = G.net;
+  const text = online
+    ? (NET.role === 'host' ? 'Das Spiel endet für alle Mitspieler.' : 'Du verlässt den Raum. Der Computer übernimmt deinen Platz.')
+    : G.phase === 'over' ? 'Zurück zum Startbildschirm.' : 'Dein Spielstand bleibt gespeichert. Auf dem Startbildschirm kannst du später weiterspielen.';
+  const choice = await modal((box, close) => {
+    box.innerHTML = `<h2>🚪 Spiel beenden?</h2><p>${text}</p>
+      <div class="btns"><button data-no>Weiterspielen</button>${!online && G.phase !== 'over' ? '<button data-del>Beenden und Spielstand löschen</button>' : ''}<button class="primary" data-yes>Beenden</button></div>`;
+    box.onclick = e => {
+      const b = e.target.closest('button');
+      if (b) close('yes' in b.dataset ? 'yes' : 'del' in b.dataset ? 'del' : null);
+    };
+  });
+  if (!choice) return;
+  // Gespeichert wird automatisch an jedem ruhigen Moment, deshalb hier nur ggf. löschen
+  if (choice === 'del') clearSave();
+  if (NET.role === 'host') NET.conns.forEach(c => c.open && c.send({ t: 'ended' }));
+  NET.ended = true;
+  try { NET.peer && NET.peer.destroy(); } catch { }
+  if (location.search) location.href = location.pathname; else location.reload();
+}
+
 // Jede Spieleraktion läuft über act(): am Gastgeber-Gerät direkt, als Online-Gast über das Netz
 function act(a, arg) {
   if (!G) return Promise.resolve();
@@ -2455,6 +2486,7 @@ function onPanelClick(e) {
   else if (a === 'devlist') devDialog();
   else if (a === 'new') location.reload();
   else if (a === 'sound') toggleSound();
+  else if (a === 'quit') quitGame();
   else if (['roll', 'road', 'settlement', 'city', 'dev', 'end'].includes(a)) act(a);
 }
 $('#side').addEventListener('click', onPanelClick);

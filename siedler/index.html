@@ -66,7 +66,7 @@
   .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; border: 2px solid #0008; flex: none; }
   .dice { display: flex; gap: 6px; align-items: center; margin: 8px 0; font-size: 2.4em; line-height: 1; }
   .dice .sum { font-size: .45em; color: var(--muted); margin-left: 6px; }
-  .dice.shake span.d { animation: shake .5s; display: inline-block; }
+  .dice.shake span.d, .ddice.shake span.d { animation: shake .5s; display: inline-block; }
   @keyframes shake {
     0% { transform: rotate(0) } 25% { transform: rotate(-25deg) scale(1.15) }
     50% { transform: rotate(20deg) } 75% { transform: rotate(-10deg) } 100% { transform: rotate(0) }
@@ -128,10 +128,11 @@
   @keyframes dash { to { stroke-dashoffset: -32; } }
   .noev { pointer-events: none; }
   .hl-v { fill: #ffffffcc; stroke: #000; stroke-width: 2; cursor: pointer; animation: pulse 1s ease-in-out infinite alternate; }
-  .hl-v:hover { fill: var(--accent); }
+  .hlg:hover .hl-v { fill: var(--accent); }
   .hl-e { stroke: #ffffffaa; stroke-width: 11; stroke-linecap: round; cursor: pointer; stroke-dasharray: 6 5; }
-  .hl-e:hover { stroke: var(--accent); stroke-dasharray: none; }
-  @keyframes pulse { from { opacity: .55; } to { opacity: 1; } }
+  .hlg:hover .hl-e { stroke: var(--accent); stroke-dasharray: none; }
+  .hit { cursor: pointer; }
+  @keyframes pulse { from { opacity: .75; } to { opacity: 1; } }
 
   /* Modal */
   #modal { position: fixed; inset: 0; background: #0009; display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
@@ -149,10 +150,43 @@
   #toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #000d; padding: 8px 16px; border-radius: 20px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 20; }
   #toast.show { opacity: 1; }
 
+  body { touch-action: manipulation; }
+  #strip, #dock { display: none; }
+
+  /* Handy: Brett oben, Spielerleiste fest oben, Karten + Aktionen fest unten */
   @media (max-width: 860px) {
-    #game { grid-template-columns: 1fr; height: auto; }
-    #boardWrap { height: 62vh; }
+    #game { display: block; height: auto; padding-bottom: calc(var(--dockH, 160px) + 10px); }
+    #strip {
+      display: flex; gap: 6px; overflow-x: auto; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+      background: var(--panel); border-bottom: 1px solid #2a3f52;
+      padding: 6px max(10px, env(safe-area-inset-right, 0px)) 6px max(10px, env(safe-area-inset-left, 0px));
+    }
+    .sp { flex: none; display: flex; align-items: center; gap: 4px; background: var(--panel2); border: 2px solid transparent; border-radius: 16px; padding: 3px 9px; font-size: .85em; white-space: nowrap; }
+    .sp.active { border-color: var(--accent); }
+    .sp small { color: var(--muted); }
+    #strip button { flex: none; margin-left: auto; padding: 3px 10px; border-radius: 16px; }
+    #boardWrap { height: auto; display: block; }
+    #board { height: auto; max-height: none; display: block; }
+    #hint { top: 6px; font-size: .85em; }
     #side { border-left: 0; border-top: 1px solid #2a3f52; }
+    #side .plist, #side .dice, #side .handbox, #side .actions, #side .sidehead button { display: none; }
+    #dock {
+      display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 8;
+      background: var(--panel); border-top: 1px solid #355068; box-shadow: 0 -6px 20px #0008;
+      padding: 8px max(10px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
+    }
+    .drow { display: flex; align-items: center; gap: 8px; }
+    .ddice { font-size: 1.7em; line-height: 1; white-space: nowrap; }
+    .ddice small { font-size: .45em; color: var(--muted); }
+    .hand.mini { flex: 1; margin: 0; gap: 4px; flex-wrap: nowrap; justify-content: center; }
+    .hand.mini .rcard { width: 40px; height: 50px; font-size: 1.1em; }
+    .devbtn { padding: 6px 8px; white-space: nowrap; }
+    .dbtns { display: grid; grid-template-columns: repeat(5, 1fr) 1.7fr; gap: 5px; margin-top: 8px; }
+    .dbtns button { padding: 6px 2px; font-size: 1.25em; line-height: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 48px; }
+    .dbtns button small { font-size: .48em; color: var(--muted); margin-top: 2px; }
+    .dbtns .primary { font-size: .95em; }
+    .dbtns .primary small { color: #3a2a00; }
+    #toast { bottom: calc(var(--dockH, 0px) + 14px); }
   }
 </style>
 </head>
@@ -179,11 +213,13 @@
 </div>
 
 <div id="game" hidden>
+  <div id="strip"></div>
   <div id="boardWrap">
     <svg id="board" viewBox="-335 -300 670 600"></svg>
     <div id="hint"></div>
   </div>
   <aside id="side"></aside>
+  <div id="dock"></div>
 </div>
 
 <div id="modal" hidden><div id="modalBox"></div></div>
@@ -1462,13 +1498,17 @@ function renderBoard(target = $('#board')) {
       G.edges.forEach(e => {
         if (!(m === 'setupRoad' ? roadOk(pid, e.id, G.lastSetupV) : roadOk(pid, e.id))) return;
         const [a, b] = e.v.map(v => G.verts[v]);
-        s += `<line class="hl-e" data-e="${e.id}" x1="${a.x + (b.x - a.x) * 0.2}" y1="${a.y + (b.y - a.y) * 0.2}" x2="${a.x + (b.x - a.x) * 0.8}" y2="${a.y + (b.y - a.y) * 0.8}"/>`;
+        const pts = `x1="${a.x + (b.x - a.x) * 0.2}" y1="${a.y + (b.y - a.y) * 0.2}" x2="${a.x + (b.x - a.x) * 0.8}" y2="${a.y + (b.y - a.y) * 0.8}"`;
+        // breite unsichtbare Linie als Tippfläche für Finger
+        s += `<g class="hlg" data-e="${e.id}"><line class="hit" ${pts} stroke="transparent" stroke-width="30" stroke-linecap="round"/><line class="hl-e" ${pts}/></g>`;
       });
     }
     if (m === 'setupSettlement' || m === 'settlement' || m === 'city') {
+      const small = matchMedia('(max-width: 860px)').matches;
       G.verts.forEach(v => {
         const ok = m === 'city' ? cityOk(pid, v.id) : settlementOk(pid, v.id, m === 'setupSettlement');
-        if (ok) s += `<circle class="hl-v" data-v="${v.id}" cx="${v.x}" cy="${v.y}" r="${m === 'city' ? 16 : 10}"/>`;
+        if (ok) s += `<g class="hlg" data-v="${v.id}"><circle class="hit" cx="${v.x}" cy="${v.y}" r="27" fill="transparent"/>
+          <circle class="hl-v" cx="${v.x}" cy="${v.y}" r="${(m === 'city' ? 16 : 10) * (small ? 1.35 : 1)}"/></g>`;
       });
     }
   }
@@ -1504,24 +1544,19 @@ function renderSide() {
   let h = `<div class="sidehead"><div class="turn"><span class="dot" style="background:${p.color}"></span>${p.name} <span style="color:var(--muted);font-weight:400;font-family:Nunito,system-ui,sans-serif">– ${phaseTxt}</span></div><button data-guide>📖 Anleitung</button></div>`;
   h += `<div class="dice ${G.diceAnim ? 'shake' : ''}">${G.dice ? `<span class="d">${DICE[G.dice[0]]}</span><span class="d">${DICE[G.dice[1]]}</span><span class="sum">= ${G.dice[0] + G.dice[1]}</span>` : '<span class="sum">Noch nicht gewürfelt</span>'}</div>`;
 
+  h += '<div class="plist">';
   G.players.forEach(o => {
     const shown = o === viewer ? vp(o) : vp(o, false);
     h += `<div class="pl ${o === p ? 'active' : ''}"><div class="top"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>${o.ai ? ' 🤖' : ''}<span class="vp">⭐ ${shown}</span></div>
       <small>🃏 ${total(o)} · 📜 ${o.dev.length} · ⚔️ ${o.knights} · 🛣️ ${o.roadLen}</small>
       ${o.longest ? '<span class="badge">Längste Straße +2</span>' : ''}${o.army ? '<span class="badge">Größte Rittermacht +2</span>' : ''}</div>`;
   });
+  h += '</div>';
 
   if (viewer) {
     h += `<div class="card" style="padding:10px 12px"><h3>Karten von ${viewer.name}</h3>
-      <div class="hand">${RES.map(r => `<span class="rcard ${r} ${viewer.res[r] ? '' : 'zero'}" title="${RINFO[r].name}">${RINFO[r].icon}<b>${viewer.res[r]}</b></span>`).join('')}</div>`;
-    if (viewer.dev.length) {
-      h += viewer.dev.map((d, i) => {
-        const ok = my && !G.busy && !G.devPlayed && d.type !== 'vp' && d.turn < G.turn && (G.phase === 'roll' || G.phase === 'main') && !G.mode;
-        const note = d.type === 'vp' ? '' : d.turn >= G.turn ? ' (neu)' : '';
-        return `<div class="dev"><span>${DEV[d.type].icon}</span><span class="nm">${DEV[d.type].name}${note}<small>${DEV[d.type].desc}</small></span>
-          ${d.type !== 'vp' ? `<button data-dev="${i}" ${ok ? '' : 'disabled'}>Spielen</button>` : ''}</div>`;
-      }).join('');
-    }
+      <div class="hand handbox">${handHtml(viewer)}</div>`;
+    h += devListHtml(viewer, my);
     h += `<small style="color:var(--muted)">Vorrat: ${viewer.roads} Straßen · ${viewer.settlements} Siedlungen · ${viewer.cities} Städte</small></div>`;
   }
 
@@ -1536,6 +1571,58 @@ function renderSide() {
   </div>`;
   h += `<h4>Spielverlauf</h4><div id="log">${G.log.map(l => `<div>${l}</div>`).join('')}</div>`;
   $('#side').innerHTML = h;
+
+  // Handy: Spielerleiste oben
+  $('#strip').innerHTML = G.players.map(o => `<div class="sp ${o === p ? 'active' : ''}"><span class="dot" style="background:${o.color}"></span><b>${o.name}</b>
+    ⭐${o === viewer ? vp(o) : vp(o, false)} <small>🃏${total(o)}</small>${o.longest ? ' 🛣️' : ''}${o.army ? ' ⚔️' : ''}</div>`).join('') + '<button data-guide aria-label="Anleitung">📖</button>';
+
+  // Handy: Karten und Aktionen unten
+  const rollOk = my && G.phase === 'roll' && !G.busy && !G.mode;
+  const primary = G.phase === 'over'
+    ? '<button class="primary" data-act="new">Neues Spiel</button>'
+    : G.phase === 'main' && my
+      ? `<button class="primary" data-act="end" ${canAct && !G.mode ? '' : 'disabled'}>⏭️<small>Zug beenden</small></button>`
+      : `<button class="primary" data-act="roll" ${rollOk ? '' : 'disabled'}>🎲<small>Würfeln</small></button>`;
+  const dockBtn = (act, icon, label, ok) => `<button data-act="${act}" class="${G.mode === act ? 'on' : ''}" ${ok ? '' : 'disabled'}>${icon}<small>${label}</small></button>`;
+  $('#dock').innerHTML = `<div class="drow">
+      <div class="ddice ${G.diceAnim ? 'shake' : ''}">${G.dice ? `<span class="d">${DICE[G.dice[0]]}</span><span class="d">${DICE[G.dice[1]]}</span> <small>${G.dice[0] + G.dice[1]}</small>` : '<small>🎲 –</small>'}</div>
+      <div class="hand mini">${viewer ? handHtml(viewer) : ''}</div>
+      ${viewer && viewer.dev.length ? `<button class="devbtn" data-act="devlist">📜 ${viewer.dev.length}</button>` : ''}
+    </div>
+    <div class="dbtns">
+      ${dockBtn('road', '🛤️', 'Straße', canAct)}${dockBtn('settlement', '🏠', 'Siedlung', canAct)}${dockBtn('city', '🏰', 'Stadt', canAct)}
+      ${dockBtn('dev', '📜', 'Karte', canAct && G.deck.length)}${dockBtn('trade', '🤝', 'Handel', canAct && !G.mode)}
+      ${primary}
+    </div>`;
+  document.documentElement.style.setProperty('--dockH', $('#dock').offsetHeight + 'px');
+}
+
+function handHtml(pl) {
+  return RES.map(r => `<span class="rcard ${r} ${pl.res[r] ? '' : 'zero'}" title="${RINFO[r].name}">${RINFO[r].icon}<b>${pl.res[r]}</b></span>`).join('');
+}
+
+function devListHtml(pl, my) {
+  return pl.dev.map((d, i) => {
+    const ok = my && !G.busy && !G.devPlayed && d.type !== 'vp' && d.turn < G.turn && (G.phase === 'roll' || G.phase === 'main') && !G.mode;
+    const note = d.type === 'vp' ? '' : d.turn >= G.turn ? ' (neu)' : '';
+    return `<div class="dev"><span>${DEV[d.type].icon}</span><span class="nm">${DEV[d.type].name}${note}<small>${DEV[d.type].desc}</small></span>
+      ${d.type !== 'vp' ? `<button data-dev="${i}" ${ok ? '' : 'disabled'}>Spielen</button>` : ''}</div>`;
+  }).join('');
+}
+
+async function devDialog() {
+  const p = cur();
+  const viewer = !p.ai ? p : humans()[0];
+  const idx = await modal((box, close) => {
+    box.innerHTML = `<h2>📜 Entwicklungskarten</h2>${devListHtml(viewer, humanTurn() && viewer === p)}
+      <p style="color:var(--muted)">Eine Karte pro Zug, nicht im Zug des Kaufs.</p><div class="btns"><button data-x>Schließen</button></div>`;
+    box.onclick = e => {
+      const b = e.target.closest('button');
+      if (!b || b.disabled) return;
+      close(b.dataset.dev !== undefined ? +b.dataset.dev : null);
+    };
+  });
+  if (idx !== null) await playDev(G.cur, idx);
 }
 
 function render() {
@@ -1555,7 +1642,7 @@ $('#board').addEventListener('click', e => {
   else onHex(+t.dataset.h);
 });
 
-$('#side').addEventListener('click', async e => {
+async function onPanelClick(e) {
   const b = e.target.closest('button');
   if (!b || b.disabled) return;
   if (b.dataset.dev !== undefined) { await playDev(G.cur, +b.dataset.dev); return; }
@@ -1571,8 +1658,12 @@ $('#side').addEventListener('click', async e => {
     checkWin();
   }
   else if (a === 'trade') tradeDialog();
+  else if (a === 'devlist') devDialog();
+  else if (a === 'new') location.reload();
   else if (a === 'end') endTurn();
-});
+}
+$('#side').addEventListener('click', onPanelClick);
+$('#dock').addEventListener('click', onPanelClick);
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('#guide').hidden) { $('#guide').hidden = true; return; }

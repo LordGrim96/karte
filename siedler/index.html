@@ -53,6 +53,14 @@
   .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 12px; margin-bottom: 8px; }
   .settings label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: .85em; }
   .settings select { color: var(--text); font-size: 1.05rem; }
+  .netform { display: grid; grid-template-columns: 1fr auto; gap: 8px 10px; align-items: end; }
+  .netform label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: .85em; }
+  .netform input { color: var(--text); font-size: 1.05rem; }
+  #joinCode { text-transform: uppercase; letter-spacing: .2em; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .code { font: 800 2.4em/1.1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .25em; color: var(--accent); margin: 4px 0 8px; }
+  ul.lobby { list-style: none; padding: 0; margin: 6px 0 10px; display: grid; gap: 4px; }
+  ul.lobby li { display: flex; align-items: center; gap: 8px; }
+  #netPanel:not(:empty) { margin-top: 12px; padding-top: 10px; border-top: 1px solid #2a3f52; }
   .prow { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
   .prow .sw { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #0008; flex: none; }
   .prow input { flex: 1; min-width: 0; }
@@ -147,9 +155,8 @@
   @keyframes pulse { from { opacity: .75; } to { opacity: 1; } }
 
   /* Modal */
-  #modal { position: fixed; inset: 0; background: #0009; display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
-  #modal[hidden] { display: none; }
-  #modalBox { background: var(--panel); border-radius: 14px; padding: 18px 20px; width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 60px #000a; }
+  .modal { position: fixed; inset: 0; background: #0009; display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
+  .modalBox { background: var(--panel); border-radius: 14px; padding: 18px 20px; width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 60px #000a; }
   .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
   .row > span.lbl { width: 70px; color: var(--muted); }
   table.trade { border-collapse: collapse; width: 100%; }
@@ -246,6 +253,17 @@
     <div id="prows"></div>
     <div class="btns"><button class="primary" id="startBtn">Spiel starten</button></div>
   </div>
+  <div class="card" id="online">
+    <h3>🌐 Online mit Freunden</h3>
+    <p class="small muted">Jeder spielt auf seinem eigenen Gerät. Einer erstellt einen Raum, die anderen treten mit dem Code bei.</p>
+    <div class="netform">
+      <label>Dein Name <input id="netName" maxlength="14" autocomplete="nickname"></label>
+      <button class="primary" id="hostBtn">Raum erstellen</button>
+      <label>Raum-Code <input id="joinCode" maxlength="5" autocapitalize="characters" autocomplete="off" placeholder="K7QXM"></label>
+      <button id="joinBtn">Beitreten</button>
+    </div>
+    <div id="netPanel"></div>
+  </div>
   <div class="card intro">
     <p><b>Neu hier?</b> Die Anleitung erklärt Schritt für Schritt, wie das Spiel funktioniert.</p>
     <button data-guide>📖 Anleitung lesen</button>
@@ -262,7 +280,6 @@
   <div id="dock"></div>
 </div>
 
-<div id="modal" hidden><div id="modalBox"></div></div>
 <div id="guide" hidden>
   <div class="gbox">
     <div class="ghead">
@@ -273,11 +290,12 @@
       <a href="#g-ziel">Ziel</a><a href="#g-brett">Spielbrett</a><a href="#g-aufbau">Aufbau</a><a href="#g-zug">Dein Zug</a>
       <a href="#g-bauen">Bauen</a><a href="#g-sieben">Die 7 &amp; Räuber</a><a href="#g-handel">Handeln</a>
       <a href="#g-karten">Entwicklungskarten</a><a href="#g-punkte">Siegpunkte</a><a href="#g-tipps">Tipps</a><a href="#g-bedienung">Bedienung</a>
+      <a href="#g-einstellungen">Einstellungen</a><a href="#g-online">Online spielen</a><a href="#g-app">Als App</a>
     </nav>
     <div class="gbody">
       <section id="g-ziel">
         <h3>🎯 Ziel des Spiels</h3>
-        <p>Ihr besiedelt gemeinsam eine Insel. Wer als Erster <b>10 Siegpunkte</b> hat, gewinnt sofort. Punkte bekommst du vor allem für Siedlungen und Städte.</p>
+        <p>Ihr besiedelt gemeinsam eine Insel. Wer als Erster die nötigen <b>Siegpunkte</b> hat (normalerweise 10, einstellbar), gewinnt sofort. Punkte bekommst du vor allem für Siedlungen und Städte.</p>
       </section>
 
       <section id="g-brett">
@@ -292,6 +310,7 @@
           <tr><td>⛰️ Gebirge</td><td>Erz</td><td>3</td></tr>
           <tr><td>🏜️ Wüste</td><td>nichts</td><td>1</td></tr>
         </table>
+        <p>Bei <b>5–6 Spielern</b> wird die große Insel gespielt: 30 Felder (6 Wald, 5 Hügel, 6 Weide, 6 Acker, 5 Gebirge, 2 Wüsten), 11 Häfen und 34 Entwicklungskarten.</p>
         <p><b>Zahlenplättchen:</b> Auf jedem Feld liegt eine Zahl von 2 bis 12. Wird sie gewürfelt, liefert das Feld Rohstoffe. Die <b>Punkte unter der Zahl</b> zeigen, wie oft sie fällt: 5 Punkte (die roten <b style="color:#ff7a70">6</b> und <b style="color:#ff7a70">8</b>) kommen am häufigsten, 1 Punkt (2 und 12) am seltensten.</p>
         <p><b>Ecken und Kanten:</b> Siedlungen und Städte stehen auf den <b>Ecken</b> der Felder, Straßen auf den <b>Kanten</b>. Eine Ecke grenzt an bis zu 3 Felder. Deshalb sind Ecken zwischen drei guten Zahlen besonders wertvoll.</p>
         <p><b>Häfen ⚓:</b> Am Rand liegen 9 Häfen. Hast du eine Siedlung oder Stadt an einer der beiden Ecken mit Steg, tauschst du günstiger mit der Bank (siehe <a href="#g-handel">Handeln</a>).</p>
@@ -396,6 +415,45 @@
         </ul>
       </section>
 
+      <section id="g-einstellungen">
+        <h3>⚙️ Einstellungen &amp; Speichern</h3>
+        <table class="gt">
+          <tr><th>Einstellung</th><th>Bedeutung</th></tr>
+          <tr><td>Spieler</td><td>2 bis 6. Ab 5 Spielern gibt es die große Insel.</td></tr>
+          <tr><td>Siegpunkte</td><td>8 für eine kurze Partie, 10 normal, 12 oder 15 für lange Spiele.</td></tr>
+          <tr><td>Brett</td><td><b>Zufällig</b> mischt frei. <b>Ausgewogen</b> verteilt Landschaften und Zahlen fairer, damit kein Rohstoff zu selten wird.</td></tr>
+          <tr><td>Computer</td><td><b>Leicht</b> spielt eher zufällig. <b>Mittel</b> baut gezielt und bietet Tausche an. <b>Schwer</b> achtet auf seltene Rohstoffe und blockiert Führende mit dem Räuber.</td></tr>
+          <tr><td>Tempo</td><td>Wie schnell die Computer ihre Züge machen.</td></tr>
+        </table>
+        <p><b>Speichern:</b> Das Spiel wird automatisch im Browser gespeichert. Schließt du die Seite, findest du beim nächsten Öffnen oben <b>„Weiterspielen“</b>. Online-Spiele werden nicht gespeichert.</p>
+        <p><b>Ton:</b> Mit 🔊 schaltest du die Geräusche an oder aus.</p>
+        <p><b>Statistik:</b> Am Spielende siehst du, wie oft jede Zahl gewürfelt wurde (verglichen mit der Erwartung) und wer wie viele Rohstoffe bekommen hat.</p>
+      </section>
+
+      <section id="g-online">
+        <h3>🌐 Online spielen</h3>
+        <p>Jeder spielt auf seinem eigenen Handy oder Computer. Ihr müsst nicht im selben WLAN sein.</p>
+        <ol>
+          <li>Einer tippt auf <b>„Raum erstellen“</b> und ist damit Gastgeber. Es erscheint ein <b>Code aus 5 Zeichen</b>.</li>
+          <li>Die anderen geben ihren Namen und den Code ein und tippen auf <b>„Beitreten“</b>. Einfacher geht es mit dem Einladungslink, den der Gastgeber kopieren und verschicken kann.</li>
+          <li>Der Gastgeber kann Computergegner dazunehmen und tippt auf <b>„Spiel starten“</b>.</li>
+        </ol>
+        <ul>
+          <li>Der Gastgeber führt das Spiel. Lass seine Seite deshalb offen, bis die Partie vorbei ist.</li>
+          <li>Verliert ein Gast die Verbindung, übernimmt der Computer. Tritt er mit <b>demselben Namen</b> wieder bei, spielt er weiter.</li>
+          <li>Für den Online-Modus braucht ihr Internet. Er funktioniert über die GitHub-Seite des Spiels, nicht in der claude.ai-Vorschau.</li>
+        </ul>
+      </section>
+
+      <section id="g-app">
+        <h3>📱 Als App auf dem Handy</h3>
+        <ul>
+          <li><b>iPhone (Safari):</b> Teilen ⬆️ → „Zum Home-Bildschirm“.</li>
+          <li><b>Android (Chrome):</b> Menü ⋮ → „App installieren“ oder „Zum Startbildschirm hinzufügen“.</li>
+        </ul>
+        <p>Danach startet das Spiel im Vollbild. Spiele gegen den Computer und am selben Gerät funktionieren dann auch <b>ohne Internet</b>.</p>
+      </section>
+
       <section id="g-bedienung">
         <h3>🖱️ Bedienung</h3>
         <ul>
@@ -405,6 +463,7 @@
           <li>Bei einer 7 werden die Felder gestrichelt umrandet: Klicke ein Feld an, um den Räuber dorthin zu setzen.</li>
           <li>In der Spielerübersicht: 🃏 Rohstoffkarten · 📜 Entwicklungskarten · ⚔️ gespielte Ritter · 🛣️ längste Straße.</li>
           <li>Spielen mehrere Menschen an einem Gerät, wird vor jedem Zug gefragt, wer dran ist. So sieht niemand die Karten der anderen.</li>
+          <li>Computergegner können dir einen Tausch anbieten. Du entscheidest im Fenster mit <b>Annehmen</b> oder <b>Ablehnen</b>.</li>
         </ul>
       </section>
     </div>
@@ -578,9 +637,9 @@ function newGame(cfg, opts) {
   ]);
   G = {
     ...board, deck, seed: Math.floor(Math.random() * 1e6),
-    winVp: opts.winVp, level: opts.level,
+    winVp: opts.winVp, level: opts.level, net: !!opts.net,
     players: cfg.map((c, i) => ({
-      id: i, name: c.name, color: COLORS[i], ai: c.ai,
+      id: i, name: c.name, color: COLORS[i], ai: c.ai, remote: !!c.remote,
       res: emptyRes(), dev: [], knights: 0,
       roads: 15, settlements: 5, cities: 4,
       roadLen: 0, longest: false, army: false,
@@ -608,8 +667,11 @@ const cur = () => G.players[G.cur];
 const total = p => RES.reduce((s, r) => s + p.res[r], 0);
 const canAfford = (p, cost) => Object.entries(cost).every(([r, n]) => p.res[r] >= n);
 const pay = (p, cost) => { for (const [r, n] of Object.entries(cost)) p.res[r] -= n; };
-const humans = () => G.players.filter(p => !p.ai);
-const humanTurn = () => G && !cur().ai && G.phase !== 'setup' && G.phase !== 'over';
+// Spieler, die an diesem Gerät sitzen (online: nur der eigene)
+const isClient = () => NET.role === 'client';
+const isLocal = p => isClient() ? p.id === NET.me : !p.ai && !p.remote;
+const localPlayers = () => G.players.filter(isLocal);
+const humanTurn = () => G && isLocal(cur()) && G.phase !== 'setup' && G.phase !== 'over';
 const fmtRes = obj => RES.filter(r => obj[r]).map(r => `${obj[r]}${RINFO[r].icon}`).join(' ');
 const pname = p => `<b style="color:${p.color}">${p.name}</b>`;
 
@@ -639,6 +701,7 @@ function log(html) {
 
 let toastTimer;
 function toast(msg) {
+  if (NET.role === 'host' && NET.actor !== null && G && G.players[NET.actor].remote) return netSendTo(NET.actor, { t: 'toast', msg });
   const t = $('#toast');
   t.textContent = msg;
   t.classList.add('show');
@@ -829,7 +892,7 @@ function steal(fromId, toId) {
   from.res[r]--; to.res[r]++;
   G.stats.lost[fromId]++; G.stats.stolen[toId]++;
   const seen = !to.ai || !from.ai;
-  log(`🦹 ${pname(to)} zieht eine Karte von ${pname(from)}${seen && humans().length === 1 ? ` (${RINFO[r].icon})` : ''}.`);
+  log(`🦹 ${pname(to)} zieht eine Karte von ${pname(from)}${seen && !G.net && localPlayers().length === 1 ? ` (${RINFO[r].icon})` : ''}.`);
 }
 
 async function handleSeven() {
@@ -943,7 +1006,7 @@ async function nextSetup() {
     await sleep(300);
     nextSetup();
   } else {
-    await handoff(p);
+    if (isLocal(p)) await handoff(p);
     G.mode = 'setupSettlement';
     render();
   }
@@ -958,7 +1021,7 @@ async function beginTurn() {
   if (checkWin()) return;
   render();
   if (cur().ai) { saveGame(); aiTurn(); }
-  else { await handoff(cur()); Sound.play('turn'); render(); }
+  else if (isLocal(cur())) { await handoff(cur()); Sound.play('turn'); render(); }
 }
 
 function endTurn() {
@@ -971,7 +1034,7 @@ function endTurn() {
 
 // ---------- Menschliche Eingaben ----------
 async function humanRoll() {
-  if (!humanTurn() || G.phase !== 'roll' || G.busy) return;
+  if (cur().ai || G.phase !== 'roll' || G.busy || G.mode) return;
   const s = rollDice();
   G.phase = 'main';
   render();
@@ -980,8 +1043,9 @@ async function humanRoll() {
 
 function startMode(mode) {
   const p = cur();
-  if (!humanTurn() || G.phase !== 'main' || G.busy) return;
+  if (p.ai || G.phase !== 'main' || G.busy) return;
   if (G.mode === mode) { G.mode = null; render(); return; }
+  if (G.mode) return;
   const checks = {
     road: [p.roads > 0, 'Keine Straßen mehr übrig.', COST.road, anyRoadOk(p.id), 'Kein Platz für eine Straße.'],
     settlement: [p.settlements > 0, 'Keine Siedlungen mehr übrig.', COST.settlement, G.verts.some(v => settlementOk(p.id, v.id, false)), 'Kein gültiger Bauplatz – baue erst Straßen.'],
@@ -1040,7 +1104,7 @@ function onEdge(eid) {
 }
 
 function onHex(hid) {
-  if (G.mode !== 'robber' || hid === G.robber) return;
+  if (G.mode !== 'robber' || hid === G.robber || !G.hexes[hid]) return;
   G.mode = null;
   resolvePending(hid);
 }
@@ -1300,17 +1364,19 @@ function executeTrade(a, b, give, get) {
   Sound.play('card');
 }
 
-async function aiTurn() {
+async function aiTurn(skipRoll = false) {
   const p = cur();
   await sleep(700);
-  const k = p.dev.findIndex(d => d.type === 'knight' && d.turn < G.turn);
-  if (k >= 0 && robberHurts(p.id)) { await playDev(p.id, k); await sleep(400); }
-  if (G.phase === 'over') return;
-  const s = rollDice();
-  G.phase = 'main';
-  render();
-  await sleep(800);
-  if (s === 7) { await handleSeven(); render(); await sleep(500); }
+  if (!skipRoll) {
+    const k = p.dev.findIndex(d => d.type === 'knight' && d.turn < G.turn);
+    if (k >= 0 && robberHurts(p.id)) { await playDev(p.id, k); await sleep(400); }
+    if (G.phase === 'over') return;
+    const s = rollDice();
+    G.phase = 'main';
+    render();
+    await sleep(800);
+    if (s === 7) { await handleSeven(); render(); await sleep(500); }
+  }
   for (let i = 0; i < 20; i++) {
     if (G.phase === 'over') return;
     const did = await aiAct(p);
@@ -1324,7 +1390,7 @@ async function aiTurn() {
 }
 
 // ---------- Dialoge ----------
-// Alle Entscheidungen von Menschen laufen hierüber (später auch übers Netz)
+// Alle Entscheidungen von Menschen laufen hierüber, für Online-Gäste übers Netz
 async function ask(p, kind, data) {
   if (p.remote) return netAsk(p, kind, data);
   return localAsk(p, kind, data);
@@ -1343,23 +1409,26 @@ function offerDialog(p, data) {
   const from = G.players[data.from];
   return modal((box, close) => {
     box.innerHTML = `<h2>🤝 Tauschangebot</h2>
-      <p>${humans().length > 1 ? `<b>${p.name}</b>: ` : ''}${pname(from)} bietet dir <b>${fmtRes(data.give)}</b> und möchte dafür <b>${fmtRes(data.get)}</b>.</p>
+      <p>${localPlayers().length > 1 ? `<b>${p.name}</b>: ` : ''}${pname(from)} bietet dir <b>${fmtRes(data.give)}</b> und möchte dafür <b>${fmtRes(data.get)}</b>.</p>
       <p class="small muted">Deine Karten:</p><div class="hand">${handHtml(p)}</div>
       <div class="btns"><button data-no>Ablehnen</button><button class="primary" data-yes>Annehmen</button></div>`;
     box.onclick = e => { const b = e.target.closest('button'); if (b) close('yes' in b.dataset); };
   });
 }
+// Jeder Dialog bekommt eine eigene Ebene, damit sich Dialoge stapeln können
 function modal(setup) {
   return new Promise(resolve => {
-    const box = $('#modalBox');
-    box.onclick = null;
-    $('#modal').hidden = false;
-    setup(box, v => { $('#modal').hidden = true; box.onclick = null; resolve(v); });
+    const wrap = document.createElement('div');
+    wrap.className = 'modal';
+    wrap.innerHTML = '<div class="modalBox" role="dialog" aria-modal="true"></div>';
+    document.body.appendChild(wrap);
+    const box = wrap.firstChild;
+    setup(box, v => { wrap.remove(); resolve(v); });
   });
 }
 
 async function handoff(p) {
-  if (humans().length <= 1) return;
+  if (localPlayers().length <= 1) return;
   await modal((box, close) => {
     box.innerHTML = `<h2><span class="dot" style="background:${p.color}"></span> ${p.name} ist dran</h2>
       <p>Gib das Gerät an ${p.name} weiter.</p><div class="btns"><button class="primary">Los geht's</button></div>`;
@@ -1422,68 +1491,80 @@ function chooseVictim(ids) {
   });
 }
 
-function tradeDialog() {
-  const p = cur();
-  const give = emptyRes(), get = emptyRes();
-  let bg = RES.find(r => p.res[r] >= rate(p.id, r)) || 'holz', bget = RES.find(r => r !== bg);
-  G.busy = true;
+function tradeBank(pid, give, get) {
+  const p = G.players[pid];
+  const rt = rate(pid, give);
+  if (!RES.includes(give) || !RES.includes(get) || give === get || p.res[give] < rt || G.phase !== 'main') return 'Tausch nicht möglich.';
+  p.res[give] -= rt; p.res[get]++;
+  log(`${pname(p)} tauscht ${rt}${RINFO[give].icon} gegen 1${RINFO[get].icon} (Bank).`);
   render();
+  return 'Getauscht!';
+}
+
+async function tradeOffer(pid, give, get) {
+  const p = G.players[pid];
+  const clean = o => Object.fromEntries(RES.map(r => [r, Math.max(0, Math.floor(+(o && o[r]) || 0))]));
+  give = clean(give); get = clean(get);
+  const gs = RES.reduce((t, r) => t + give[r], 0), ts = RES.reduce((t, r) => t + get[r], 0);
+  if (!gs || !ts || G.phase !== 'main' || RES.some(r => p.res[r] < give[r])) return 'Tausch nicht möglich.';
+  const others = G.players.filter(o => o !== p && RES.every(r => o.res[r] >= get[r]));
+  const ai = others.find(o => o.ai && aiAcceptTrade(o, give, get, p));
+  if (ai) { executeTrade(p, ai, give, get); render(); return `${ai.name} nimmt an!`; }
+  for (const o of others.filter(o => !o.ai)) {
+    const ok = await ask(o, 'offer', { from: pid, give, get });
+    if (ok && RES.every(r => o.res[r] >= get[r] && p.res[r] >= give[r])) { executeTrade(p, o, give, get); render(); return `${o.name} nimmt an!`; }
+  }
+  return 'Niemand nimmt dein Angebot an.';
+}
+
+function tradeDialog() {
+  const pid = G.cur;
+  const me = () => G.players[pid];
+  const give = emptyRes(), get = emptyRes();
+  let bg = RES.find(r => me().res[r] >= rate(pid, r)) || 'holz', bget = RES.find(r => r !== bg);
+  let waiting = false;
+  if (!isClient()) { G.busy = true; render(); }
   return modal((box, close) => {
     const draw = (msg = '') => {
-      const rt = rate(p.id, bg);
+      const p = me();
+      const rt = rate(pid, bg);
       const gs = RES.reduce((s, r) => s + give[r], 0), ts = RES.reduce((s, r) => s + get[r], 0);
       box.innerHTML = `<h2>🤝 Handeln</h2>
         <div class="hand">${RES.map(r => `<span class="chip">${RINFO[r].icon} <b>${p.res[r]}</b></span>`).join('')}</div>
         <h3>Bank &amp; Häfen</h3>
-        <div class="row"><span class="lbl">Gib</span>${RES.map(r => `<button class="chip ${bg === r ? 'sel' : ''}" data-bg="${r}">${rate(p.id, r)}× ${RINFO[r].icon}</button>`).join('')}</div>
+        <div class="row"><span class="lbl">Gib</span>${RES.map(r => `<button class="chip ${bg === r ? 'sel' : ''}" data-bg="${r}">${rate(pid, r)}× ${RINFO[r].icon}</button>`).join('')}</div>
         <div class="row"><span class="lbl">Erhalte</span>${RES.map(r => `<button class="chip ${bget === r ? 'sel' : ''}" data-bget="${r}">1× ${RINFO[r].icon}</button>`).join('')}</div>
-        <div class="row"><button class="primary" data-bank ${p.res[bg] >= rt && bg !== bget ? '' : 'disabled'}>${rt}${RINFO[bg].icon} → 1${RINFO[bget].icon} tauschen</button></div>
+        <div class="row"><button class="primary" data-bank ${p.res[bg] >= rt && bg !== bget && !waiting ? '' : 'disabled'}>${rt}${RINFO[bg].icon} → 1${RINFO[bget].icon} tauschen</button></div>
         <h3>Mit Mitspielern</h3>
         <table class="trade"><tr><td></td><td>Du gibst</td><td>Du willst</td></tr>
         ${RES.map(r => `<tr><td>${RINFO[r].icon} ${RINFO[r].name}</td>
           <td><span class="cnt"><button data-gm="${r}" ${give[r] ? '' : 'disabled'}>−</button><b>${give[r]}</b><button data-gp="${r}" ${give[r] < p.res[r] ? '' : 'disabled'}>+</button></span></td>
           <td><span class="cnt"><button data-tm="${r}" ${get[r] ? '' : 'disabled'}>−</button><b>${get[r]}</b><button data-tp="${r}">+</button></span></td></tr>`).join('')}
         </table>
-        <div class="row"><button class="primary" data-offer ${gs && ts ? '' : 'disabled'}>Angebot machen</button></div>
-        <p class="msg">${msg}</p>
-        <div class="btns"><button data-close>Fertig</button></div>`;
+        <div class="row"><button class="primary" data-offer ${gs && ts && !waiting ? '' : 'disabled'}>Angebot machen</button></div>
+        <p class="msg">${waiting ? 'Warte auf Antwort …' : msg}</p>
+        <div class="btns"><button data-close ${waiting ? 'disabled' : ''}>Fertig</button></div>`;
     };
     draw();
-    box.onclick = e => {
+    box.onclick = async e => {
       const b = e.target.closest('button');
       if (!b || b.disabled) return;
       const ds = b.dataset;
       let msg = '';
       if (ds.bg) bg = ds.bg;
       else if (ds.bget) bget = ds.bget;
-      else if ('bank' in ds) {
-        const rt = rate(p.id, bg);
-        p.res[bg] -= rt; p.res[bget]++;
-        log(`${pname(p)} tauscht ${rt}${RINFO[bg].icon} gegen 1${RINFO[bget].icon} (Bank).`);
-        msg = 'Getauscht!';
-      }
       else if (ds.gm) give[ds.gm]--;
       else if (ds.gp) give[ds.gp]++;
       else if (ds.tm) get[ds.tm]--;
       else if (ds.tp) get[ds.tp]++;
-      else if ('offer' in ds || ds.accept) {
-        const partner = ds.accept ? G.players[+ds.accept] : G.players.find(o => o !== p && o.ai && aiAcceptTrade(o, give, get, p));
-        if (partner) {
-          RES.forEach(r => { p.res[r] += get[r] - give[r]; partner.res[r] += give[r] - get[r]; });
-          log(`🤝 ${pname(p)} tauscht ${fmtRes(give)} gegen ${fmtRes(get)} mit ${pname(partner)}.`);
-          msg = `${partner.name} nimmt an!`;
-          RES.forEach(r => { give[r] = 0; get[r] = 0; });
-        } else {
-          // Menschliche Mitspieler am selben Gerät entscheiden selbst
-          const hs = G.players.filter(o => o !== p && !o.ai && RES.every(r => o.res[r] >= get[r]));
-          msg = hs.length
-            ? `Keiner der Computer will. Mitspieler: ${hs.map(o => `<button data-accept="${o.id}">${o.name} nimmt an</button>`).join(' ')}`
-            : 'Niemand nimmt dein Angebot an.';
-        }
+      else if ('bank' in ds || 'offer' in ds) {
+        waiting = true; draw();
+        msg = 'bank' in ds ? await act('bank', { give: bg, get: bget }) : await act('offer', { give, get });
+        waiting = false;
+        if ('offer' in ds && /nimmt an/.test(msg || '')) RES.forEach(r => { give[r] = 0; get[r] = 0; });
       }
-      else if ('close' in ds) { G.busy = false; render(); return close(); }
-      render();
-      draw(msg);
+      else if ('close' in ds) { if (!isClient()) { G.busy = false; render(); } return close(); }
+      draw(msg || '');
     };
   });
 }
@@ -1613,7 +1694,7 @@ function citySvg(x, y, c) {
 
 function renderBoard(target = $('#board')) {
   const p = cur();
-  const human = !p.ai && G.phase !== 'over';
+  const human = isLocal(p) && G.phase !== 'over';
   const m = human ? G.mode : null;
   // Meer und Rahmen: Inselumriss mit dicker, runder Kontur = gleichmäßiger Abstand zur Küste
   const hull = G.hull.map(pt => pt.join(',')).join(' ');
@@ -1731,7 +1812,7 @@ function renderBoard(target = $('#board')) {
 function hintText() {
   const p = cur();
   if (G.phase === 'over') return 'Spiel beendet';
-  if (p.ai) return `${p.name} ist am Zug …`;
+  if (!isLocal(p)) return `${p.name} ist am Zug …`;
   return {
     setupSettlement: `${p.name}: Setze eine Siedlung`,
     setupRoad: `${p.name}: Setze eine Straße an deine Siedlung`,
@@ -1749,7 +1830,7 @@ function costHtml(cost) {
 
 function renderSide() {
   const p = cur();
-  const viewer = !p.ai ? p : humans()[0];
+  const viewer = isLocal(p) ? p : localPlayers()[0];
   const my = humanTurn() && viewer === p;
   const canAct = my && G.phase === 'main' && !G.busy && G.mode !== 'freeRoad';
   const phaseTxt = G.phase === 'setup' ? 'Aufbauphase' : G.phase === 'roll' ? 'würfelt' : G.phase === 'over' ? 'Spielende' : 'baut & handelt';
@@ -1825,7 +1906,7 @@ function devListHtml(pl, my) {
 
 async function devDialog() {
   const p = cur();
-  const viewer = !p.ai ? p : humans()[0];
+  const viewer = isLocal(p) ? p : localPlayers()[0];
   const idx = await modal((box, close) => {
     box.innerHTML = `<h2>📜 Entwicklungskarten</h2>${devListHtml(viewer, humanTurn() && viewer === p)}
       <p style="color:var(--muted)">Eine Karte pro Zug, nicht im Zug des Kaufs.</p><div class="btns"><button data-x>Schließen</button></div>`;
@@ -1835,11 +1916,12 @@ async function devDialog() {
       close(b.dataset.dev !== undefined ? +b.dataset.dev : null);
     };
   });
-  if (idx !== null) await playDev(G.cur, idx);
+  if (idx !== null) act('devplay', idx);
 }
 
 function render() {
   if (!G) return;
+  if (NET.role === 'host') hostBroadcast();
   renderBoard();
   renderSide();
   G.diceAnim = false;
@@ -1847,6 +1929,309 @@ function render() {
   $('#hint').textContent = hintText();
   if (G.fx && G.fx.length) { const f = G.fx; G.fx = []; runFlights(f); }
   if (!G.busy && !G.pending && G.phase !== 'over' && !cur().ai && G.mode !== 'robber' && G.mode !== 'freeRoad') saveGame();
+}
+
+// ---------- Online-Mehrspieler ----------
+// Ein Gerät ist Gastgeber und führt das Spiel; Gäste schicken nur Aktionen und bekommen den Spielstand.
+// Die Verbindung läuft direkt zwischen den Geräten (WebRTC über PeerJS).
+const NET = { role: null, me: null, code: null, peer: null, conns: new Map(), hostConn: null, lobby: [], asks: new Map(), reqs: new Map(), seq: 0, actor: null };
+const ROOM_PREFIX = 'inselsiedler-raum-';
+const PEER_URLS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js',
+  'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js',
+];
+
+async function loadPeer() {
+  if (new URLSearchParams(location.search).has('nettest')) return LocalPeer; // Test mit zwei Fenstern im selben Browser
+  if (window.Peer) return window.Peer;
+  for (const src of PEER_URLS) {
+    try {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = src; s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      if (window.Peer) return window.Peer;
+    } catch { /* nächste Quelle probieren */ }
+  }
+  throw new Error('Online-Modus konnte nicht geladen werden. Bist du mit dem Internet verbunden?');
+}
+
+// Ersatz für PeerJS zum Testen: Fenster im selben Browser sprechen über einen BroadcastChannel
+class LocalPeer {
+  constructor(id) {
+    this.id = id || 'gast-' + Math.random().toString(36).slice(2, 9);
+    this.handlers = {}; this.conns = {};
+    this.bc = new BroadcastChannel('inselsiedler-nettest');
+    this.bc.onmessage = e => this.onMsg(e.data);
+    setTimeout(() => this.emit('open', this.id), 10);
+  }
+  on(ev, fn) { this.handlers[ev] = fn; }
+  emit(ev, ...a) { this.handlers[ev] && this.handlers[ev](...a); }
+  connect(to) {
+    const c = new LocalConn(this, to, Math.random().toString(36).slice(2));
+    this.conns[c.cid] = c;
+    this.bc.postMessage({ k: 'connect', from: this.id, to, cid: c.cid });
+    setTimeout(() => { if (!c.open) this.emit('error', { type: 'peer-unavailable' }); }, 1500);
+    return c;
+  }
+  onMsg(m) {
+    if (m.to !== this.id) return;
+    if (m.k === 'connect') {
+      const c = new LocalConn(this, m.from, m.cid);
+      this.conns[m.cid] = c;
+      this.bc.postMessage({ k: 'accept', from: this.id, to: m.from, cid: m.cid });
+      this.emit('connection', c);
+      setTimeout(() => c.setOpen(), 0);
+    } else if (m.k === 'accept') this.conns[m.cid] && this.conns[m.cid].setOpen();
+    else if (m.k === 'data') this.conns[m.cid] && this.conns[m.cid].emit('data', m.payload);
+    else if (m.k === 'close') this.conns[m.cid] && this.conns[m.cid].emit('close');
+  }
+  destroy() { Object.values(this.conns).forEach(c => c.close()); this.bc.close(); }
+}
+class LocalConn {
+  constructor(peer, other, cid) { this.peer = peer; this.peerId = other; this.cid = cid; this.open = false; this.handlers = {}; }
+  on(ev, fn) { this.handlers[ev] = fn; }
+  emit(ev, ...a) { this.handlers[ev] && this.handlers[ev](...a); }
+  setOpen() { this.open = true; this.emit('open'); }
+  send(payload) { this.peer.bc.postMessage({ k: 'data', to: this.peerId, cid: this.cid, payload }); }
+  close() { if (!this.open) return; this.open = false; this.peer.bc.postMessage({ k: 'close', to: this.peerId, cid: this.cid }); }
+}
+
+// Beim Verlassen der Seite sauber abmelden, damit die anderen es sofort merken
+addEventListener('pagehide', () => { try { NET.peer && NET.peer.destroy(); } catch { } });
+
+const randomCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+const netName = () => ($('#netName').value.replace(/[<>&"]/g, '').trim() || 'Spieler').slice(0, 14);
+
+function netStatus(html) { $('#netPanel').innerHTML = html; }
+function netFail(msg) {
+  netStatus(`<p class="msg">${msg}</p>`);
+  NET.role = null;
+  $('#hostBtn').disabled = $('#joinBtn').disabled = false;
+}
+
+// --- Gastgeber ---
+async function hostRoom() {
+  let PeerCls;
+  try { PeerCls = await loadPeer(); } catch (e) { return netFail(e.message); }
+  NET.role = 'host';
+  NET.me = 0;
+  NET.code = randomCode();
+  netStatus('<p>Raum wird erstellt …</p>');
+  const peer = NET.peer = new PeerCls(ROOM_PREFIX + NET.code);
+  peer.on('open', () => drawHostLobby());
+  peer.on('error', err => {
+    if (err && err.type === 'unavailable-id') { peer.destroy(); return hostRoom(); }
+    netFail(`Verbindungsfehler: ${(err && err.type) || err}. Versuch es noch einmal.`);
+  });
+  peer.on('connection', conn => {
+    conn.on('data', msg => hostOnData(conn, msg));
+    conn.on('close', () => hostOnClose(conn));
+  });
+}
+
+function drawHostLobby() {
+  const link = location.origin + location.pathname + '?raum=' + NET.code;
+  const total = 1 + NET.lobby.length;
+  netStatus(`<p>Raum-Code für deine Freunde:</p>
+    <div class="code">${NET.code}</div>
+    <div class="row"><button id="copyLink">🔗 Einladungslink kopieren</button></div>
+    <p class="small muted" id="linkText">${link}</p>
+    <h4>Im Raum (${total}/6)</h4>
+    <ul class="lobby"><li><span class="dot" style="background:${COLORS[0]}"></span> ${netName()} (du, Gastgeber)</li>
+      ${NET.lobby.map((l, i) => `<li><span class="dot" style="background:${COLORS[i + 1]}"></span> ${l.name}</li>`).join('')}</ul>
+    <label class="small muted">Computergegner dazu
+      <select id="netAi">${Array.from({ length: 6 - total + 1 }, (_, i) => `<option ${i === 0 ? 'selected' : ''}>${i}</option>`).join('')}</select></label>
+    <p class="small muted">Siegpunkte, Brett, Computerstärke und Tempo kommen aus den Einstellungen oben.</p>
+    <div class="btns"><button class="primary" id="netStart" ${total >= 2 ? '' : 'disabled'}>Spiel starten</button></div>
+    ${total < 2 ? '<p class="small muted">Warte auf Mitspieler … oder füge Computergegner hinzu.</p>' : ''}`);
+  $('#netAi').addEventListener('change', () => { $('#netStart').disabled = 1 + NET.lobby.length + +$('#netAi').value < 2; });
+  $('#copyLink').addEventListener('click', () => {
+    navigator.clipboard.writeText(link).then(() => toast('Link kopiert')).catch(() => {
+      const r = document.createRange(); r.selectNodeContents($('#linkText'));
+      getSelection().removeAllRanges(); getSelection().addRange(r);
+      toast('Link markiert – jetzt kopieren');
+    });
+  });
+  $('#netStart').addEventListener('click', hostStart);
+}
+
+function hostOnData(conn, msg) {
+  if (!msg || typeof msg !== 'object') return;
+  if (msg.t === 'hello') {
+    const name = String(msg.name || 'Gast').replace(/[<>&"]/g, '').slice(0, 14);
+    if (!G) {
+      if (NET.lobby.length >= 5) return conn.send({ t: 'full' });
+      NET.lobby.push({ name, conn });
+      drawHostLobby();
+      NET.lobby.forEach(l => l.conn.send({ t: 'lobby', names: [netName(), ...NET.lobby.map(x => x.name)] }));
+    } else {
+      // Wieder verbinden: Spieler mit gleichem Namen, der die Verbindung verloren hat
+      const p = G.players.find(p => p.wasRemote && p.ai && p.name === name);
+      if (!p) return conn.send({ t: 'full' });
+      p.ai = false; p.remote = true; conn.pid = p.id;
+      NET.conns.set(p.id, conn);
+      log(`🔌 ${pname(p)} ist wieder da.`);
+      render();
+    }
+    return;
+  }
+  if (conn.pid === undefined || !G) return;
+  if (msg.t === 'act') {
+    Promise.resolve(performAct(conn.pid, msg.a, msg.arg)).then(v => conn.send({ t: 'reply', rid: msg.rid, v: typeof v === 'string' ? v : null }));
+  } else if (msg.t === 'answer') {
+    const a = NET.asks.get(msg.id);
+    if (a && a.pid === conn.pid) { NET.asks.delete(msg.id); a.resolve(checkAnswer(G.players[a.pid], a.kind, a.data, msg.v)); }
+  }
+}
+
+function hostOnClose(conn) {
+  if (!G) {
+    NET.lobby = NET.lobby.filter(l => l.conn !== conn);
+    drawHostLobby();
+    return;
+  }
+  const p = G.players[conn.pid];
+  if (!p || NET.conns.get(p.id) !== conn) return;
+  NET.conns.delete(p.id);
+  p.remote = false; p.ai = true; p.wasRemote = true;
+  log(`🔌 ${pname(p)} hat die Verbindung verloren – der Computer übernimmt.`);
+  // offene Fragen an diesen Spieler beantwortet der Computer
+  NET.asks.forEach((a, id) => { if (a.pid === p.id) { NET.asks.delete(id); a.resolve(fallbackAnswer(p, a.kind, a.data)); } });
+  if (G.cur === p.id && G.phase !== 'over') {
+    if (G.mode === 'robber') { G.mode = null; resolvePending(aiRobberHex(p.id)); }
+    else if (G.mode === 'freeRoad') { G.mode = null; resolvePending(); }
+    else if (G.phase === 'setup') { G.mode = null; nextSetup(); }
+    else if (!G.busy) aiTurn(G.phase === 'main');
+  }
+  render();
+}
+
+function hostStart() {
+  const nAi = +$('#netAi').value;
+  const cfg = [
+    { name: netName(), ai: false },
+    ...NET.lobby.map(l => ({ name: l.name, ai: false, remote: true })),
+    ...Array.from({ length: nAi }, (_, i) => ({ name: '🤖 ' + DEFAULT_NAMES[1 + i], ai: true })),
+  ].slice(0, 6);
+  NET.lobby.forEach((l, i) => { l.conn.pid = i + 1; NET.conns.set(i + 1, l.conn); });
+  NET.lobby = [];
+  SPEED = +$('#speed').value;
+  newGame(cfg, { winVp: +$('#winVp').value, balanced: $('#boardType').value === 'balanced', level: $('#level').value, net: true });
+}
+
+function netSendTo(pid, msg) {
+  const c = NET.conns.get(pid);
+  if (c && c.open) c.send(msg);
+}
+
+function hostBroadcast() {
+  if (!NET.conns.size) return;
+  const { pending, ...g } = G;
+  NET.conns.forEach((c, pid) => c.open && c.send({ t: 'state', g, you: pid }));
+}
+
+function netAsk(p, kind, data) {
+  return new Promise(resolve => {
+    const c = NET.conns.get(p.id);
+    if (!c || !c.open) return resolve(fallbackAnswer(p, kind, data));
+    const id = ++NET.seq;
+    NET.asks.set(id, { resolve, pid: p.id, kind, data });
+    c.send({ t: 'ask', id, kind, data });
+  });
+}
+
+function fallbackAnswer(p, kind, data) {
+  if (kind === 'discard') return aiDiscard(p, data.n);
+  if (kind === 'victim') return data.ids[0];
+  if (kind === 'resources') return Array.from({ length: data.count }, () => RES[Math.floor(Math.random() * RES.length)]);
+  return false;
+}
+
+// Antworten von Gästen prüfen, bevor sie das Spiel verändern
+function checkAnswer(p, kind, data, v) {
+  if (kind === 'discard') {
+    const ok = v && RES.every(r => Number.isInteger(v[r]) && v[r] >= 0 && v[r] <= p.res[r]) && RES.reduce((t, r) => t + v[r], 0) === data.n;
+    return ok ? v : fallbackAnswer(p, kind, data);
+  }
+  if (kind === 'victim') return data.ids.includes(v) ? v : data.ids[0];
+  if (kind === 'resources') return Array.isArray(v) && v.length === data.count && v.every(r => RES.includes(r)) ? v : fallbackAnswer(p, kind, data);
+  return v === true;
+}
+
+// --- Gast ---
+async function joinRoom(code) {
+  code = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length !== 5) return netFail('Der Raum-Code hat 5 Zeichen.');
+  let PeerCls;
+  try { PeerCls = await loadPeer(); } catch (e) { return netFail(e.message); }
+  NET.role = 'client';
+  NET.code = code;
+  netStatus(`<p>Verbinde mit Raum <b>${code}</b> …</p>`);
+  const peer = NET.peer = new PeerCls();
+  peer.on('error', err => {
+    const t = err && err.type;
+    if (G) return;
+    netFail(t === 'peer-unavailable' ? `Raum ${code} wurde nicht gefunden. Stimmt der Code?` : 'Verbindungsfehler: ' + (t || err));
+  });
+  peer.on('open', () => {
+    const conn = NET.hostConn = peer.connect(ROOM_PREFIX + code, { reliable: true });
+    conn.on('open', () => conn.send({ t: 'hello', name: netName() }));
+    conn.on('data', clientOnData);
+    conn.on('close', () => {
+      if (G && G.phase === 'over') return;
+      modal((box, close) => {
+        box.innerHTML = `<h2>🔌 Verbindung verloren</h2><p>Die Verbindung zum Gastgeber ist abgebrochen. Tritt dem Raum erneut mit demselben Namen bei, um weiterzuspielen.</p>
+          <div class="btns"><button class="primary">Zum Start</button></div>`;
+        box.onclick = e => { if (e.target.closest('button')) { close(); location.href = location.pathname + '?raum=' + code; } };
+      });
+    });
+  });
+}
+
+function clientOnData(msg) {
+  if (!msg || typeof msg !== 'object') return;
+  if (msg.t === 'lobby') {
+    netStatus(`<p>Verbunden mit Raum <b>${NET.code}</b>. Warte, bis der Gastgeber startet …</p>
+      <ul class="lobby">${msg.names.map((n, i) => `<li><span class="dot" style="background:${COLORS[i]}"></span> ${n}${n === netName() ? ' (du)' : ''}</li>`).join('')}</ul>`);
+  } else if (msg.t === 'full') {
+    netFail('Der Raum ist voll oder das Spiel läuft schon.');
+  } else if (msg.t === 'state') {
+    const prev = G;
+    NET.me = msg.you;
+    G = msg.g;
+    if (!prev) showGame();
+    clientEffects(prev, G);
+    render();
+    if (G.phase === 'over' && (!prev || prev.phase !== 'over')) { Sound.play('win'); confetti(); showGameOver(cur()); }
+  } else if (msg.t === 'ask') {
+    Promise.resolve(localAsk(G.players[NET.me], msg.kind, msg.data)).then(v => NET.hostConn.send({ t: 'answer', id: msg.id, v }));
+  } else if (msg.t === 'reply') {
+    const f = NET.reqs.get(msg.rid);
+    NET.reqs.delete(msg.rid);
+    f && f(msg.v);
+  } else if (msg.t === 'toast') toast(msg.msg);
+}
+
+function netRequest(a, arg) {
+  return new Promise(resolve => {
+    if (!NET.hostConn || !NET.hostConn.open) return resolve(null);
+    const rid = ++NET.seq;
+    NET.reqs.set(rid, resolve);
+    NET.hostConn.send({ t: 'act', a, arg, rid });
+    setTimeout(() => { if (NET.reqs.has(rid)) { NET.reqs.delete(rid); resolve(null); } }, 120000);
+  });
+}
+
+// Töne für Gäste aus der Änderung des Spielstands ableiten
+function clientEffects(prev, g) {
+  if (g.diceAnim) Sound.play('dice');
+  if (g.fresh && g.fresh.v !== undefined) Sound.play('build');
+  if (g.fresh && g.fresh.e !== undefined) Sound.play('road');
+  if (g.fresh && g.fresh.robber) Sound.play('robber');
+  if (prev && g.cur === NET.me && (prev.cur !== g.cur || prev.phase !== g.phase) && ['roll', 'setup'].includes(g.phase)) Sound.play('turn');
+  if (g.fx && g.fx.some(f => f.pid === NET.me)) setTimeout(() => Sound.play('gain'), 600);
 }
 
 // ---------- Sound (im Browser erzeugt, keine Dateien) ----------
@@ -2007,34 +2392,70 @@ function showSavedGame() {
 }
 
 // ---------- Events ----------
+// Jede Spieleraktion läuft über act(): am Gastgeber-Gerät direkt, als Online-Gast über das Netz
+function act(a, arg) {
+  if (!G) return Promise.resolve();
+  if (isClient()) return netRequest(a, arg);
+  if (!isLocal(cur())) return Promise.resolve();
+  return Promise.resolve(performAct(G.cur, a, arg));
+}
+
+function performAct(pid, a, arg) {
+  if (!G || pid !== G.cur || G.phase === 'over' || cur().ai) return;
+  NET.actor = pid;
+  try {
+    switch (a) {
+      case 'roll': return humanRoll();
+      case 'road': case 'settlement': case 'city': return startMode(a);
+      case 'cancel': if (['road', 'settlement', 'city'].includes(G.mode)) { G.mode = null; render(); } return;
+      case 'vertex': return onVertex(+arg);
+      case 'edge': return onEdge(+arg);
+      case 'hex': return onHex(+arg);
+      case 'dev': return buyDevAct();
+      case 'devplay': return playDevAct(+arg);
+      case 'bank': return tradeBank(pid, arg && arg.give, arg && arg.get);
+      case 'offer': return tradeOffer(pid, arg && arg.give, arg && arg.get);
+      case 'end': if (G.phase === 'main' && !G.busy && !G.mode) endTurn(); return;
+    }
+  } finally {
+    NET.actor = null;
+  }
+}
+
+function buyDevAct() {
+  const p = cur();
+  if (G.phase !== 'main' || G.busy || G.mode || !G.deck.length) return;
+  if (!canAfford(p, COST.dev)) return toast('Nicht genug Rohstoffe.');
+  const type = buyDev(p.id);
+  toast(`Du erhältst: ${DEV[type].icon} ${DEV[type].name}`);
+  render();
+  checkWin();
+}
+
+function playDevAct(idx) {
+  const p = cur(), d = p.dev[idx];
+  if (!d || d.type === 'vp' || d.turn >= G.turn || G.devPlayed || G.busy || G.mode || !['roll', 'main'].includes(G.phase)) return;
+  return playDev(p.id, idx);
+}
+
 $('#board').addEventListener('click', e => {
   const t = e.target.closest('[data-v],[data-e],[data-h]');
   if (!t || !G) return;
-  if (t.dataset.v !== undefined) onVertex(+t.dataset.v);
-  else if (t.dataset.e !== undefined) onEdge(+t.dataset.e);
-  else onHex(+t.dataset.h);
+  if (t.dataset.v !== undefined) act('vertex', +t.dataset.v);
+  else if (t.dataset.e !== undefined) act('edge', +t.dataset.e);
+  else act('hex', +t.dataset.h);
 });
 
-async function onPanelClick(e) {
+function onPanelClick(e) {
   const b = e.target.closest('button');
-  if (!b || b.disabled) return;
-  if (b.dataset.dev !== undefined) { await playDev(G.cur, +b.dataset.dev); return; }
+  if (!b || b.disabled || !G) return;
+  if (b.dataset.dev !== undefined) return act('devplay', +b.dataset.dev);
   const a = b.dataset.act;
-  if (a === 'roll') humanRoll();
-  else if (a === 'road' || a === 'settlement' || a === 'city') startMode(a);
-  else if (a === 'dev') {
-    const p = cur();
-    if (!canAfford(p, COST.dev)) return toast('Nicht genug Rohstoffe.');
-    const type = buyDev(p.id);
-    toast(`Du erhältst: ${DEV[type].icon} ${DEV[type].name}`);
-    render();
-    checkWin();
-  }
-  else if (a === 'trade') tradeDialog();
+  if (a === 'trade') tradeDialog();
   else if (a === 'devlist') devDialog();
   else if (a === 'new') location.reload();
   else if (a === 'sound') toggleSound();
-  else if (a === 'end') endTurn();
+  else if (['roll', 'road', 'settlement', 'city', 'dev', 'end'].includes(a)) act(a);
 }
 $('#side').addEventListener('click', onPanelClick);
 $('#strip').addEventListener('click', onPanelClick);
@@ -2042,7 +2463,7 @@ $('#dock').addEventListener('click', onPanelClick);
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('#guide').hidden) { $('#guide').hidden = true; return; }
-  if (e.key === 'Escape' && G && ['road', 'settlement', 'city'].includes(G.mode)) { G.mode = null; render(); }
+  if (e.key === 'Escape' && G && ['road', 'settlement', 'city'].includes(G.mode)) act('cancel');
 });
 
 // ---------- Startbildschirm ----------
@@ -2083,6 +2504,20 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 }
 $('#nPlayers').addEventListener('change', () => { drawPlayerRows(); $('#bigNote').hidden = +$('#nPlayers').value < 5; });
 drawPlayerRows();
+
+// Online-Bereich
+try { $('#netName').value = localStorage.getItem('inselsiedler-name') || ''; } catch { }
+$('#netName').addEventListener('change', () => { try { localStorage.setItem('inselsiedler-name', netName()); } catch { } });
+$('#hostBtn').addEventListener('click', () => { $('#hostBtn').disabled = $('#joinBtn').disabled = true; hostRoom(); });
+$('#joinBtn').addEventListener('click', () => { $('#hostBtn').disabled = $('#joinBtn').disabled = true; joinRoom($('#joinCode').value); });
+(() => {
+  const code = new URLSearchParams(location.search).get('raum');
+  if (!code) return;
+  $('#joinCode').value = code.toUpperCase().slice(0, 5);
+  $('#online').scrollIntoView({ block: 'center' });
+  $('#netName').focus();
+})();
+if (window.NO_ONLINE) $('#online').hidden = true;
 
 $('#startBtn').addEventListener('click', () => {
   SPEED = +$('#speed').value;

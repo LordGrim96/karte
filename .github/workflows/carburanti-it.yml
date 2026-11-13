@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: "17 8 * * *"   # täglich ca. 9–10 Uhr italienischer Zeit (Daten mit Stand 8 Uhr)
   workflow_dispatch:
+  push:                    # läuft auch direkt nach Änderungen am Skript
+    branches: [main]
+    paths:
+      - scripts/carburanti_it.py
+      - .github/workflows/carburanti-it.yml
 
 permissions:
   contents: write
@@ -20,10 +25,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          persist-credentials: false   # Token nicht im Arbeitsordner liegen lassen
 
       - name: Preise laden und aufbereiten
         run: python3 scripts/carburanti_it.py out

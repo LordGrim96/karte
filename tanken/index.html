@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f5132">
+<title>Tankbuch</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root {
+  --bg: #f4f6f5; --card: #ffffff; --text: #18211c; --dim: #5f6d65; --line: #dfe5e1;
+  --accent: #0f5132; --accent-soft: #e3f1e8; --warn: #b3261e; --bar: #2e8b57; --bar2: #f4b400;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #101513; --card: #19201c; --text: #e8eee9; --dim: #9aa8a0; --line: #2b3530;
+          --accent: #5fc98f; --accent-soft: #1f3328; --warn: #ff8a80; --bar: #5fc98f; --bar2: #f4c542; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+header { background: var(--accent); color: #fff; padding: 14px 16px; }
+@media (prefers-color-scheme: dark) { header { color: #0b1a12; } }
+header h1 { margin: 0; font-size: 1.3rem; }
+header p { margin: 2px 0 0; font-size: .85rem; opacity: .85; }
+main { max-width: 760px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+section { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+h2 { margin: 0 0 12px; font-size: 1.1rem; }
+label { display: block; font-size: .85rem; color: var(--dim); margin-bottom: 4px; }
+input, select { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.grid .full { grid-column: 1 / -1; }
+.hint { font-size: .78rem; color: var(--dim); margin-top: 3px; }
+button { font: inherit; border: 0; border-radius: 10px; padding: 11px 16px; cursor: pointer;
+  background: var(--accent); color: #fff; font-weight: 600; }
+@media (prefers-color-scheme: dark) { button { color: #0b1a12; } }
+button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); font-weight: 500; }
+button.small { padding: 6px 10px; font-size: .85rem; }
+button.danger { color: var(--warn); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row.end { justify-content: flex-end; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.kpi { background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; }
+.kpi .v { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kpi .l { font-size: .8rem; color: var(--dim); }
+.kpi .d { font-size: .78rem; margin-top: 2px; }
+.up { color: var(--warn); } .down { color: var(--accent); }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--dim); font-weight: 500; font-size: .8rem; }
+.scroll { overflow-x: auto; }
+.chart { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; align-items: end; height: 140px; margin-top: 8px; }
+.chart .col { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+.chart .b { background: var(--bar); border-radius: 4px 4px 0 0; min-height: 1px; }
+.chart .m { font-size: .7rem; color: var(--dim); text-align: center; margin-top: 3px; }
+.empty { color: var(--dim); text-align: center; padding: 12px; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg);
+  padding: 10px 16px; border-radius: 10px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+@media (max-width: 420px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>⛽ Tankbuch</h1>
+  <p>Bon-Betrag &amp; gefahrene Kilometer erfassen – Vergleich zum Jahresende</p>
+</header>
+<main>
+
+<section>
+  <h2 id="formTitle">Tankvorgang eintragen</h2>
+  <form id="form" class="grid" autocomplete="off">
+    <div><label for="f-date">Datum</label><input id="f-date" type="date" required></div>
+    <div><label for="f-cost">Betrag laut Bon (€)</label><input id="f-cost" inputmode="decimal" placeholder="z. B. 72,48" required></div>
+    <div><label for="f-km">Gefahrene Kilometer</label><input id="f-km" inputmode="decimal" placeholder="seit letztem Tanken">
+      <div class="hint">oder unten Tachostand angeben</div></div>
+    <div><label for="f-odo">Tachostand (km, optional)</label><input id="f-odo" inputmode="numeric" placeholder="z. B. 84 512">
+      <div class="hint" id="odoHint"></div></div>
+    <div><label for="f-liter">Liter (optional)</label><input id="f-liter" inputmode="decimal" placeholder="z. B. 41,2"></div>
+    <div><label for="f-note">Notiz (optional)</label><input id="f-note" placeholder="Tankstelle, Fahrzeug …"></div>
+    <div class="full row end">
+      <button type="button" class="ghost" id="cancelEdit" hidden>Abbrechen</button>
+      <button type="submit" id="saveBtn">Speichern</button>
+    </div>
+  </form>
+</section>
+
+<section>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <h2 style="margin:0">Jahresübersicht</h2>
+    <select id="year" style="width:auto"></select>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="hint" style="margin-top:12px">Kosten pro Monat (€)</div>
+  <div class="chart" id="chart"></div>
+  <div class="scroll" style="margin-top:12px"><table id="months"></table></div>
+</section>
+
+<section>
+  <h2>Jahresvergleich</h2>
+  <div class="scroll"><table id="compare"></table></div>
+</section>
+
+<section>
+  <h2>Einträge <span id="entryYear" style="color:var(--dim);font-weight:400"></span></h2>
+  <div class="scroll"><table id="list"></table></div>
+</section>
+
+<section>
+  <h2>Daten sichern</h2>
+  <p class="hint" style="margin-top:0">Die Einträge werden nur auf diesem Gerät im Browser gespeichert. Lade ab und zu eine Sicherung herunter.</p>
+  <div class="row">
+    <button class="ghost" id="exportCsv">CSV (Excel) herunterladen</button>
+    <button class="ghost" id="exportJson">Sicherung herunterladen</button>
+    <button class="ghost" id="importBtn">Sicherung laden</button>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+  </div>
+</section>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = 'tankbuch-v1';
+const MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const $ = id => document.getElementById(id);
+const eur = n => n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+const num = (n, d = 0) => n.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d });
+const parseNum = s => { s = String(s || '').trim().replace(/\s/g, ''); if (!s) return null;
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); const n = Number(s); return isFinite(n) ? n : NaN; };
+
+let entries = load();
+let editId = null;
+let selectedYear = null;
+
+function load() {
+  try { const d = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(d) ? d : []; }
+  catch { return []; }
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(entries)); }
+  catch { toast('Speichern im Browser nicht möglich – bitte Sicherung herunterladen!'); }
+}
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2500); }
+const sorted = () => [...entries].sort((a, b) => a.date.localeCompare(b.date) || (a.created - b.created));
+
+// Gefahrene km eines Eintrags: direkt eingegeben oder aus Tachostand-Differenz
+function kmOf(e, list) {
+  if (e.km != null) return e.km;
+  if (e.odo == null) return null;
+  const i = list.indexOf(e);
+  for (let j = i - 1; j >= 0; j--) if (list[j].odo != null) return e.odo - list[j].odo;
+  return null;
+}
+function lastOdo(beforeDate) {
+  const l = sorted().filter(e => e.odo != null && (!beforeDate || e.date <= beforeDate) && e.id !== editId);
+  return l.length ? l[l.length - 1].odo : null;
+}
+
+function stats(year) {
+  const all = sorted();
+  const s = { cost: 0, km: 0, liter: 0, n: 0, kmCost: 0, litKm: 0, litForKm: 0, months: Array.from({ length: 12 }, () => ({ cost: 0, km: 0, liter: 0, n: 0, kmCost: 0 })) };
+  for (const e of all) {
+    if (+e.date.slice(0, 4) !== year) continue;
+    const m = s.months[+e.date.slice(5, 7) - 1];
+    const km = kmOf(e, all);
+    s.cost += e.cost; m.cost += e.cost; s.n++; m.n++;
+    if (km != null && km > 0) { s.km += km; m.km += km; s.kmCost += e.cost; m.kmCost += e.cost; }
+    if (e.liter) { s.liter += e.liter; m.liter += e.liter; if (km > 0) { s.litKm += km; s.litForKm += e.liter; } }
+  }
+  // nur Tankvorgänge mit bekannten km zählen, sonst wäre €/100 km verfälscht
+  s.per100 = s.km ? s.kmCost / s.km * 100 : null;
+  s.perLiter = s.liter ? s.cost / s.liter : null;
+  s.cons = s.litKm ? s.litForKm / s.litKm * 100 : null;
+  return s;
+}
+
+function years() {
+  const ys = new Set(entries.map(e => +e.date.slice(0, 4)));
+  ys.add(new Date().getFullYear());
+  return [...ys].sort((a, b) => b - a);
+}
+
+function delta(cur, prev, fmt, lowerIsBetter = true) {
+  if (cur == null || prev == null || !prev) return '';
+  const p = (cur - prev) / prev * 100;
+  if (Math.abs(p) < 0.05) return `<div class="d">wie Vorjahr</div>`;
+  const cls = (p > 0) === lowerIsBetter ? 'up' : 'down';
+  return `<div class="d ${cls}">${p > 0 ? '▲' : '▼'} ${num(Math.abs(p), 1)} % zum Vorjahr (${fmt(prev)})</div>`;
+}
+
+function render() {
+  const ys = years();
+  if (!ys.includes(selectedYear)) selectedYear = ys[0];
+  $('year').innerHTML = ys.map(y => `<option ${y === selectedYear ? 'selected' : ''}>${y}</option>`).join('');
+
+  const s = stats(selectedYear), p = stats(selectedYear - 1);
+  const hasPrev = p.n > 0;
+  const k = (v, l, d = '') => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div>${d}</div>`;
+  $('kpis').innerHTML = s.n === 0 ? `<div class="empty">Für ${selectedYear} gibt es noch keine Einträge.</div>` :
+    k(eur(s.cost), 'Tankkosten gesamt', hasPrev ? delta(s.cost, p.cost, eur) : '') +
+    k(num(s.km) + ' km', 'gefahrene Kilometer', hasPrev ? delta(s.km, p.km, v => num(v) + ' km', false) : '') +
+    k(s.per100 != null ? eur(s.per100) : '–', 'Kosten pro 100 km', hasPrev ? delta(s.per100, p.per100, eur) : '') +
+    k(s.per100 != null ? num(s.per100, 1) + ' ct' : '–', 'Kosten pro km') +
+    k(s.n, 'Tankvorgänge', hasPrev ? `<div class="d">Vorjahr: ${p.n}</div>` : '') +
+    (s.liter ? k(num(s.liter, 1) + ' l', 'getankte Liter') : '') +
+    (s.perLiter ? k(eur(s.perLiter), 'Ø Preis pro Liter', hasPrev ? delta(s.perLiter, p.perLiter, eur) : '') : '') +
+    (s.cons ? k(num(s.cons, 1) + ' l', 'Verbrauch / 100 km', hasPrev ? delta(s.cons, p.cons, v => num(v, 1) + ' l') : '') : '');
+
+  const max = Math.max(1, ...s.months.map(m => m.cost));
+  $('chart').innerHTML = s.months.map((m, i) =>
+    `<div class="col" title="${MONTHS[i]}: ${eur(m.cost)}"><div class="b" style="height:${m.cost / max * 100}%"></div><div class="m">${MONTHS[i]}</div></div>`).join('');
+
+  $('months').innerHTML = `<tr><th>Monat</th><th>Kosten</th><th>km</th><th>€/100 km</th><th>Tankv.</th></tr>` +
+    s.months.map((m, i) => m.n ? `<tr><td>${MONTHS[i]}</td><td>${eur(m.cost)}</td><td>${num(m.km)}</td><td>${m.km ? eur(m.kmCost / m.km * 100) : '–'}</td><td>${m.n}</td></tr>` : '').join('') +
+    `<tr style="font-weight:700"><td>Summe</td><td>${eur(s.cost)}</td><td>${num(s.km)}</td><td>${s.per100 != null ? eur(s.per100) : '–'}</td><td>${s.n}</td></tr>`;
+
+  const rows = ys.map(y => [y, stats(y)]).filter(([, st]) => st.n);
+  $('compare').innerHTML = rows.length ? `<tr><th>Jahr</th><th>Kosten</th><th>km</th><th>€/100 km</th><th>Ø €/l</th><th>l/100 km</th><th>Tankv.</th></tr>` +
+    rows.map(([y, st]) => `<tr${y === selectedYear ? ' style="font-weight:700"' : ''}><td>${y}</td><td>${eur(st.cost)}</td><td>${num(st.km)}</td>
+      <td>${st.per100 != null ? eur(st.per100) : '–'}</td><td>${st.perLiter ? eur(st.perLiter) : '–'}</td><td>${st.cons ? num(st.cons, 1) : '–'}</td><td>${st.n}</td></tr>`).join('')
+    : `<tr><td class="empty">Noch keine Daten.</td></tr>`;
+
+  const all = sorted();
+  const list = all.filter(e => +e.date.slice(0, 4) === selectedYear).reverse();
+  $('entryYear').textContent = selectedYear;
+  $('list').innerHTML = list.length ? `<tr><th>Datum</th><th>Betrag</th><th>km</th><th>Liter</th><th></th></tr>` +
+    list.map(e => { const km = kmOf(e, all); return `<tr><td>${new Date(e.date + 'T00:00').toLocaleDateString('de-DE')}${e.note ? `<div class="hint">${esc(e.note)}</div>` : ''}</td>
+      <td>${eur(e.cost)}</td><td>${km != null ? num(km) : '–'}</td><td>${e.liter ? num(e.liter, 2) : '–'}</td>
+      <td><button class="ghost small" data-edit="${e.id}">Ändern</button> <button class="ghost small danger" data-del="${e.id}">✕</button></td></tr>`; }).join('')
+    : `<tr><td class="empty">Keine Einträge in ${selectedYear}.</td></tr>`;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function updateOdoHint() {
+  const lo = lastOdo($('f-date').value);
+  const odo = parseNum($('f-odo').value);
+  let h = lo != null ? `letzter Stand: ${num(lo)} km` : '';
+  if (lo != null && odo && odo > lo) h += ` → ${num(odo - lo)} km gefahren`;
+  $('odoHint').textContent = h;
+}
+
+function resetForm() {
+  editId = null;
+  $('form').reset();
+  $('f-date').value = new Date().toISOString().slice(0, 10);
+  $('formTitle').textContent = 'Tankvorgang eintragen';
+  $('saveBtn').textContent = 'Speichern';
+  $('cancelEdit').hidden = true;
+  updateOdoHint();
+}
+
+$('form').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const cost = parseNum($('f-cost').value), km = parseNum($('f-km').value),
+        odo = parseNum($('f-odo').value), liter = parseNum($('f-liter').value);
+  if (!(cost > 0)) return toast('Bitte einen gültigen Betrag eingeben.');
+  if ([km, odo, liter].some(v => Number.isNaN(v) || (v != null && v < 0))) return toast('Bitte nur gültige Zahlen eingeben.');
+  if (km == null && odo == null) return toast('Bitte gefahrene Kilometer oder Tachostand angeben.');
+  const e = { id: editId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)),
+    date: $('f-date').value, cost, km, odo, liter, note: $('f-note').value.trim(),
+    created: editId ? entries.find(x => x.id === editId).created : Date.now() };
+  entries = entries.filter(x => x.id !== e.id).concat(e);
+  save();
+  selectedYear = +e.date.slice(0, 4);
+  toast(editId ? 'Eintrag geändert' : 'Eintrag gespeichert');
+  resetForm(); render();
+});
+$('cancelEdit').onclick = resetForm;
+$('f-odo').oninput = updateOdoHint;
+$('f-date').onchange = updateOdoHint;
+$('year').onchange = e => { selectedYear = +e.target.value; render(); };
+
+$('list').addEventListener('click', ev => {
+  const ed = ev.target.dataset.edit, del = ev.target.dataset.del;
+  if (del && confirm('Diesen Eintrag löschen?')) { entries = entries.filter(e => e.id !== del); save(); render(); toast('Gelöscht'); }
+  if (ed) {
+    const e = entries.find(x => x.id === ed); editId = ed;
+    const f = v => v == null ? '' : String(v).replace('.', ',');
+    $('f-date').value = e.date; $('f-cost').value = f(e.cost); $('f-km').value = f(e.km);
+    $('f-odo').value = f(e.odo); $('f-liter').value = f(e.liter); $('f-note').value = e.note || '';
+    $('formTitle').textContent = 'Eintrag ändern'; $('saveBtn').textContent = 'Änderung speichern';
+    $('cancelEdit').hidden = false; updateOdoHint();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});
+
+function download(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$('exportJson').onclick = () => download(`tankbuch-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(entries, null, 1), 'application/json');
+$('exportCsv').onclick = () => {
+  const all = sorted(), d = v => v == null ? '' : String(v).replace('.', ',');
+  const lines = ['Datum;Betrag €;gefahrene km;Tachostand;Liter;Notiz',
+    ...all.map(e => [e.date, d(e.cost), d(kmOf(e, all)), d(e.odo), d(e.liter), '"' + (e.note || '').replace(/"/g, '""') + '"'].join(';'))];
+  download('tankbuch.csv', '﻿' + lines.join('\r\n'), 'text/csv');
+};
+$('importBtn').onclick = () => $('importFile').click();
+$('importFile').onchange = async ev => {
+  const file = ev.target.files[0]; ev.target.value = '';
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!Array.isArray(data) || !data.every(e => e && /^\d{4}-\d\d-\d\d$/.test(e.date) && typeof e.cost === 'number')) throw 0;
+    const ids = new Set(entries.map(e => e.id));
+    const neu = data.filter(e => !ids.has(e.id));
+    entries = entries.concat(neu); save(); render();
+    toast(`${neu.length} Einträge übernommen`);
+  } catch { toast('Datei konnte nicht gelesen werden.'); }
+};
+
+resetForm(); render();
+if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
+</body>
+</html>

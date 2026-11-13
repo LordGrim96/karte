@@ -22,15 +22,15 @@
 }
 /* Dunkel: automatisch nach Handy-Einstellung, oder fest über data-theme */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --bg: #0c120f; --card: #161e1a; --text: #e7efea; --dim: #95a69c; --line: #25302a;
+  :root:not([data-theme="light"]) { --bg: #141b17; --card: #1f2723; --text: #f3f7f4; --dim: #b3c1b9; --line: #323d37;
     --primary: #34c486; --soft: #18352a; --amber: #fbbf24; --amber-soft: #3a2f12;
     --blue: #7aa7f5; --blue-soft: #1a2740;
-    --red: #ff7b6e; --green: #4fd69b; --ghost: #2c3a33; --shadow: 0 6px 24px rgba(0, 0, 0, .35); color-scheme: dark; }
+    --red: #ff7b6e; --green: #4fd69b; --ghost: #3a4842; --shadow: 0 6px 24px rgba(0, 0, 0, .3); color-scheme: dark; }
 }
-:root[data-theme="dark"] { --bg: #0c120f; --card: #161e1a; --text: #e7efea; --dim: #95a69c; --line: #25302a;
+:root[data-theme="dark"] { --bg: #141b17; --card: #1f2723; --text: #f3f7f4; --dim: #b3c1b9; --line: #323d37;
     --primary: #34c486; --soft: #18352a; --amber: #fbbf24; --amber-soft: #3a2f12;
     --blue: #7aa7f5; --blue-soft: #1a2740;
-    --red: #ff7b6e; --green: #4fd69b; --ghost: #2c3a33; --shadow: 0 6px 24px rgba(0, 0, 0, .35); color-scheme: dark; }
+    --red: #ff7b6e; --green: #4fd69b; --ghost: #3a4842; --shadow: 0 6px 24px rgba(0, 0, 0, .3); color-scheme: dark; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; }
 body { background: var(--bg); color: var(--text); min-height: 100vh;
@@ -40,7 +40,7 @@ button { font: inherit; cursor: pointer; color: inherit; }
 svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
 /* Kopf */
-.top { background: linear-gradient(150deg, var(--h1) 0%, var(--h2) 55%, var(--h3) 100%); color: #fff;
+.top { background: linear-gradient(150deg, var(--h1) 0%, var(--h2) 55%, var(--h3) 100%); color: var(--on-h, #fff);
   padding: calc(env(safe-area-inset-top) + 14px) 18px 92px; position: relative; overflow: hidden; }
 .top::after { content: ""; position: absolute; width: 340px; height: 340px; border-radius: 50%;
   background: rgba(255,255,255,.07); right: -120px; top: -160px; }
@@ -49,17 +49,17 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
 .brand img { width: 34px; height: 34px; border-radius: 9px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 .picks { display: flex; gap: 6px; min-width: 0; }
 .chip { position: relative; min-width: 0; }
-.chip select { appearance: none; -webkit-appearance: none; background: rgba(255,255,255,.16); color: #fff; max-width: 150px;
-  border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 7px 30px 7px 14px; font: inherit; font-weight: 600;
+.chip select { appearance: none; -webkit-appearance: none; background: var(--pill-bg, rgba(255,255,255,.16)); color: var(--on-h, #fff); max-width: 150px;
+  border: 1px solid var(--pill-line, rgba(255,255,255,.25)); border-radius: 999px; padding: 7px 30px 7px 14px; font: inherit; font-weight: 600;
   text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
 .chip select option { color: #000; }
 .chip::after { content: "▾"; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: .8rem; }
 .hero { position: relative; z-index: 1; margin-top: 22px; }
-.hero .lbl { font-size: .85rem; opacity: .8; }
+.hero .lbl { font-size: .85rem; opacity: .85; font-weight: 500; }
 .hero .big { font-size: 2.6rem; font-weight: 800; letter-spacing: -1px; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px;
-  background: rgba(255,255,255,.16); font-size: .8rem; font-weight: 600; }
+  background: var(--pill-bg, rgba(255,255,255,.16)); font-size: .8rem; font-weight: 600; }
 
 main { max-width: 640px; margin: -72px auto 0; padding: 0 16px; position: relative; z-index: 2; display: grid; gap: 16px; }
 .card { background: var(--card); border-radius: 20px; padding: 18px; box-shadow: var(--shadow); min-width: 0; }
@@ -195,7 +195,7 @@ nav .in { max-width: 640px; margin: 0 auto; height: var(--nav-h); display: grid;
 nav button.tab { background: none; border: 0; display: grid; justify-items: center; gap: 2px; font-size: .68rem; color: var(--dim); font-weight: 600; padding: 6px 0; }
 nav button.tab.on { color: var(--primary); }
 .fab { justify-self: center; width: 62px; height: 62px; border-radius: 22px; border: 0; margin-top: -30px;
-  background: linear-gradient(150deg, var(--hi), var(--h2)); color: #fff; box-shadow: 0 8px 22px var(--glow); display: grid; place-items: center; }
+  background: linear-gradient(150deg, var(--fab1, var(--hi)), var(--fab2, var(--h2))); color: #fff; box-shadow: 0 8px 22px var(--glow); display: grid; place-items: center; }
 .fab svg.i { width: 30px; height: 30px; stroke-width: 2.6; }
 .fab:active { transform: scale(.94); }
 
@@ -424,15 +424,17 @@ input[type=date] { min-height: 46px; }
     </div>
     <div class="card" id="priceSetup">
       <h2>Spritpreise in der Nähe</h2>
-      <p class="note">Aktuelle Preise aller Tankstellen in Deutschland (Markttransparenzstelle). Dafür brauchst du einen kostenlosen Schlüssel von Tankerkönig: <a href="https://onboarding.tankerkoenig.de" target="_blank" rel="noopener">onboarding.tankerkoenig.de</a> – Name und E-Mail eintragen, der Schlüssel kommt per Mail.</p>
-      <label class="flab" for="pKey">API-Schlüssel</label>
+      <p class="note">Aktuelle Preise für <b>Deutschland</b> und <b>Italien inkl. Südtirol</b>. Das Land wird automatisch am Ort erkannt.</p>
+      <p class="note">🇮🇹 Italien: funktioniert sofort, ohne Anmeldung (Preise vom Ministerium, Stand jeden Morgen).<br>
+      🇩🇪 Deutschland: braucht einen kostenlosen Schlüssel von Tankerkönig – <a href="https://onboarding.tankerkoenig.de" target="_blank" rel="noopener">onboarding.tankerkoenig.de</a>, Name und E-Mail eintragen, der Schlüssel kommt per Mail.</p>
+      <label class="flab" for="pKey">Tankerkönig-Schlüssel (nur für Deutschland)</label>
       <input class="inp" id="pKey" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
       <label class="flab">Sorte</label>
       <div class="seg" id="pType" style="grid-template-columns:repeat(3,1fr);margin:0"><button type="button" data-p="e5">Super E5</button><button type="button" data-p="e10">Super E10</button><button type="button" data-p="diesel">Diesel</button></div>
       <label class="flab">Umkreis</label>
       <div class="seg" id="pRad" style="grid-template-columns:repeat(4,1fr);margin:0"><button type="button" data-r="2">2 km</button><button type="button" data-r="5">5 km</button><button type="button" data-r="10">10 km</button><button type="button" data-r="25">25 km</button></div>
       <label class="flab" for="pPlace">Ort</label>
-      <div class="rowin"><input class="inp" id="pPlace" placeholder="PLZ oder Ort, z. B. 50667"><button class="btn sec" id="pFind" type="button">Suchen</button></div>
+      <div class="rowin"><input class="inp" id="pPlace" placeholder="PLZ oder Ort, z. B. 50667 oder Bozen"><button class="btn sec" id="pFind" type="button">Suchen</button></div>
       <button class="btn sec full" id="pGps" type="button" style="margin-top:8px">📍 Immer meinen aktuellen Standort nehmen</button>
       <p class="note" id="pLoc" style="margin:8px 0 0"></p>
       <button class="btn full" id="pSave" type="button" style="margin-top:12px">Speichern &amp; Preise laden</button>
@@ -827,14 +829,15 @@ function renderBackup() {
 /* ---------- Farben & Hell/Dunkel ---------- */
 // h: Farbverlauf oben, hi: helle Akzentfarbe, l/d: Hauptfarbe + zarter Hintergrund für hell/dunkel, bg: Seitenhintergrund hell/dunkel
 const ACCENTS = {
-  gruen:   { name: 'Grün',    h: ['#17a571', '#0c5a3f', '#083828'], hi: '#2bd08f', l: ['#0f7a52', '#e2f3ea'], d: ['#34c486', '#18352a'], bg: ['#eef3f0', '#0c120f'] },
-  petrol:  { name: 'Petrol',  h: ['#14b8a6', '#0f766e', '#042f2e'], hi: '#2dd4bf', l: ['#0f766e', '#ddf3ef'], d: ['#3dd6c3', '#123532'], bg: ['#edf4f3', '#0b1312'] },
-  blau:    { name: 'Blau',    h: ['#3b82f6', '#1d4ed8', '#172554'], hi: '#60a5fa', l: ['#1d5fd1', '#e3ecfd'], d: ['#6ea4ff', '#18284a'], bg: ['#eef2f8', '#0b0f17'] },
-  lila:    { name: 'Lila',    h: ['#a855f7', '#6d28d9', '#2e1065'], hi: '#c084fc', l: ['#7c3aed', '#efe7fd'], d: ['#b794f6', '#2a1d45'], bg: ['#f2eff8', '#100c17'] },
-  pink:    { name: 'Pink',    h: ['#ec4899', '#be185d', '#500724'], hi: '#f472b6', l: ['#be185d', '#fce7f2'], d: ['#f58bc0', '#43162d'], bg: ['#f8eff3', '#160b10'] },
-  rot:     { name: 'Rot',     h: ['#f43f5e', '#be123c', '#4c0519'], hi: '#fb7185', l: ['#c81e4a', '#fde6eb'], d: ['#ff7a95', '#44161f'], bg: ['#f8eff1', '#160b0d'] },
-  orange:  { name: 'Orange',  h: ['#fb923c', '#ea580c', '#7c2d12'], hi: '#fdba74', l: ['#c2410c', '#fdeee3'], d: ['#ff9d5c', '#42240f'], bg: ['#f8f2ed', '#15100b'] },
-  graphit: { name: 'Graphit', h: ['#64748b', '#334155', '#0f172a'], hi: '#94a3b8', l: ['#334155', '#e8ecf1'], d: ['#a5b4c8', '#222b38'], bg: ['#f0f2f5', '#0d0f13'] },
+  gruen:   { name: 'Grün',    h: ['#17a571', '#0c5a3f', '#083828'], hi: '#2bd08f', l: ['#0f7a52', '#e2f3ea'], d: ['#34c486', '#18352a'], bg: ['#eef3f0', '#141b17'] },
+  petrol:  { name: 'Petrol',  h: ['#14b8a6', '#0f766e', '#042f2e'], hi: '#2dd4bf', l: ['#0f766e', '#ddf3ef'], d: ['#3dd6c3', '#123532'], bg: ['#edf4f3', '#131c1b'] },
+  blau:    { name: 'Blau',    h: ['#3b82f6', '#1d4ed8', '#172554'], hi: '#60a5fa', l: ['#1d5fd1', '#e3ecfd'], d: ['#6ea4ff', '#18284a'], bg: ['#eef2f8', '#121824'] },
+  lila:    { name: 'Lila',    h: ['#efe2ff', '#d5b8ff', '#b28cf8'], hi: '#c9a6ff', l: ['#8b5cf6', '#f2eaff'], d: ['#c8adff', '#3a2d57'], bg: ['#faf6ff', '#221c2e'],
+             ink: '#34105f', fab: ['#a78bfa', '#7c3aed'], cardD: ['#2c2540', '#3e3456'] },
+  pink:    { name: 'Pink',    h: ['#ec4899', '#be185d', '#500724'], hi: '#f472b6', l: ['#be185d', '#fce7f2'], d: ['#f58bc0', '#43162d'], bg: ['#f8eff3', '#20141a'] },
+  rot:     { name: 'Rot',     h: ['#f43f5e', '#be123c', '#4c0519'], hi: '#fb7185', l: ['#c81e4a', '#fde6eb'], d: ['#ff7a95', '#44161f'], bg: ['#f8eff1', '#201416'] },
+  orange:  { name: 'Orange',  h: ['#fb923c', '#ea580c', '#7c2d12'], hi: '#fdba74', l: ['#c2410c', '#fdeee3'], d: ['#ff9d5c', '#42240f'], bg: ['#f8f2ed', '#1f1913'] },
+  graphit: { name: 'Graphit', h: ['#64748b', '#334155', '#0f172a'], hi: '#94a3b8', l: ['#334155', '#e8ecf1'], d: ['#a5b4c8', '#222b38'], bg: ['#f0f2f5', '#16191f'] },
 };
 const darkMQ = matchMedia('(prefers-color-scheme: dark)');
 function applyTheme() {
@@ -843,11 +846,16 @@ function applyTheme() {
   const dark = prefs.theme === 'dark' || (prefs.theme === 'auto' && darkMQ.matches);
   const [primary, soft] = dark ? a.d : a.l;
   const v = { '--h1': a.h[0], '--h2': a.h[1], '--h3': a.h[2], '--hi': a.hi, '--primary': primary, '--soft': soft,
-    '--bg': dark ? a.bg[1] : a.bg[0], '--glow': a.h[1] + '73', '--on-dark': a.h[2] };
+    '--bg': dark ? a.bg[1] : a.bg[0], '--glow': (a.fab ? a.fab[1] : a.h[1]) + '73', '--on-dark': a.ink || a.h[2],
+    // helle Farbschemas bekommen dunkle Schrift im Kopfbereich
+    '--on-h': a.ink || '#fff', '--pill-bg': a.ink ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.16)',
+    '--pill-line': a.ink ? 'rgba(52,16,95,.18)' : 'rgba(255,255,255,.25)',
+    '--fab1': a.fab ? a.fab[0] : a.hi, '--fab2': a.fab ? a.fab[1] : a.h[1] };
+  if (dark && a.cardD) { v['--card'] = a.cardD[0]; v['--line'] = a.cardD[1]; } else { root.style.removeProperty('--card'); root.style.removeProperty('--line'); }
   for (const k in v) root.style.setProperty(k, v[k]);
   document.querySelector('meta[name=theme-color]')?.setAttribute('content', a.h[1]);
   $('swatches').innerHTML = Object.entries(ACCENTS).map(([id, x]) =>
-    `<button type="button" class="sw${id === prefs.accent ? ' on' : ''}" data-a="${id}" aria-label="${x.name}"><i style="background:linear-gradient(150deg,${x.h[0]},${x.h[1]})">${id === prefs.accent ? '✓' : ''}</i>${x.name}</button>`).join('');
+    `<button type="button" class="sw${id === prefs.accent ? ' on' : ''}" data-a="${id}" aria-label="${x.name}"><i style="background:linear-gradient(150deg,${x.h[x.ink ? 1 : 0]},${x.h[x.ink ? 2 : 1]});color:${x.ink || '#fff'}">${id === prefs.accent ? '✓' : ''}</i>${x.name}</button>`).join('');
   document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.t === prefs.theme));
 }
 darkMQ.addEventListener?.('change', applyTheme);
@@ -1217,20 +1225,50 @@ function getPosition() {
       () => rej(new Error('Standort nicht freigegeben')), { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
   });
 }
+// Italien (inkl. Südtirol): Tagespreise des Ministeriums (MIMIT), täglich per GitHub Action aufbereitet
+const IT_DATA = 'https://raw.githubusercontent.com/LordGrim96/karte/carburanti-data/it/';
+const inItaly = p => p && p.lat > 35.4 && p.lat < 47.1 && p.lng > 6.6 && p.lng < 18.6;
+function distKm(a, b) {
+  const R = 6371, r = x => x * Math.PI / 180, dLa = r(b.lat - a.lat), dLo = r(b.lng - a.lng);
+  const h = Math.sin(dLa / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLo / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+async function loadItaly(pos) {
+  const rad = prefs.pRad, dLat = rad / 111, dLng = rad / (111 * Math.cos(pos.lat * Math.PI / 180));
+  const keys = new Set();
+  for (const la of [pos.lat - dLat, pos.lat + dLat]) for (const lo of [pos.lng - dLng, pos.lng + dLng]) keys.add(`${Math.floor(la)}_${Math.floor(lo)}`);
+  const tiles = await Promise.all([...keys].map(k => fetch(IT_DATA + k + '.json', { cache: 'no-cache' })
+    .then(r => r.ok ? r.json() : r.status === 404 ? [] : Promise.reject(new Error('Preise für Italien nicht erreichbar')))));
+  const fuel = prefs.pType === 'diesel' ? 'd' : 'b';
+  const stations = tiles.flat().map(x => {
+    const p = x.p && x.p[fuel]; if (!p) return null;
+    const price = p[0] || p[1], dist = distKm(pos, x);
+    return dist <= rad && price ? { name: x.br || x.n, street: x.a, place: x.c, dist, price, self: !!p[0], when: p[2], lat: x.lat, lng: x.lng } : null;
+  }).filter(Boolean).sort((a, b) => a.price - b.price || a.dist - b.dist).slice(0, 5);
+  let updated = null;
+  try { updated = (await (await fetch(IT_DATA + 'meta.json', { cache: 'no-cache' })).json()).updated; } catch {}
+  return { stations, updated };
+}
 async function loadPrices(force = false) {
-  if (!prefs.pKey || !prefs.pLoc || priceBusy) return renderPrices();
+  if (!prefs.pLoc || priceBusy) return renderPrices();
   if (!force && priceState && priceState.at && Date.now() - priceState.at < 10 * 60e3 && priceState.type === prefs.pType && priceState.rad === prefs.pRad) return renderPrices();
   priceBusy = true; renderPrices();
   try {
     let pos = prefs.pLoc;
     if (pos.gps) pos = await getPosition();
+    if (inItaly(pos)) {
+      priceState = { at: Date.now(), type: prefs.pType, rad: prefs.pRad, country: 'it', ...(await loadItaly(pos)), error: null };
+      throw null;  // fertig – überspringt die deutsche Abfrage
+    }
+    if (!prefs.pKey) throw new Error('Für Deutschland wird ein Tankerkönig-Schlüssel gebraucht (unter „Mehr“)');
     const u = `https://creativecommons.tankerkoenig.de/json/list.php?lat=${pos.lat.toFixed(5)}&lng=${pos.lng.toFixed(5)}&rad=${prefs.pRad}&sort=price&type=${prefs.pType}&apikey=${encodeURIComponent(prefs.pKey)}`;
     const r = await fetch(u), j = await r.json();
     if (!j.ok) throw new Error(j.message || 'Abfrage fehlgeschlagen');
     const st = (j.stations || []).filter(x => x.isOpen && x.price > 0).slice(0, 5)
       .map(x => ({ name: x.brand || x.name, street: [x.street, x.houseNumber].filter(Boolean).join(' '), place: x.place, dist: x.dist, price: x.price, lat: x.lat, lng: x.lng }));
-    priceState = { at: Date.now(), type: prefs.pType, rad: prefs.pRad, stations: st, error: null };
+    priceState = { at: Date.now(), type: prefs.pType, rad: prefs.pRad, country: 'de', stations: st, error: null };
   } catch (e) {
+    if (e === null) { write(PRICE_CACHE, priceState); priceBusy = false; return renderPrices(); }
     priceState = { ...(priceState || {}), error: /fetch|network|load/i.test(e.message) ? 'Keine Verbindung zu den Spritpreisen' : e.message };
   }
   write(PRICE_CACHE, priceState);
@@ -1238,7 +1276,7 @@ async function loadPrices(force = false) {
 }
 function renderPrices() {
   const box = $('priceNow');
-  if (!prefs.pKey || !prefs.pLoc) {
+  if (!prefs.pLoc) {
     box.innerHTML = `<h2>⛽ Wo ist es gerade günstig?</h2><p class="note" style="margin:0 0 12px">Zeig dir die aktuell günstigsten Tankstellen in deiner Nähe – live aus dem Internet.</p>
       <button class="btn sec full" id="pSetupBtn">Spritpreise einrichten</button>`;
     $('pSetupBtn').onclick = () => { show('data'); setTimeout(() => $('priceSetup').scrollIntoView({ behavior: 'smooth' }), 50); };
@@ -1253,16 +1291,18 @@ function renderPrices() {
       : d <= -0.5 ? `📈 Gerade <b>${num(-d, 0)} ct/l teurer</b> als bei deinem letzten Tanken – wenn möglich noch warten.` : `Etwa gleich teuer wie dein letztes Tanken.`}</div>`;
   }
   const hour = new Date().getHours();
-  const tip = hour >= 6 && hour < 12 ? `<div class="hint" style="background:var(--amber-soft)">⏰ Morgens ist Sprit meist am teuersten. Abends zwischen 18 und 22 Uhr ist es oft deutlich günstiger.</div>` : '';
+  const tip = (s && s.country === 'it') ? '' : hour >= 6 && hour < 12 ? `<div class="hint" style="background:var(--amber-soft)">⏰ Morgens ist Sprit meist am teuersten. Abends zwischen 18 und 22 Uhr ist es oft deutlich günstiger.</div>` : '';
   const where = prefs.pLoc.gps ? 'in deiner Nähe' : `bei ${esc(prefs.pLoc.label || 'deinem Ort')}`;
-  box.innerHTML = `<h2>⛽ Günstig tanken <small>${TYPES[prefs.pType]} · ${where}</small></h2>${hint}${tip}
+  const it = s && s.country === 'it';
+  const typeName = it ? (prefs.pType === 'diesel' ? 'Diesel (Gasolio)' : 'Benzin (Benzina)') : TYPES[prefs.pType];
+  box.innerHTML = `<h2>⛽ Günstig tanken <small>${it ? '🇮🇹 ' : ''}${typeName} · ${where}</small></h2>${hint}${tip}
     ${list.length ? list.map((x, i) => `<a class="st${i ? '' : ' best'}" href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}" target="_blank" rel="noopener">
       <div class="n">${esc(x.name)}${i ? '' : '<span class="badge">am günstigsten</span>'}</div><div class="p">${priceFmt(x.price)}</div>
-      <div class="a">${esc(x.street)}, ${esc(x.place)} · ${num(x.dist, 1)} km</div></a>`).join('')
+      <div class="a">${esc(x.street)}, ${esc(x.place)} · ${num(x.dist, 1)} km${it ? (x.self ? ' · Self' : ' · bedient') + (x.when ? ' · ' + dmy(x.when.slice(0, 10)).slice(0, -5) : '') : ''}</div></a>`).join('')
       : `<p class="note" style="margin:0">${priceBusy ? 'Preise werden geladen …' : s && s.error ? '⚠️ ' + esc(s.error) : 'Keine geöffnete Tankstelle im Umkreis gefunden.'}</p>`}
     <div class="small"><span>${s && s.at ? 'Stand ' + new Date(s.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + (s.error && list.length ? ' · ⚠️ ' + esc(s.error) : '') : ''}${priceBusy ? ' · lädt …' : ''}</span>
       <button class="linkbtn" id="pRefresh">↻ Aktualisieren</button></div>
-    <div class="small" style="margin-top:4px"><span>Daten: MTS-K via Tankerkönig (CC BY 4.0) · Antippen öffnet die Route</span></div>`;
+    <div class="small" style="margin-top:4px"><span>${it ? `Daten: MIMIT Osservaprezzi (IODL 2.0)${s.updated ? ', Stand ' + dmy(s.updated.slice(0, 10)) : ''}` : 'Daten: MTS-K via Tankerkönig (CC BY 4.0)'} · Antippen öffnet die Route</span></div>`;
   $('pRefresh').onclick = () => loadPrices(true);
 }
 // Einstellungen
@@ -1280,7 +1320,7 @@ $('pGps').onclick = async () => {
 $('pFind').onclick = async () => {
   const q = $('pPlace').value.trim(); if (!q) return $('pPlace').focus();
   try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de&accept-language=de&q=${encodeURIComponent(q)}`);
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de,it&accept-language=de&q=${encodeURIComponent(q)}`);
     const j = await r.json();
     if (!j.length) return toast('Ort nicht gefunden');
     prefs.pLoc = { lat: +j[0].lat, lng: +j[0].lon, label: j[0].display_name.split(',').slice(0, 2).join(',').trim() };
@@ -1289,8 +1329,8 @@ $('pFind').onclick = async () => {
 };
 $('pSave').onclick = () => {
   prefs.pKey = $('pKey').value.trim(); savePrefs();
-  if (!prefs.pKey) return toast('Bitte den API-Schlüssel eintragen');
   if (!prefs.pLoc) return toast('Bitte einen Ort suchen oder den Standort freigeben');
+  if (!prefs.pKey && !prefs.pLoc.gps && !inItaly(prefs.pLoc)) return toast('Für Deutschland bitte den Tankerkönig-Schlüssel eintragen');
   priceState = null; show('home'); loadPrices(true);
 };
 

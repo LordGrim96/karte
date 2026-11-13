@@ -242,6 +242,16 @@ body.sheet-open .sheet { transform: none; visibility: visible; transition-delay:
 input[type=date] { min-height: 46px; }
 [hidden] { display: none !important; }
 
+/* Eigener Dialog statt confirm()/prompt() */
+.dlg { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px; background: rgba(5, 15, 10, .5); }
+.dlg .box { background: var(--card); border-radius: 22px; padding: 20px; width: min(360px, 100%); box-shadow: 0 20px 50px rgba(0,0,0,.3); animation: pop .18s ease; }
+@keyframes pop { from { transform: scale(.94); opacity: 0; } }
+.dlg p { margin: 0 0 14px; font-weight: 600; }
+.dlg input { width: 100%; font: inherit; padding: 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--bg); color: var(--text); margin-bottom: 14px; }
+.dlg input:focus { outline: none; border-color: var(--primary); }
+.dlg .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dlg .btn.danger { background: var(--red); color: #fff; }
+
 /* Jahresbericht (Druck / PDF) */
 #report { display: none; }
 @media print {
@@ -413,6 +423,8 @@ input[type=date] { min-height: 46px; }
   </div>
 </form>
 <div class="toast" id="toast"></div>
+<div class="dlg" id="dlg" hidden><div class="box"><p id="dlgMsg"></p><input id="dlgInput" hidden>
+  <div class="btns"><button type="button" class="btn sec" id="dlgNo">Abbrechen</button><button type="button" class="btn" id="dlgYes">OK</button></div></div></div>
 <div id="report"></div>
 
 <script>
@@ -458,6 +470,21 @@ function toast(msg, ms = 2400) { const t = $('toast'); t.textContent = msg; t.cl
 const byDate = (a, b) => a.date.localeCompare(b.date) || (a.created - b.created);
 const fuelOf = car => entries.filter(e => e.type === 'fuel' && e.car === car).sort(byDate);
 const curCar = () => cars.find(c => c.id === prefs.car) || cars[0];
+
+// Rückfrage im eigenen Fenster: ask('Text') → true/false, ask('Text', {input: 'Vorgabe'}) → Text oder null
+function ask(msg, { input = null, ok = 'OK', danger = false } = {}) {
+  return new Promise(res => {
+    $('dlgMsg').textContent = msg;
+    $('dlgInput').hidden = input == null; $('dlgInput').value = input ?? '';
+    $('dlgYes').textContent = ok; $('dlgYes').classList.toggle('danger', danger);
+    $('dlg').hidden = false;
+    if (input != null) setTimeout(() => $('dlgInput').focus(), 50);
+    const done = v => { $('dlg').hidden = true; $('dlgYes').onclick = $('dlgNo').onclick = $('dlgInput').onkeydown = null; res(v); };
+    $('dlgYes').onclick = () => done(input == null ? true : $('dlgInput').value.trim() || null);
+    $('dlgNo').onclick = () => done(input == null ? false : null);
+    $('dlgInput').onkeydown = e => { if (e.key === 'Enter') $('dlgYes').click(); };
+  });
+}
 
 /* ---------- Berechnungen ---------- */
 // Gefahrene km: direkt eingegeben oder Differenz zum vorherigen Tachostand desselben Fahrzeugs
@@ -791,8 +818,8 @@ $('form').addEventListener('submit', ev => {
   closeSheet(); render();
   toast(old ? 'Eintrag geändert ✓' : 'Gespeichert ✓');
 });
-$('delBtn').onclick = () => {
-  if (!confirm('Diesen Eintrag wirklich löschen?')) return;
+$('delBtn').onclick = async () => {
+  if (!await ask('Diesen Eintrag wirklich löschen?', { ok: 'Löschen', danger: true })) return;
   entries = entries.filter(x => x.id !== editId); save(); closeSheet(); render(); toast('Gelöscht');
 };
 
@@ -877,23 +904,23 @@ $('scanFile').onchange = async ev => {
 };
 
 /* ---------- Fahrzeuge ---------- */
-$('addCar').onclick = () => {
-  const name = (prompt('Name des Fahrzeugs (z. B. „Golf“ oder „Wohnmobil“):') || '').trim();
+$('addCar').onclick = async () => {
+  const name = await ask('Name des Fahrzeugs (z. B. „Golf“ oder „Wohnmobil“):', { input: '', ok: 'Hinzufügen' });
   if (!name) return;
   const c = { id: uid(), name }; cars.push(c); prefs.car = c.id; savePrefs(); save(); selMonth = null; render();
   toast(`${name} hinzugefügt`);
 };
-$('cars').onclick = e => {
+$('cars').onclick = async e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.sel) { prefs.car = b.dataset.sel; savePrefs(); render(); return; }
   if (b.dataset.ren) {
     const c = cars.find(x => x.id === b.dataset.ren);
-    const name = (prompt('Neuer Name:', c.name) || '').trim(); if (!name) return;
+    const name = await ask('Neuer Name:', { input: c.name, ok: 'Speichern' }); if (!name) return;
     c.name = name; save(); render(); return;
   }
   if (b.dataset.del) {
     const c = cars.find(x => x.id === b.dataset.del), n = entries.filter(x => x.car === c.id).length;
-    if (!confirm(`„${c.name}“ ${n ? `und alle ${n} Einträge ` : ''}wirklich löschen?`)) return;
+    if (!await ask(`„${c.name}“ ${n ? `und alle ${n} Einträge ` : ''}wirklich löschen?`, { ok: 'Löschen', danger: true })) return;
     cars = cars.filter(x => x.id !== c.id); entries = entries.filter(x => x.car !== c.id);
     if (prefs.car === c.id) prefs.car = cars[0].id;
     savePrefs(); save(); render(); toast('Fahrzeug gelöscht');

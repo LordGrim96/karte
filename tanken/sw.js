@@ -1,5 +1,5 @@
 // Offline-Modus für das Tankbuch. Seiten bevorzugt aus dem Netz (Updates), sonst aus dem Speicher.
-const CACHE = 'tankbuch-v7';
+const CACHE = 'tankbuch-v8';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

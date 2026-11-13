@@ -29,10 +29,18 @@ jobs:
           persist-credentials: false   # Token nicht im Arbeitsordner liegen lassen
 
       - name: Preise herunterladen
+        env:
+          PROXY: ${{ vars.CARBURANTI_PROXY }}   # Cloudflare-Zwischendienst (siehe cloudflare/ANLEITUNG.md)
         run: |
           # Der Server des Ministeriums ist manchmal langsam oder antwortet nur über eine
           # der Adressen/IP-Versionen – darum mehrere Versuche.
           dl() {
+            if [ -n "$PROXY" ]; then
+              echo "Versuche Cloudflare-Zwischendienst für $1"
+              if curl -fsSL --retry 3 --retry-delay 10 --retry-all-errors --max-time 300 -o "$1" "$PROXY/$1"; then
+                echo "OK: Zwischendienst ($(wc -c < "$1") Bytes)"; return 0
+              fi
+            fi
             for host in www.mimit.gov.it mimit.gov.it www.mise.gov.it; do
               for ipv in -4 -6; do
                 echo "Versuche $host ($ipv) für $1"

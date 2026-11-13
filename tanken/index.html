@@ -205,7 +205,7 @@ nav button.tab.on { color: var(--primary); }
   background: var(--card); border-radius: 26px 26px 0 0; padding: 10px 18px calc(18px + env(safe-area-inset-bottom));
   transform: translateY(105%); transition: transform .32s cubic-bezier(.2,.8,.2,1), visibility 0s linear .32s; visibility: hidden; }
 body.sheet-open .scrim { opacity: 1; pointer-events: auto; }
-body.sheet-open .sheet { transform: none; visibility: visible; transition-delay: 0s; }
+.sheet.open { transform: none; visibility: visible; transition-delay: 0s; }
 .grip { width: 42px; height: 5px; border-radius: 9px; background: var(--line); margin: 0 auto 12px; }
 .sheet h3 { margin: 0 0 14px; font-size: 1.15rem; display: flex; justify-content: space-between; align-items: center; }
 .x { background: var(--soft); border: 0; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--dim); }
@@ -248,6 +248,44 @@ body.sheet-open .sheet { transform: none; visibility: visible; transition-delay:
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 input[type=date] { min-height: 46px; }
 [hidden] { display: none !important; }
+
+/* Spritpreise */
+.st { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 11px 2px; border-bottom: 1px solid var(--line); text-decoration: none; color: inherit; }
+.st:last-of-type { border-bottom: 0; }
+.st .n { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.st .a { font-size: .78rem; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.st .p { grid-row: span 2; font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+.st .p sup { font-size: .6em; }
+.st.best .p { color: var(--primary); }
+.st .badge { display: inline-block; font-size: .66rem; font-weight: 700; background: var(--soft); color: var(--primary); border-radius: 99px; padding: 1px 7px; margin-left: 6px; vertical-align: 2px; }
+.hint { font-size: .8rem; border-radius: 12px; padding: 9px 12px; background: var(--soft); margin-bottom: 4px; }
+.small { font-size: .72rem; color: var(--dim); margin-top: 10px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.linkbtn { border: 0; background: none; color: var(--primary); font-weight: 650; padding: 0; font-size: inherit; }
+.inp { width: 100%; font: inherit; padding: 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card); color: var(--text); }
+.inp:focus { outline: none; border-color: var(--primary); }
+.flab { display: block; font-size: .8rem; color: var(--dim); margin: 12px 0 5px; font-weight: 600; }
+.flab:first-child { margin-top: 0; }
+.rowin { display: flex; gap: 8px; }
+.rowin .inp { flex: 1; min-width: 0; }
+.rowin .btn { padding: 10px 14px; flex: none; }
+
+/* Termine */
+.due { display: flex; align-items: center; gap: 12px; padding: 10px 2px; border: 0; border-bottom: 1px solid var(--line); background: none; width: 100%; text-align: left; }
+.due:last-child { border-bottom: 0; }
+.due .em { width: 40px; height: 40px; border-radius: 12px; background: var(--soft); display: grid; place-items: center; font-size: 1.2rem; flex: none; }
+.due .mid { flex: 1; min-width: 0; }
+.due .t { font-weight: 650; }
+.due .s { font-size: .78rem; color: var(--dim); }
+.tag { font-size: .72rem; font-weight: 700; border-radius: 99px; padding: 3px 9px; white-space: nowrap; background: var(--soft); color: var(--primary); }
+.tag.warn { background: var(--amber-soft); color: var(--amber); }
+.tag.bad { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
+.banner.due-b { background: var(--amber-soft); }
+.banner.due-b.bad { background: color-mix(in srgb, var(--red) 13%, var(--card)); }
+.banner.due-b button { background: var(--amber); }
+.banner.due-b.bad button { background: var(--red); }
+.tpl { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.tpl button { border: 1.5px solid var(--line); background: none; border-radius: 999px; padding: 6px 11px; font-size: .82rem; font-weight: 600; color: var(--dim); }
+.tpl button.on { border-color: var(--primary); background: var(--soft); color: var(--primary); }
 
 /* Aussehen */
 .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
@@ -330,6 +368,12 @@ input[type=date] { min-height: 46px; }
 <main>
   <!-- Übersicht -->
   <div class="view on" id="v-home">
+    <div class="banner due-b" id="dueBanner" hidden>
+      <div class="ic" id="dueIc">🔔</div>
+      <div class="tx" id="dueText"></div>
+      <div class="act"><button id="dueOpen">Ansehen</button></div>
+    </div>
+    <div class="card" id="priceNow"></div>
     <div class="banner" id="backupBanner" hidden>
       <div class="ic">💾</div>
       <div class="tx" id="backupText"></div>
@@ -342,6 +386,7 @@ input[type=date] { min-height: 46px; }
       <div class="months" id="monthLbl"></div>
       <div class="tip" id="tip"></div>
     </div>
+    <div class="card" id="dueCard" hidden><h2>Nächste Termine <button class="linkbtn" id="dueAll">Alle</button></h2><div id="dueList"></div></div>
     <div class="kpis" id="kpis"></div>
     <div class="card price" id="priceCard" hidden>
       <h2>Spritpreis-Verlauf <small>€ pro Liter</small></h2>
@@ -372,6 +417,26 @@ input[type=date] { min-height: 46px; }
 
   <!-- Daten -->
   <div class="view" id="v-data">
+    <div class="card" id="termCard">
+      <h2>Termine &amp; Erinnerungen <small id="termCar"></small></h2>
+      <div id="termList"></div>
+      <button class="btn sec full" id="addTerm" style="margin-top:10px">+ Termin hinzufügen</button>
+    </div>
+    <div class="card" id="priceSetup">
+      <h2>Spritpreise in der Nähe</h2>
+      <p class="note">Aktuelle Preise aller Tankstellen in Deutschland (Markttransparenzstelle). Dafür brauchst du einen kostenlosen Schlüssel von Tankerkönig: <a href="https://onboarding.tankerkoenig.de" target="_blank" rel="noopener">onboarding.tankerkoenig.de</a> – Name und E-Mail eintragen, der Schlüssel kommt per Mail.</p>
+      <label class="flab" for="pKey">API-Schlüssel</label>
+      <input class="inp" id="pKey" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+      <label class="flab">Sorte</label>
+      <div class="seg" id="pType" style="grid-template-columns:repeat(3,1fr);margin:0"><button type="button" data-p="e5">Super E5</button><button type="button" data-p="e10">Super E10</button><button type="button" data-p="diesel">Diesel</button></div>
+      <label class="flab">Umkreis</label>
+      <div class="seg" id="pRad" style="grid-template-columns:repeat(4,1fr);margin:0"><button type="button" data-r="2">2 km</button><button type="button" data-r="5">5 km</button><button type="button" data-r="10">10 km</button><button type="button" data-r="25">25 km</button></div>
+      <label class="flab" for="pPlace">Ort</label>
+      <div class="rowin"><input class="inp" id="pPlace" placeholder="PLZ oder Ort, z. B. 50667"><button class="btn sec" id="pFind" type="button">Suchen</button></div>
+      <button class="btn sec full" id="pGps" type="button" style="margin-top:8px">📍 Immer meinen aktuellen Standort nehmen</button>
+      <p class="note" id="pLoc" style="margin:8px 0 0"></p>
+      <button class="btn full" id="pSave" type="button" style="margin-top:12px">Speichern &amp; Preise laden</button>
+    </div>
     <div class="card">
       <h2>Aussehen</h2>
       <div class="swatches" id="swatches"></div>
@@ -442,6 +507,31 @@ input[type=date] { min-height: 46px; }
     <button type="button" class="btn del full" id="delBtn" hidden>Eintrag löschen</button>
   </div>
 </form>
+<form class="sheet" id="tform" autocomplete="off" novalidate>
+  <div class="grip"></div>
+  <h3><span id="tTitle">Termin</span><button type="button" class="x" id="tClose" aria-label="Schließen"><svg class="i"><use href="#i-x"/></svg></button></h3>
+  <div class="tpl" id="tTpl"></div>
+  <label class="flab" for="t-name">Bezeichnung</label>
+  <input class="inp" id="t-name" placeholder="z. B. TÜV / HU">
+  <div class="two">
+    <div><label class="flab" for="t-date">Fällig am</label><input class="inp" id="t-date" type="date"></div>
+    <div><label class="flab" for="t-km">oder bei km-Stand</label><input class="inp" id="t-km" inputmode="numeric" placeholder="optional"></div>
+  </div>
+  <div class="two">
+    <div><label class="flab" for="t-every">Wiederholen alle</label><select class="inp" id="t-every">
+      <option value="">nicht wiederholen</option><option value="3">3 Monate</option><option value="6">6 Monate</option><option value="12">12 Monate</option><option value="24">24 Monate</option><option value="36">36 Monate</option></select></div>
+    <div><label class="flab" for="t-everykm">bzw. alle … km</label><input class="inp" id="t-everykm" inputmode="numeric" placeholder="optional"></div>
+  </div>
+  <label class="flab" for="t-odo">Aktueller Kilometerstand</label>
+  <input class="inp" id="t-odo" inputmode="numeric" placeholder="damit km-Termine berechnet werden können">
+  <p class="note" id="t-odoHint" style="margin:5px 0 0"></p>
+  <div class="stack" style="margin-top:14px">
+    <button type="submit" class="btn full" id="tSave">Speichern</button>
+    <button type="button" class="btn sec full" id="tDone" hidden>✓ Erledigt</button>
+    <button type="button" class="btn sec full" id="tCal">📅 In Kalender eintragen</button>
+    <button type="button" class="btn del full" id="tDel" hidden>Termin löschen</button>
+  </div>
+</form>
 <div class="toast" id="toast"></div>
 <div class="dlg" id="dlg" hidden><div class="box"><p id="dlgMsg"></p><input id="dlgInput" hidden>
   <div class="btns"><button type="button" class="btn sec" id="dlgNo">Abbrechen</button><button type="button" class="btn" id="dlgYes">OK</button></div></div></div>
@@ -474,7 +564,7 @@ let entries = read(KEY, []);
 if (!Array.isArray(entries)) entries = [];
 let cars = read(CARS, null);
 if (!Array.isArray(cars) || !cars.length) cars = [{ id: 'default', name: 'Mein Auto' }];
-let prefs = Object.assign({ accent: 'gruen', theme: 'auto', mode: 'km', car: 'default', remind: true, lastBackup: null, snooze: null }, read(PREFS, {}));
+let prefs = Object.assign({ pKey: '', pType: 'e10', pRad: 5, pLoc: null, accent: 'gruen', theme: 'auto', mode: 'km', car: 'default', remind: true, lastBackup: null, snooze: null }, read(PREFS, {}));
 // alte Einträge (vor Fahrzeugen/Kosten) ergänzen
 entries.forEach(e => { e.type ||= 'fuel'; e.car ||= cars[0].id; });
 if (!cars.some(c => c.id === prefs.car)) prefs.car = cars[0].id;
@@ -617,7 +707,7 @@ function render() {
 
   renderPrice(s, p);
   renderOther(s, p);
-  renderList(); renderCompare(ys); renderCars(); renderBackup();
+  renderList(); renderCompare(ys); renderCars(); renderBackup(); renderTerms(); renderPrices();
 }
 
 function showTip(s, p) {
@@ -834,9 +924,9 @@ function openSheet(e) {
   $('formTitle').textContent = e ? 'Eintrag bearbeiten' : 'Eintragen';
   $('saveBtn').textContent = e ? 'Änderung speichern' : 'Speichern';
   $('delBtn').hidden = !e;
-  document.body.classList.add('sheet-open');
+  document.body.classList.add('sheet-open'); $('form').classList.add('open');
 }
-function closeSheet() { document.body.classList.remove('sheet-open'); document.activeElement?.blur(); }
+function closeSheet() { document.body.classList.remove('sheet-open'); document.querySelectorAll('.sheet').forEach(x => x.classList.remove('open')); document.activeElement?.blur(); }
 $('fab').onclick = () => openSheet();
 $('close').onclick = $('scrim').onclick = closeSheet;
 $('kind').onclick = e => { const b = e.target.closest('button'); if (b) setKind(b.dataset.k); };
@@ -953,6 +1043,257 @@ $('scanFile').onchange = async ev => {
   }
 };
 
+/* ---------- Termine & Erinnerungen ---------- */
+const TERMS = 'tankbuch-termine';
+const TPL = [ // Name, Symbol, Monate, km, Kostenkategorie
+  ['TÜV / HU', '🔍', 24, null, 'werkstatt'], ['Inspektion', '🧰', 12, 20000, 'werkstatt'], ['Ölwechsel', '🛢️', 12, 15000, 'werkstatt'],
+  ['Reifenwechsel', '🛞', 6, null, 'reifen'], ['Versicherung', '🛡️', 12, null, 'versicherung'], ['Kfz-Steuer', '🏛️', 12, null, 'steuer'],
+  ['Bremsen', '🛑', null, 40000, 'werkstatt'], ['Zahnriemen', '⚙️', null, 120000, 'werkstatt'], ['Eigener Termin', '📌', null, null, 'sonst']];
+let terms = read(TERMS, []); if (!Array.isArray(terms)) terms = [];
+let termEdit = null, termTpl = 0;
+const saveTerms = () => write(TERMS, terms) || toast('Speichern nicht möglich');
+const addMonths = (d, m) => { const x = new Date(d + 'T00:00'); x.setMonth(x.getMonth() + m); return iso(x); };
+
+// Kilometerstand schätzen: letzter bekannter Tachostand + seitdem gefahrene km
+function currentOdo(carId) {
+  const car = cars.find(c => c.id === carId) || {};
+  let base = car.odo ? { odo: car.odo.value, date: car.odo.date, created: car.odo.at || 0 } : null;
+  for (const e of fuelOf(carId)) if (e.odo != null && (!base || e.date > base.date || (e.date === base.date && e.created > base.created))) base = { odo: e.odo, date: e.date, created: e.created };
+  if (!base) return null;
+  let km = base.odo;
+  for (const e of fuelOf(carId)) if (e.odo == null && e.km > 0 && (e.date > base.date || (e.date === base.date && e.created > base.created))) km += e.km;
+  return Math.round(km);
+}
+// Status eines Termins: wie dringend?
+function termState(t) {
+  const out = { level: 0, text: '', sort: Infinity };
+  const parts = [];
+  if (t.due) {
+    const days = Math.round((new Date(t.due + 'T00:00') - new Date(today() + 'T00:00')) / 864e5);
+    out.sort = Math.min(out.sort, days);
+    if (days < 0) { out.level = 2; parts.push(`seit ${-days} ${-days === 1 ? 'Tag' : 'Tagen'} fällig`); }
+    else if (days === 0) { out.level = 2; parts.push('heute fällig'); }
+    else { if (days <= 30) out.level = Math.max(out.level, 1); parts.push(days < 60 ? `in ${days} Tagen` : `am ${dmy(t.due)}`); }
+  }
+  if (t.dueKm) {
+    const odo = currentOdo(t.car);
+    if (odo != null) {
+      const left = t.dueKm - odo;
+      out.sort = Math.min(out.sort, left / 40);  // grob: 40 km pro Tag
+      if (left <= 0) { out.level = 2; parts.push(`${num(-left)} km überfällig`); }
+      else { if (left <= 1000) out.level = Math.max(out.level, 1); parts.push(`noch ${num(left)} km`); }
+    } else parts.push(`bei ${num(t.dueKm)} km`);
+  }
+  out.text = parts.join(' · ') || 'ohne Datum';
+  return out;
+}
+const termIcon = t => (TPL.find(x => x[0] === t.title) || TPL[TPL.length - 1])[1];
+function termRow(t) {
+  const st = termState(t);
+  const tag = st.level === 2 ? '<span class="tag bad">Fällig</span>' : st.level === 1 ? '<span class="tag warn">Bald</span>' : '<span class="tag">OK</span>';
+  const rep = [t.everyMonths ? `alle ${t.everyMonths} Monate` : '', t.everyKm ? `alle ${num(t.everyKm)} km` : ''].filter(Boolean).join(' / ');
+  return `<button class="due" data-t="${t.id}"><div class="em">${termIcon(t)}</div><div class="mid"><div class="t">${esc(t.title)}</div>
+    <div class="s">${st.text}${rep ? ' · ↻ ' + rep : ''}</div></div>${tag}</button>`;
+}
+function renderTerms() {
+  const mine = terms.filter(t => t.car === prefs.car).map(t => [t, termState(t)]).sort((a, b) => b[1].level - a[1].level || a[1].sort - b[1].sort);
+  $('termCar').textContent = cars.length > 1 ? curCar().name : '';
+  $('termList').innerHTML = mine.length ? mine.map(([t]) => termRow(t)).join('')
+    : `<p class="note" style="margin:0">Lass dich an TÜV, Ölwechsel, Reifenwechsel oder Versicherung erinnern – nach Datum oder Kilometerstand.</p>`;
+  $('dueCard').hidden = !mine.length;
+  $('dueList').innerHTML = mine.slice(0, 3).map(([t]) => termRow(t)).join('');
+  const urgent = mine.filter(([, st]) => st.level > 0);
+  $('dueBanner').hidden = !urgent.length;
+  if (urgent.length) {
+    const [t, st] = urgent[0], bad = st.level === 2;
+    $('dueBanner').classList.toggle('bad', bad);
+    $('dueIc').textContent = bad ? '⚠️' : '🔔';
+    $('dueText').innerHTML = `<b>${esc(t.title)} ${bad ? 'ist fällig' : 'steht bald an'}</b>${st.text}${urgent.length > 1 ? ` · und ${urgent.length - 1} weitere` : ''}`;
+  }
+}
+function renderTpl() {
+  $('tTpl').innerHTML = TPL.map((x, i) => `<button type="button" data-i="${i}" class="${i === termTpl ? 'on' : ''}">${x[1]} ${x[0]}</button>`).join('');
+}
+function odoHint() {
+  const o = currentOdo(prefs.car);
+  $('t-odoHint').textContent = o != null ? `Geschätzt aus deinen Einträgen: ${num(o)} km` : 'Noch kein Kilometerstand bekannt.';
+}
+function openTerm(t) {
+  termEdit = t ? t.id : null;
+  $('tform').reset();
+  termTpl = t ? Math.max(0, TPL.findIndex(x => x[0] === t.title)) : 0;
+  if (t && TPL.findIndex(x => x[0] === t.title) < 0) termTpl = TPL.length - 1;
+  renderTpl();
+  const f = t || { title: TPL[0][0], due: addMonths(today(), TPL[0][2]), everyMonths: TPL[0][2] };
+  $('t-name').value = f.title; $('t-date').value = f.due || ''; $('t-km').value = f.dueKm || '';
+  $('t-every').value = f.everyMonths || ''; $('t-everykm').value = f.everyKm || '';
+  const o = currentOdo(prefs.car); $('t-odo').value = o != null ? o : '';
+  odoHint();
+  $('tTitle').textContent = t ? 'Termin bearbeiten' : 'Neuer Termin';
+  $('tDone').hidden = $('tDel').hidden = !t;
+  document.body.classList.add('sheet-open'); $('tform').classList.add('open');
+}
+$('tTpl').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  termTpl = +b.dataset.i; renderTpl();
+  const [name, , months, km] = TPL[termTpl], o = parseNum($('t-odo').value);
+  $('t-name').value = termTpl === TPL.length - 1 ? '' : name;
+  $('t-every').value = months || ''; $('t-everykm').value = km || '';
+  $('t-date').value = months ? addMonths(today(), months) : '';
+  $('t-km').value = km && o ? o + km : '';
+  if (termTpl === TPL.length - 1) $('t-name').focus();
+};
+function readTermForm() {
+  const title = $('t-name').value.trim(), due = $('t-date').value || null;
+  const dueKm = parseNum($('t-km').value), everyKm = parseNum($('t-everykm').value), every = +$('t-every').value || null, odo = parseNum($('t-odo').value);
+  if (!title) { $('t-name').focus(); toast('Bitte eine Bezeichnung eingeben'); return null; }
+  if (!due && !(dueKm > 0)) { toast('Bitte ein Datum oder einen km-Stand angeben'); return null; }
+  if ([dueKm, everyKm, odo].some(Number.isNaN)) { toast('Kilometer bitte als Zahl eingeben'); return null; }
+  return { title, due, dueKm: dueKm > 0 ? Math.round(dueKm) : null, everyMonths: every, everyKm: everyKm > 0 ? Math.round(everyKm) : null, odo };
+}
+function rememberOdo(odo) {
+  if (!(odo > 0)) return;
+  const car = cars.find(c => c.id === prefs.car);
+  if (car && odo !== currentOdo(car.id)) { car.odo = { value: Math.round(odo), date: today(), at: Date.now() }; save(); }
+}
+$('tform').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const f = readTermForm(); if (!f) return;
+  rememberOdo(f.odo); delete f.odo;
+  const t = { id: termEdit || uid(), car: prefs.car, ...f };
+  terms = terms.filter(x => x.id !== t.id).concat(t); saveTerms();
+  closeSheet(); render(); toast('Termin gespeichert ✓');
+});
+$('tDone').onclick = async () => {
+  const t = terms.find(x => x.id === termEdit); if (!t) return;
+  const odo = parseNum($('t-odo').value); rememberOdo(odo);
+  const o = currentOdo(t.car);
+  if (t.everyMonths || t.everyKm) {
+    t.due = t.everyMonths ? addMonths(today(), t.everyMonths) : null;
+    t.dueKm = t.everyKm && o != null ? o + t.everyKm : null;
+    if (!t.due && !t.dueKm) t.due = addMonths(today(), 12);
+  } else terms = terms.filter(x => x.id !== t.id);
+  saveTerms(); closeSheet(); render();
+  toast(t.everyMonths || t.everyKm ? 'Erledigt ✓ – nächster Termin ist eingetragen' : 'Erledigt ✓');
+  const cat = (TPL.find(x => x[0] === t.title) || TPL[TPL.length - 1])[4];
+  if (await ask(`Möchtest du die Kosten für „${t.title}“ gleich eintragen?`, { ok: 'Kosten eintragen' })) {
+    openSheet(); setKind('cost'); setCat(cat); $('f-note').value = t.title;
+  }
+};
+$('tDel').onclick = async () => {
+  if (!await ask('Diesen Termin löschen?', { ok: 'Löschen', danger: true })) return;
+  terms = terms.filter(x => x.id !== termEdit); saveTerms(); closeSheet(); render(); toast('Termin gelöscht');
+};
+$('tCal').onclick = () => {
+  const f = readTermForm(); if (!f) return;
+  if (!f.due) return toast('Für den Kalender wird ein Datum gebraucht');
+  const d = f.due.replace(/-/g, '');
+  const end = iso(new Date(new Date(f.due + 'T00:00').getTime() + 864e5)).replace(/-/g, '');
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tankbuch//DE', 'BEGIN:VEVENT', `UID:${termEdit || uid()}@tankbuch`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`, `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${end}`,
+    `SUMMARY:${f.title} (${curCar().name})`, 'DESCRIPTION:Erinnerung aus dem Tankbuch',
+    'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + f.title, 'TRIGGER:-P7D', 'END:VALARM',
+    'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + f.title, 'TRIGGER:PT9H', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  shareOrDownload(`${f.title.replace(/[^\wäöüÄÖÜß-]+/g, '-')}.ics`, ics, 'text/calendar');
+};
+$('tClose').onclick = closeSheet;
+$('addTerm').onclick = () => openTerm();
+$('termList').onclick = $('dueList').onclick = e => { const b = e.target.closest('.due'); if (b) openTerm(terms.find(x => x.id === b.dataset.t)); };
+$('dueAll').onclick = $('dueOpen').onclick = () => show('data');
+
+/* ---------- Spritpreise (Tankerkönig / MTS-K) ---------- */
+const PRICE_CACHE = 'tankbuch-preise';
+const TYPES = { e5: 'Super E5', e10: 'Super E10', diesel: 'Diesel' };
+let priceState = read(PRICE_CACHE, null), priceBusy = false;
+const priceFmt = p => { const s = num(p, 3); return `${s.slice(0, -1)}<sup>${s.slice(-1)}</sup>`; };
+function lastPaid() {
+  const l = fuelOf(prefs.car).filter(e => e.liter > 0);
+  return l.length ? l[l.length - 1].cost / l[l.length - 1].liter : null;
+}
+function getPosition() {
+  return new Promise((res, rej) => {
+    if (!navigator.geolocation) return rej(new Error('Standort wird nicht unterstützt'));
+    navigator.geolocation.getCurrentPosition(p => res({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => rej(new Error('Standort nicht freigegeben')), { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+  });
+}
+async function loadPrices(force = false) {
+  if (!prefs.pKey || !prefs.pLoc || priceBusy) return renderPrices();
+  if (!force && priceState && priceState.at && Date.now() - priceState.at < 10 * 60e3 && priceState.type === prefs.pType && priceState.rad === prefs.pRad) return renderPrices();
+  priceBusy = true; renderPrices();
+  try {
+    let pos = prefs.pLoc;
+    if (pos.gps) pos = await getPosition();
+    const u = `https://creativecommons.tankerkoenig.de/json/list.php?lat=${pos.lat.toFixed(5)}&lng=${pos.lng.toFixed(5)}&rad=${prefs.pRad}&sort=price&type=${prefs.pType}&apikey=${encodeURIComponent(prefs.pKey)}`;
+    const r = await fetch(u), j = await r.json();
+    if (!j.ok) throw new Error(j.message || 'Abfrage fehlgeschlagen');
+    const st = (j.stations || []).filter(x => x.isOpen && x.price > 0).slice(0, 5)
+      .map(x => ({ name: x.brand || x.name, street: [x.street, x.houseNumber].filter(Boolean).join(' '), place: x.place, dist: x.dist, price: x.price, lat: x.lat, lng: x.lng }));
+    priceState = { at: Date.now(), type: prefs.pType, rad: prefs.pRad, stations: st, error: null };
+  } catch (e) {
+    priceState = { ...(priceState || {}), error: /fetch|network|load/i.test(e.message) ? 'Keine Verbindung zu den Spritpreisen' : e.message };
+  }
+  write(PRICE_CACHE, priceState);
+  priceBusy = false; renderPrices();
+}
+function renderPrices() {
+  const box = $('priceNow');
+  if (!prefs.pKey || !prefs.pLoc) {
+    box.innerHTML = `<h2>⛽ Wo ist es gerade günstig?</h2><p class="note" style="margin:0 0 12px">Zeig dir die aktuell günstigsten Tankstellen in deiner Nähe – live aus dem Internet.</p>
+      <button class="btn sec full" id="pSetupBtn">Spritpreise einrichten</button>`;
+    $('pSetupBtn').onclick = () => { show('data'); setTimeout(() => $('priceSetup').scrollIntoView({ behavior: 'smooth' }), 50); };
+    return;
+  }
+  const s = priceState, list = s && s.type === prefs.pType ? s.stations || [] : [];
+  const paid = lastPaid(), best = list[0];
+  let hint = '';
+  if (best && paid) {
+    const d = (paid - best.price) * 100;
+    hint = `<div class="hint">${d >= 0.5 ? `💡 <b>${num(d, 0)} ct/l günstiger</b> als dein letztes Tanken (${num(paid, 3)} €) – bei 40 l sparst du ca. ${eur(d * 0.4)}.`
+      : d <= -0.5 ? `📈 Gerade <b>${num(-d, 0)} ct/l teurer</b> als bei deinem letzten Tanken – wenn möglich noch warten.` : `Etwa gleich teuer wie dein letztes Tanken.`}</div>`;
+  }
+  const hour = new Date().getHours();
+  const tip = hour >= 6 && hour < 12 ? `<div class="hint" style="background:var(--amber-soft)">⏰ Morgens ist Sprit meist am teuersten. Abends zwischen 18 und 22 Uhr ist es oft deutlich günstiger.</div>` : '';
+  const where = prefs.pLoc.gps ? 'in deiner Nähe' : `bei ${esc(prefs.pLoc.label || 'deinem Ort')}`;
+  box.innerHTML = `<h2>⛽ Günstig tanken <small>${TYPES[prefs.pType]} · ${where}</small></h2>${hint}${tip}
+    ${list.length ? list.map((x, i) => `<a class="st${i ? '' : ' best'}" href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}" target="_blank" rel="noopener">
+      <div class="n">${esc(x.name)}${i ? '' : '<span class="badge">am günstigsten</span>'}</div><div class="p">${priceFmt(x.price)}</div>
+      <div class="a">${esc(x.street)}, ${esc(x.place)} · ${num(x.dist, 1)} km</div></a>`).join('')
+      : `<p class="note" style="margin:0">${priceBusy ? 'Preise werden geladen …' : s && s.error ? '⚠️ ' + esc(s.error) : 'Keine geöffnete Tankstelle im Umkreis gefunden.'}</p>`}
+    <div class="small"><span>${s && s.at ? 'Stand ' + new Date(s.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + (s.error && list.length ? ' · ⚠️ ' + esc(s.error) : '') : ''}${priceBusy ? ' · lädt …' : ''}</span>
+      <button class="linkbtn" id="pRefresh">↻ Aktualisieren</button></div>
+    <div class="small" style="margin-top:4px"><span>Daten: MTS-K via Tankerkönig (CC BY 4.0) · Antippen öffnet die Route</span></div>`;
+  $('pRefresh').onclick = () => loadPrices(true);
+}
+// Einstellungen
+function renderPriceSetup() {
+  document.querySelectorAll('#pType button').forEach(b => b.classList.toggle('on', b.dataset.p === prefs.pType));
+  document.querySelectorAll('#pRad button').forEach(b => b.classList.toggle('on', +b.dataset.r === +prefs.pRad));
+  $('pLoc').textContent = !prefs.pLoc ? 'Noch kein Ort gewählt.' : prefs.pLoc.gps ? '📍 Es wird immer dein aktueller Standort verwendet.' : `📍 ${prefs.pLoc.label}`;
+}
+$('pType').onclick = e => { const b = e.target.closest('button'); if (!b) return; prefs.pType = b.dataset.p; savePrefs(); renderPriceSetup(); };
+$('pRad').onclick = e => { const b = e.target.closest('button'); if (!b) return; prefs.pRad = +b.dataset.r; savePrefs(); renderPriceSetup(); };
+$('pGps').onclick = async () => {
+  try { await getPosition(); prefs.pLoc = { gps: true }; savePrefs(); renderPriceSetup(); toast('Standort wird verwendet ✓'); }
+  catch (e) { toast(e.message + ' – du kannst stattdessen einen Ort eingeben', 3500); }
+};
+$('pFind').onclick = async () => {
+  const q = $('pPlace').value.trim(); if (!q) return $('pPlace').focus();
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de&accept-language=de&q=${encodeURIComponent(q)}`);
+    const j = await r.json();
+    if (!j.length) return toast('Ort nicht gefunden');
+    prefs.pLoc = { lat: +j[0].lat, lng: +j[0].lon, label: j[0].display_name.split(',').slice(0, 2).join(',').trim() };
+    savePrefs(); renderPriceSetup(); toast('Ort gespeichert ✓');
+  } catch { toast('Ortssuche nicht möglich – keine Verbindung'); }
+};
+$('pSave').onclick = () => {
+  prefs.pKey = $('pKey').value.trim(); savePrefs();
+  if (!prefs.pKey) return toast('Bitte den API-Schlüssel eintragen');
+  if (!prefs.pLoc) return toast('Bitte einen Ort suchen oder den Standort freigeben');
+  priceState = null; show('home'); loadPrices(true);
+};
+
 /* ---------- Fahrzeuge ---------- */
 $('addCar').onclick = async () => {
   const name = await ask('Name des Fahrzeugs (z. B. „Golf“ oder „Wohnmobil“):', { input: '', ok: 'Hinzufügen' });
@@ -971,7 +1312,7 @@ $('cars').onclick = async e => {
   if (b.dataset.del) {
     const c = cars.find(x => x.id === b.dataset.del), n = entries.filter(x => x.car === c.id).length;
     if (!await ask(`„${c.name}“ ${n ? `und alle ${n} Einträge ` : ''}wirklich löschen?`, { ok: 'Löschen', danger: true })) return;
-    cars = cars.filter(x => x.id !== c.id); entries = entries.filter(x => x.car !== c.id);
+    cars = cars.filter(x => x.id !== c.id); entries = entries.filter(x => x.car !== c.id); terms = terms.filter(x => x.car !== c.id); saveTerms();
     if (prefs.car === c.id) prefs.car = cars[0].id;
     savePrefs(); save(); render(); toast('Fahrzeug gelöscht');
   }
@@ -992,7 +1333,7 @@ async function shareOrDownload(name, text, type) {
   return true;
 }
 async function backup() {
-  const ok = await shareOrDownload(`tankbuch-${today()}.json`, JSON.stringify({ app: 'tankbuch', version: 2, cars, entries }, null, 1), 'application/json');
+  const ok = await shareOrDownload(`tankbuch-${today()}.json`, JSON.stringify({ app: 'tankbuch', version: 3, cars, entries, terms }, null, 1), 'application/json');
   if (ok) { prefs.lastBackup = today(); prefs.snooze = null; savePrefs(); render(); toast('Sicherung gespeichert ✓'); }
 }
 $('exportJson').onclick = $('bannerSave').onclick = backup;
@@ -1018,6 +1359,8 @@ $('importFile').onchange = async ev => {
     const data = Array.isArray(raw) ? raw : raw.entries, inCars = Array.isArray(raw) ? [] : (raw.cars || []);
     if (!Array.isArray(data) || !data.every(e => e && /^\d{4}-\d\d-\d\d$/.test(e.date) && typeof e.cost === 'number')) throw 0;
     for (const c of inCars) if (c && c.id && !cars.some(x => x.id === c.id)) cars.push({ id: c.id, name: String(c.name || 'Auto') });
+    const inTerms = Array.isArray(raw.terms) ? raw.terms.filter(t => t && t.id && t.title && !terms.some(x => x.id === t.id)) : [];
+    if (inTerms.length) { terms = terms.concat(inTerms); saveTerms(); }
     const ids = new Set(entries.map(e => e.id));
     const neu = data.filter(e => !ids.has(e.id)).map(e => ({ ...e, type: e.type || 'fuel', car: cars.some(c => c.id === e.car) ? e.car : cars[0].id }));
     entries = entries.concat(neu); save(); render();
@@ -1060,7 +1403,12 @@ function printReport() {
 $('pdfBtn').onclick = $('pdfBtn2').onclick = printReport;
 
 applyTheme();
+$('pKey').value = prefs.pKey || '';
+$('pKey').onchange = () => { prefs.pKey = $('pKey').value.trim(); savePrefs(); };
+renderPriceSetup();
 render();
+loadPrices();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadPrices(); renderTerms(); } });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
   addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 </script>

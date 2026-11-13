@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c5a3f">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob:; connect-src 'self' https://creativecommons.tankerkoenig.de https://raw.githubusercontent.com https://nominatim.openstreetmap.org https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <title>Tankbuch</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -432,7 +434,8 @@ input[type=date] { min-height: 46px; }
       <label class="flab">Sorte</label>
       <div class="seg" id="pType" style="grid-template-columns:repeat(3,1fr);margin:0"><button type="button" data-p="e5">Super E5</button><button type="button" data-p="e10">Super E10</button><button type="button" data-p="diesel">Diesel</button></div>
       <label class="flab">Umkreis</label>
-      <div class="seg" id="pRad" style="grid-template-columns:repeat(4,1fr);margin:0"><button type="button" data-r="2">2 km</button><button type="button" data-r="5">5 km</button><button type="button" data-r="10">10 km</button><button type="button" data-r="25">25 km</button></div>
+      <div class="seg" id="pRad" style="grid-template-columns:repeat(5,1fr);margin:0"><button type="button" data-r="5">5 km</button><button type="button" data-r="10">10 km</button><button type="button" data-r="25">25 km</button><button type="button" data-r="50">50 km</button><button type="button" data-r="100">100 km</button></div>
+      <p class="note" style="margin:6px 0 0">In Deutschland liefert die Preisquelle höchstens 25 km Umkreis.</p>
       <label class="flab" for="pPlace">Ort</label>
       <div class="rowin"><input class="inp" id="pPlace" placeholder="PLZ oder Ort, z. B. 50667 oder Bozen"><button class="btn sec" id="pFind" type="button">Suchen</button></div>
       <button class="btn sec full" id="pGps" type="button" style="margin-top:8px">📍 Immer meinen aktuellen Standort nehmen</button>
@@ -562,13 +565,40 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 function read(k, def) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? def; } catch { return def; } }
 function write(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }
 
-let entries = read(KEY, []);
-if (!Array.isArray(entries)) entries = [];
-let cars = read(CARS, null);
-if (!Array.isArray(cars) || !cars.length) cars = [{ id: 'default', name: 'Mein Auto' }];
+// Sicherheit: alle gespeicherten oder eingelesenen Daten auf erlaubte Werte zurechtstutzen,
+// damit z. B. eine manipulierte Sicherungsdatei keinen Code in die Seite schleusen kann.
+const safeId = v => String(v ?? '').replace(/[^\w-]/g, '').slice(0, 40);
+const nOrNull = v => v == null || v === '' ? null : (Number.isFinite(+v) ? +v : null);
+const isoOrNull = v => typeof v === 'string' && /^\d{4}-\d\d-\d\d$/.test(v) ? v : null;
+const txt = (v, n) => String(v ?? '').slice(0, n);
+function cleanEntry(e) {
+  if (!e || typeof e !== 'object') return null;
+  const x = { id: safeId(e.id) || uid(), date: isoOrNull(e.date), cost: nOrNull(e.cost), type: e.type === 'cost' ? 'cost' : 'fuel',
+    car: safeId(e.car), note: txt(e.note, 200), created: nOrNull(e.created) || 0 };
+  if (!x.date || !(x.cost > 0)) return null;
+  if (x.type === 'cost') x.cat = CATS.some(c => c[0] === e.cat) ? e.cat : 'sonst';
+  else Object.assign(x, { km: nOrNull(e.km), odo: nOrNull(e.odo), liter: nOrNull(e.liter) });
+  return x;
+}
+function cleanCar(c) {
+  if (!c || !safeId(c.id)) return null;
+  const x = { id: safeId(c.id), name: txt(c.name || 'Auto', 60) };
+  if (c.odo && nOrNull(c.odo.value) != null) x.odo = { value: nOrNull(c.odo.value), date: isoOrNull(c.odo.date) || today(), at: nOrNull(c.odo.at) || 0 };
+  return x;
+}
+function cleanTerm(t) {
+  if (!t || !safeId(t.id) || !t.title) return null;
+  return { id: safeId(t.id), car: safeId(t.car), title: txt(t.title, 60), due: isoOrNull(t.due), dueKm: nOrNull(t.dueKm),
+    everyMonths: nOrNull(t.everyMonths), everyKm: nOrNull(t.everyKm) };
+}
+const cleanList = (a, f) => Array.isArray(a) ? a.map(f).filter(Boolean) : [];
+
+let entries = cleanList(read(KEY, []), cleanEntry);
+let cars = cleanList(read(CARS, null), cleanCar);
+if (!cars.length) cars = [{ id: 'default', name: 'Mein Auto' }];
 let prefs = Object.assign({ pKey: '', pType: 'e10', pRad: 5, pLoc: null, accent: 'gruen', theme: 'auto', mode: 'km', car: 'default', remind: true, lastBackup: null, snooze: null }, read(PREFS, {}));
 // alte Einträge (vor Fahrzeugen/Kosten) ergänzen
-entries.forEach(e => { e.type ||= 'fuel'; e.car ||= cars[0].id; });
+entries.forEach(e => { if (!e.car) e.car = cars[0].id; });
 if (!cars.some(c => c.id === prefs.car)) prefs.car = cars[0].id;
 
 let editId = null, selectedYear = null, selMonth = null, kind = 'fuel', mode = prefs.mode, cat = 'werkstatt', listFilter = 'all';
@@ -669,7 +699,7 @@ function render() {
   $('year').innerHTML = ys.map(y => `<option ${y === selectedYear ? 'selected' : ''}>${y}</option>`).join('');
   $('carChip').hidden = cars.length < 2;
   $('brandTx').hidden = cars.length > 1;  // Platz für die Fahrzeugauswahl
-  $('car').innerHTML = cars.map(c => `<option value="${c.id}" ${c.id === prefs.car ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+  $('car').innerHTML = cars.map(c => `<option value="${esc(c.id)}" ${c.id === prefs.car ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
   const s = stats(selectedYear), p = stats(selectedYear - 1), hasPrev = p.n > 0;
 
   // Kopfbereich
@@ -769,13 +799,13 @@ function renderList() {
     if (mo !== lastM) { html += `<div class="group">${MONTHS_LONG[mo]}</div>`; lastM = mo; }
     if (e.type === 'cost') {
       const c = catOf(e.cat);
-      html += `<button class="entry other" data-id="${e.id}"><div class="day"><b>${d.getDate()}</b><small>${MONTHS[mo]}</small></div>
+      html += `<button class="entry other" data-id="${esc(e.id)}"><div class="day"><b>${d.getDate()}</b><small>${MONTHS[mo]}</small></div>
         <div class="mid"><div class="t">${c[2]} ${c[1]}</div><div class="s">${e.note ? esc(e.note) : '&nbsp;'}</div></div>
         <div class="amt">${eur(e.cost)}</div></button>`;
     } else {
       const km = kmOf(e, fuel);
       const sub = [km != null ? num(km) + ' km' : null, e.liter ? num(e.liter, 1) + ' l' : null].filter(Boolean).join(' · ');
-      html += `<button class="entry" data-id="${e.id}"><div class="day"><b>${d.getDate()}</b><small>${MONTHS[mo]}</small></div>
+      html += `<button class="entry" data-id="${esc(e.id)}"><div class="day"><b>${d.getDate()}</b><small>${MONTHS[mo]}</small></div>
         <div class="mid"><div class="t">${e.note ? esc(e.note) : 'Tanken'}</div><div class="s">${sub || '–'}</div></div>
         <div class="amt">${eur(e.cost)}${e.liter ? `<small>${eur(e.cost / e.liter)}/l</small>` : ''}</div></button>`;
     }
@@ -802,11 +832,11 @@ function renderCars() {
   $('cars').innerHTML = cars.map(c => {
     const n = entries.filter(e => e.car === c.id).length;
     return `<div class="car"><div class="nm">${c.id === prefs.car ? '✅ ' : '🚗 '}${esc(c.name)}<small>${n} Einträge</small></div>
-      ${c.id !== prefs.car ? `<button class="icon-btn" data-sel="${c.id}" title="Auswählen">✓</button>` : ''}
-      <button class="icon-btn" data-ren="${c.id}" title="Umbenennen">${icon('note')}</button>
-      ${cars.length > 1 ? `<button class="icon-btn r" data-del="${c.id}" title="Löschen">${icon('trash')}</button>` : ''}</div>`;
+      ${c.id !== prefs.car ? `<button class="icon-btn" data-sel="${esc(c.id)}" title="Auswählen">✓</button>` : ''}
+      <button class="icon-btn" data-ren="${esc(c.id)}" title="Umbenennen">${icon('note')}</button>
+      ${cars.length > 1 ? `<button class="icon-btn r" data-del="${esc(c.id)}" title="Löschen">${icon('trash')}</button>` : ''}</div>`;
   }).join('');
-  $('f-car').innerHTML = cars.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  $('f-car').innerHTML = cars.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
   $('carField').hidden = cars.length < 2;
 }
 
@@ -978,6 +1008,7 @@ function loadTesseract() {
   return tessLoading ||= new Promise((res, rej) => {
     const s = document.createElement('script');
     s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+    s.integrity = 'sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F'; s.crossOrigin = 'anonymous';
     s.onload = res; s.onerror = () => { tessLoading = null; rej(new Error('load')); };
     document.head.appendChild(s);
   });
@@ -1057,7 +1088,7 @@ const TPL = [ // Name, Symbol, Monate, km, Kostenkategorie
   ['TÜV / HU', '🔍', 24, null, 'werkstatt'], ['Inspektion', '🧰', 12, 20000, 'werkstatt'], ['Ölwechsel', '🛢️', 12, 15000, 'werkstatt'],
   ['Reifenwechsel', '🛞', 6, null, 'reifen'], ['Versicherung', '🛡️', 12, null, 'versicherung'], ['Kfz-Steuer', '🏛️', 12, null, 'steuer'],
   ['Bremsen', '🛑', null, 40000, 'werkstatt'], ['Zahnriemen', '⚙️', null, 120000, 'werkstatt'], ['Eigener Termin', '📌', null, null, 'sonst']];
-let terms = read(TERMS, []); if (!Array.isArray(terms)) terms = [];
+let terms = cleanList(read(TERMS, []), cleanTerm);
 let termEdit = null, termTpl = 0;
 const saveTerms = () => write(TERMS, terms) || toast('Speichern nicht möglich');
 const addMonths = (d, m) => { const x = new Date(d + 'T00:00'); x.setMonth(x.getMonth() + m); return iso(x); };
@@ -1100,7 +1131,7 @@ function termRow(t) {
   const st = termState(t);
   const tag = st.level === 2 ? '<span class="tag bad">Fällig</span>' : st.level === 1 ? '<span class="tag warn">Bald</span>' : '<span class="tag">OK</span>';
   const rep = [t.everyMonths ? `alle ${t.everyMonths} Monate` : '', t.everyKm ? `alle ${num(t.everyKm)} km` : ''].filter(Boolean).join(' / ');
-  return `<button class="due" data-t="${t.id}"><div class="em">${termIcon(t)}</div><div class="mid"><div class="t">${esc(t.title)}</div>
+  return `<button class="due" data-t="${esc(t.id)}"><div class="em">${termIcon(t)}</div><div class="mid"><div class="t">${esc(t.title)}</div>
     <div class="s">${st.text}${rep ? ' · ↻ ' + rep : ''}</div></div>${tag}</button>`;
 }
 function renderTerms() {
@@ -1233,21 +1264,33 @@ function distKm(a, b) {
   const h = Math.sin(dLa / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLo / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
+// die 5 günstigsten – und die nächstgelegene Tankstelle, falls sie nicht schon dabei ist
+function pickStations(all) {
+  const cheap = [...all].sort((a, b) => a.price - b.price || a.dist - b.dist).slice(0, 5);
+  const near = [...all].sort((a, b) => a.dist - b.dist)[0];
+  if (near && !cheap.includes(near)) cheap.push({ ...near, nearest: true });
+  else if (near) near.nearest = true;
+  return cheap;
+}
 async function loadItaly(pos) {
   const rad = prefs.pRad, dLat = rad / 111, dLng = rad / (111 * Math.cos(pos.lat * Math.PI / 180));
+  // erst prüfen, ob es schon Daten gibt (werden einmal täglich auf GitHub erzeugt)
+  const m = await fetch(IT_DATA + 'meta.json', { cache: 'no-cache' });
+  if (m.status === 404) throw new Error('Die Preise für Italien sind noch nicht bereit – sie werden einmal täglich geladen. Bitte später nochmal versuchen.');
+  if (!m.ok) throw new Error('Preise für Italien nicht erreichbar');
+  const updated = (await m.json()).updated;
   const keys = new Set();
-  for (const la of [pos.lat - dLat, pos.lat + dLat]) for (const lo of [pos.lng - dLng, pos.lng + dLng]) keys.add(`${Math.floor(la)}_${Math.floor(lo)}`);
+  for (let la = Math.floor(pos.lat - dLat); la <= Math.floor(pos.lat + dLat); la++)
+    for (let lo = Math.floor(pos.lng - dLng); lo <= Math.floor(pos.lng + dLng); lo++) keys.add(`${la}_${lo}`);
   const tiles = await Promise.all([...keys].map(k => fetch(IT_DATA + k + '.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : r.status === 404 ? [] : Promise.reject(new Error('Preise für Italien nicht erreichbar')))));
   const fuel = prefs.pType === 'diesel' ? 'd' : 'b';
   const stations = tiles.flat().map(x => {
     const p = x.p && x.p[fuel]; if (!p) return null;
     const price = p[0] || p[1], dist = distKm(pos, x);
-    return dist <= rad && price ? { name: x.br || x.n, street: x.a, place: x.c, dist, price, self: !!p[0], when: p[2], lat: x.lat, lng: x.lng } : null;
-  }).filter(Boolean).sort((a, b) => a.price - b.price || a.dist - b.dist).slice(0, 5);
-  let updated = null;
-  try { updated = (await (await fetch(IT_DATA + 'meta.json', { cache: 'no-cache' })).json()).updated; } catch {}
-  return { stations, updated };
+    return dist <= rad && +price > 0 && Number.isFinite(dist) ? { name: txt(x.br || x.n, 60), street: txt(x.a, 80), place: txt(x.c, 40), dist, price: +price, self: !!p[0], when: isoOrNull(String(p[2] || '').slice(0, 10)), lat: +x.lat, lng: +x.lng } : null;
+  }).filter(Boolean);
+  return { stations: pickStations(stations), updated };
 }
 async function loadPrices(force = false) {
   if (!prefs.pLoc || priceBusy) return renderPrices();
@@ -1261,11 +1304,12 @@ async function loadPrices(force = false) {
       throw null;  // fertig – überspringt die deutsche Abfrage
     }
     if (!prefs.pKey) throw new Error('Für Deutschland wird ein Tankerkönig-Schlüssel gebraucht (unter „Mehr“)');
-    const u = `https://creativecommons.tankerkoenig.de/json/list.php?lat=${pos.lat.toFixed(5)}&lng=${pos.lng.toFixed(5)}&rad=${prefs.pRad}&sort=price&type=${prefs.pType}&apikey=${encodeURIComponent(prefs.pKey)}`;
+    const u = `https://creativecommons.tankerkoenig.de/json/list.php?lat=${pos.lat.toFixed(3)}&lng=${pos.lng.toFixed(3)}&rad=${Math.min(25, prefs.pRad)}&sort=dist&type=${prefs.pType}&apikey=${encodeURIComponent(prefs.pKey)}`;
     const r = await fetch(u), j = await r.json();
     if (!j.ok) throw new Error(j.message || 'Abfrage fehlgeschlagen');
-    const st = (j.stations || []).filter(x => x.isOpen && x.price > 0).slice(0, 5)
-      .map(x => ({ name: x.brand || x.name, street: [x.street, x.houseNumber].filter(Boolean).join(' '), place: x.place, dist: x.dist, price: x.price, lat: x.lat, lng: x.lng }));
+    const st = pickStations((j.stations || []).filter(x => x.isOpen && x.price > 0)
+      .map(x => ({ name: txt(x.brand || x.name, 60), street: txt([x.street, x.houseNumber].filter(Boolean).join(' '), 80), place: txt(x.place, 40), dist: +x.dist, price: +x.price, lat: +x.lat, lng: +x.lng }))
+      .filter(x => [x.dist, x.price, x.lat, x.lng].every(Number.isFinite)));
     priceState = { at: Date.now(), type: prefs.pType, rad: prefs.pRad, country: 'de', stations: st, error: null };
   } catch (e) {
     if (e === null) { write(PRICE_CACHE, priceState); priceBusy = false; return renderPrices(); }
@@ -1297,9 +1341,9 @@ function renderPrices() {
   const typeName = it ? (prefs.pType === 'diesel' ? 'Diesel (Gasolio)' : 'Benzin (Benzina)') : TYPES[prefs.pType];
   box.innerHTML = `<h2>⛽ Günstig tanken <small>${it ? '🇮🇹 ' : ''}${typeName} · ${where}</small></h2>${hint}${tip}
     ${list.length ? list.map((x, i) => `<a class="st${i ? '' : ' best'}" href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}" target="_blank" rel="noopener">
-      <div class="n">${esc(x.name)}${i ? '' : '<span class="badge">am günstigsten</span>'}</div><div class="p">${priceFmt(x.price)}</div>
-      <div class="a">${esc(x.street)}, ${esc(x.place)} · ${num(x.dist, 1)} km${it ? (x.self ? ' · Self' : ' · bedient') + (x.when ? ' · ' + dmy(x.when.slice(0, 10)).slice(0, -5) : '') : ''}</div></a>`).join('')
-      : `<p class="note" style="margin:0">${priceBusy ? 'Preise werden geladen …' : s && s.error ? '⚠️ ' + esc(s.error) : 'Keine geöffnete Tankstelle im Umkreis gefunden.'}</p>`}
+      <div class="n">${esc(x.name)}${i ? '' : '<span class="badge">am günstigsten</span>'}${x.nearest ? '<span class="badge">am nächsten</span>' : ''}</div><div class="p">${priceFmt(x.price)}</div>
+      <div class="a">${esc(x.street)}, ${esc(x.place)} · ${num(x.dist, 1)} km${it ? (x.self ? ' · Self' : ' · bedient') + (x.when ? ' · ' + dmy(x.when).slice(0, -5) : '') : ''}</div></a>`).join('')
+      : `<p class="note" style="margin:0">${priceBusy ? 'Preise werden geladen …' : s && s.error ? '⚠️ ' + esc(s.error) : `Keine geöffnete Tankstelle mit aktuellem Preis im Umkreis von ${it ? prefs.pRad : Math.min(25, prefs.pRad)} km gefunden. Umkreis unter „Mehr“ vergrößern.`}</p>`}
     <div class="small"><span>${s && s.at ? 'Stand ' + new Date(s.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + (s.error && list.length ? ' · ⚠️ ' + esc(s.error) : '') : ''}${priceBusy ? ' · lädt …' : ''}</span>
       <button class="linkbtn" id="pRefresh">↻ Aktualisieren</button></div>
     <div class="small" style="margin-top:4px"><span>${it ? `Daten: MIMIT Osservaprezzi (IODL 2.0)${s.updated ? ', Stand ' + dmy(s.updated.slice(0, 10)) : ''}` : 'Daten: MTS-K via Tankerkönig (CC BY 4.0)'} · Antippen öffnet die Route</span></div>`;
@@ -1380,7 +1424,7 @@ $('exportJson').onclick = $('bannerSave').onclick = backup;
 $('bannerLater').onclick = () => { const d = new Date(); d.setDate(d.getDate() + 7); prefs.snooze = iso(d); savePrefs(); renderBackup(); };
 $('remind').onchange = e => { prefs.remind = e.target.checked; savePrefs(); renderBackup(); };
 $('exportCsv').onclick = () => {
-  const d = v => v == null ? '' : String(v).replace('.', ','), q = s => '"' + String(s || '').replace(/"/g, '""') + '"';
+  const d = v => v == null ? '' : String(v).replace('.', ','), q = s => '"' + String(s || '').replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""') + '"';
   const lines = ['Fahrzeug;Datum;Art;Kategorie;Betrag €;gefahrene km;Tachostand;Liter;€ pro Liter;Notiz'];
   for (const c of cars) {
     const fuel = fuelOf(c.id);
@@ -1397,12 +1441,12 @@ $('importFile').onchange = async ev => {
   try {
     const raw = JSON.parse(await file.text());
     const data = Array.isArray(raw) ? raw : raw.entries, inCars = Array.isArray(raw) ? [] : (raw.cars || []);
-    if (!Array.isArray(data) || !data.every(e => e && /^\d{4}-\d\d-\d\d$/.test(e.date) && typeof e.cost === 'number')) throw 0;
-    for (const c of inCars) if (c && c.id && !cars.some(x => x.id === c.id)) cars.push({ id: c.id, name: String(c.name || 'Auto') });
-    const inTerms = Array.isArray(raw.terms) ? raw.terms.filter(t => t && t.id && t.title && !terms.some(x => x.id === t.id)) : [];
+    if (!Array.isArray(data)) throw 0;
+    for (const c of cleanList(inCars, cleanCar)) if (!cars.some(x => x.id === c.id)) cars.push(c);
+    const inTerms = cleanList(raw.terms, cleanTerm).filter(t => !terms.some(x => x.id === t.id));
     if (inTerms.length) { terms = terms.concat(inTerms); saveTerms(); }
     const ids = new Set(entries.map(e => e.id));
-    const neu = data.filter(e => !ids.has(e.id)).map(e => ({ ...e, type: e.type || 'fuel', car: cars.some(c => c.id === e.car) ? e.car : cars[0].id }));
+    const neu = cleanList(data, cleanEntry).filter(e => !ids.has(e.id)).map(e => ({ ...e, car: cars.some(c => c.id === e.car) ? e.car : cars[0].id }));
     entries = entries.concat(neu); save(); render();
     toast(`${neu.length} Einträge übernommen`);
   } catch { toast('Datei konnte nicht gelesen werden'); }

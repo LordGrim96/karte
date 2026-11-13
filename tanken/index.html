@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c5a3f">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob:; connect-src 'self' https://creativecommons.tankerkoenig.de https://raw.githubusercontent.com https://nominatim.openstreetmap.org https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob:; connect-src 'self' https://creativecommons.tankerkoenig.de https://raw.githubusercontent.com https://nominatim.openstreetmap.org https://cdn.jsdelivr.net https://tessdata.projectnaptha.com https://*.workers.dev data: blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Tankbuch</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -440,6 +440,10 @@ input[type=date] { min-height: 46px; }
       <div class="rowin"><input class="inp" id="pPlace" placeholder="PLZ oder Ort, z. B. 50667 oder Bozen"><button class="btn sec" id="pFind" type="button">Suchen</button></div>
       <button class="btn sec full" id="pGps" type="button" style="margin-top:8px">📍 Immer meinen aktuellen Standort nehmen</button>
       <p class="note" id="pLoc" style="margin:8px 0 0"></p>
+      <p class="note" style="margin:4px 0 0;font-size:.72rem">Ortssuche: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-Mitwirkende (Nominatim)</p>
+      <label class="flab" for="pProxy">Italien-Zwischendienst (Cloudflare-Adresse)</label>
+      <input class="inp" id="pProxy" placeholder="https://tankbuch-proxy.….workers.dev" autocomplete="off" spellcheck="false" inputmode="url">
+      <p class="note" style="margin:5px 0 0">Nur nötig, falls die Italien-Preise sonst nicht kommen. Anleitung im Projekt unter <code>cloudflare/ANLEITUNG.md</code>.</p>
       <button class="btn full" id="pSave" type="button" style="margin-top:12px">Speichern &amp; Preise laden</button>
     </div>
     <div class="card">
@@ -596,7 +600,7 @@ const cleanList = (a, f) => Array.isArray(a) ? a.map(f).filter(Boolean) : [];
 let entries = cleanList(read(KEY, []), cleanEntry);
 let cars = cleanList(read(CARS, null), cleanCar);
 if (!cars.length) cars = [{ id: 'default', name: 'Mein Auto' }];
-let prefs = Object.assign({ pKey: '', pType: 'e10', pRad: 5, pLoc: null, accent: 'gruen', theme: 'auto', mode: 'km', car: 'default', remind: true, lastBackup: null, snooze: null }, read(PREFS, {}));
+let prefs = Object.assign({ pProxy: '', pKey: '', pType: 'e10', pRad: 5, pLoc: null, accent: 'gruen', theme: 'auto', mode: 'km', car: 'default', remind: true, lastBackup: null, snooze: null }, read(PREFS, {}));
 // alte Einträge (vor Fahrzeugen/Kosten) ergänzen
 entries.forEach(e => { if (!e.car) e.car = cars[0].id; });
 if (!cars.some(c => c.id === prefs.car)) prefs.car = cars[0].id;
@@ -1272,25 +1276,85 @@ function pickStations(all) {
   else if (near) near.nearest = true;
   return cheap;
 }
-async function loadItaly(pos) {
-  const rad = prefs.pRad, dLat = rad / 111, dLng = rad / (111 * Math.cos(pos.lat * Math.PI / 180));
-  // erst prüfen, ob es schon Daten gibt (werden einmal täglich auf GitHub erzeugt)
-  const m = await fetch(IT_DATA + 'meta.json', { cache: 'no-cache' });
-  if (m.status === 404) throw new Error('Die Preise für Italien sind noch nicht bereit – sie werden einmal täglich geladen. Bitte später nochmal versuchen.');
-  if (!m.ok) throw new Error('Preise für Italien nicht erreichbar');
-  const updated = (await m.json()).updated;
-  const keys = new Set();
+// Cloudflare-Adresse prüfen: nur https://….workers.dev ohne Pfad
+const PROXY_DEFAULT = '';
+const cleanProxy = v => { v = String(v || '').trim().replace(/\/+$/, ''); return /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.workers\.dev$/i.test(v) ? v : ''; };
+const proxyUrl = () => prefs.pProxy || PROXY_DEFAULT;
+
+// Kacheln von GitHub (täglich aufbereitet) – null, wenn nicht vorhanden oder älter als 2 Tage
+async function italyTiles(pos, rad) {
+  let m;
+  try { m = await fetch(IT_DATA + 'meta.json', { cache: 'no-cache' }); } catch { return null; }
+  if (!m.ok) return null;
+  const meta = await m.json();
+  if (!meta.updated || Date.now() - new Date(meta.updated.replace('Z', ':00Z')) > 2 * 864e5) return null;
+  const dLat = rad / 111, dLng = rad / (111 * Math.cos(pos.lat * Math.PI / 180)), keys = [];
   for (let la = Math.floor(pos.lat - dLat); la <= Math.floor(pos.lat + dLat); la++)
-    for (let lo = Math.floor(pos.lng - dLng); lo <= Math.floor(pos.lng + dLng); lo++) keys.add(`${la}_${lo}`);
-  const tiles = await Promise.all([...keys].map(k => fetch(IT_DATA + k + '.json', { cache: 'no-cache' })
+    for (let lo = Math.floor(pos.lng - dLng); lo <= Math.floor(pos.lng + dLng); lo++) keys.push(`${la}_${lo}`);
+  const tiles = await Promise.all(keys.map(k => fetch(IT_DATA + k + '.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : r.status === 404 ? [] : Promise.reject(new Error('Preise für Italien nicht erreichbar')))));
+  return { items: tiles.flat(), updated: meta.updated };
+}
+
+// Direkt über den Cloudflare-Zwischendienst: beide CSV-Dateien laden und hier auswerten.
+// Gespeichert wird nur die Umgebung (100 km) – einmal pro Tag neu.
+const IT_LOCAL = 'tankbuch-it-lokal';
+function csvRows(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  const h = lines.findIndex((l, i) => i < 5 && /^idimpianto/i.test(l));
+  if (h < 0) throw new Error('Unerwartetes Dateiformat vom Ministerium');
+  const sep = (lines[h].match(/\|/g) || []).length > (lines[h].match(/;/g) || []).length ? '|' : ';';
+  return lines.slice(h + 1).map(l => l.split(sep).map(c => c.trim().replace(/^"|"$/g, '')));
+}
+const cap = v => String(v || '').toLowerCase().replace(/(^|[\s'(-])\S/g, c => c.toUpperCase());
+async function italyViaProxy(pos) {
+  const base = proxyUrl();
+  if (!base) return null;
+  const day = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+  const cached = read(IT_LOCAL, null);
+  if (cached && cached.day === day && distKm(pos, cached.center) < 40 && Date.now() - cached.at < 12 * 36e5) return cached;
+  const get = f => fetch(`${base}/${f}`).then(r => r.ok ? r.text() : r.text().then(t => Promise.reject(new Error(t.slice(0, 120) || 'Zwischendienst-Fehler ' + r.status))));
+  const [stTxt, prTxt] = await Promise.all([get('anagrafica_impianti_attivi.csv'), get('prezzo_alle_8.csv')]);
+  const near = new Map(), R = 100, dLat = R / 111, dLng = R / (111 * Math.cos(pos.lat * Math.PI / 180));
+  for (const r of csvRows(stTxt)) {
+    if (r.length < 10) continue;
+    const lat = parseFloat(String(r[r.length - 2]).replace(',', '.')), lng = parseFloat(String(r[r.length - 1]).replace(',', '.'));
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat - pos.lat) > dLat || Math.abs(lng - pos.lng) > dLng) continue;
+    const brand = /^pompe bianche$/i.test(r[2]) ? '' : r[2];
+    near.set(r[0], { id: r[0], n: cap(r[4] || r[1]).slice(0, 60), br: cap(brand).slice(0, 30), a: cap(r.slice(5, -4).join(' ')).slice(0, 80),
+      c: cap(r[r.length - 4]).slice(0, 40), lat, lng, p: {} });
+  }
+  const fuels = { benzina: 'b', gasolio: 'd' }, oldest = Date.now() - 14 * 864e5;
+  for (const r of csvRows(prTxt)) {
+    const st = near.get(r[0]), key = fuels[String(r[1]).toLowerCase()];
+    if (!st || !key || r.length < 5) continue;
+    const price = parseFloat(String(r[2]).replace(',', '.')), m = String(r[4]).match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+    if (!(price > 0.5 && price < 4) || !m) continue;
+    const when = `${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}`;
+    if (new Date(when) < oldest) continue;
+    const slot = st.p[key] ||= [null, null, when], i = r[3] === '1' ? 0 : 1;
+    if (slot[i] == null || price < slot[i]) slot[i] = price;
+    if (when > slot[2]) slot[2] = when;
+  }
+  const items = [...near.values()].filter(x => Object.keys(x.p).length);
+  if (!items.length) throw new Error('Keine Tankstellen mit Preisen in der Umgebung gefunden');
+  const out = { day, at: Date.now(), center: { lat: pos.lat, lng: pos.lng }, items, updated: new Date().toISOString().slice(0, 16) + 'Z' };
+  write(IT_LOCAL, out);
+  return out;
+}
+
+async function loadItaly(pos) {
+  const rad = prefs.pRad;
+  const data = await italyTiles(pos, rad) || await italyViaProxy(pos);
+  if (!data) throw new Error(proxyUrl() ? 'Preise für Italien nicht erreichbar' :
+    'Die Preise für Italien sind noch nicht bereit. Tipp: unter „Mehr“ den Cloudflare-Zwischendienst eintragen.');
   const fuel = prefs.pType === 'diesel' ? 'd' : 'b';
-  const stations = tiles.flat().map(x => {
+  const stations = data.items.map(x => {
     const p = x.p && x.p[fuel]; if (!p) return null;
     const price = p[0] || p[1], dist = distKm(pos, x);
     return dist <= rad && +price > 0 && Number.isFinite(dist) ? { name: txt(x.br || x.n, 60), street: txt(x.a, 80), place: txt(x.c, 40), dist, price: +price, self: !!p[0], when: isoOrNull(String(p[2] || '').slice(0, 10)), lat: +x.lat, lng: +x.lng } : null;
   }).filter(Boolean);
-  return { stations: pickStations(stations), updated };
+  return { stations: pickStations(stations), updated: data.updated };
 }
 async function loadPrices(force = false) {
   if (!prefs.pLoc || priceBusy) return renderPrices();
@@ -1364,7 +1428,8 @@ $('pGps').onclick = async () => {
 $('pFind').onclick = async () => {
   const q = $('pPlace').value.trim(); if (!q) return $('pPlace').focus();
   try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de,it&accept-language=de&q=${encodeURIComponent(q)}`);
+    // Nominatim-Regeln: App muss erkennbar sein (Referrer) und darf nur selten fragen (nur auf Knopfdruck)
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de,it&accept-language=de&q=${encodeURIComponent(q)}`, { referrerPolicy: 'strict-origin' });
     const j = await r.json();
     if (!j.length) return toast('Ort nicht gefunden');
     prefs.pLoc = { lat: +j[0].lat, lng: +j[0].lon, label: j[0].display_name.split(',').slice(0, 2).join(',').trim() };
@@ -1372,7 +1437,8 @@ $('pFind').onclick = async () => {
   } catch { toast('Ortssuche nicht möglich – keine Verbindung'); }
 };
 $('pSave').onclick = () => {
-  prefs.pKey = $('pKey').value.trim(); savePrefs();
+  prefs.pKey = $('pKey').value.trim(); prefs.pProxy = cleanProxy($('pProxy').value); savePrefs();
+  if ($('pProxy').value.trim() && !prefs.pProxy) return toast('Die Cloudflare-Adresse muss mit https:// beginnen und auf .workers.dev enden');
   if (!prefs.pLoc) return toast('Bitte einen Ort suchen oder den Standort freigeben');
   if (!prefs.pKey && !prefs.pLoc.gps && !inItaly(prefs.pLoc)) return toast('Für Deutschland bitte den Tankerkönig-Schlüssel eintragen');
   priceState = null; show('home'); loadPrices(true);
@@ -1489,6 +1555,12 @@ $('pdfBtn').onclick = $('pdfBtn2').onclick = printReport;
 applyTheme();
 $('pKey').value = prefs.pKey || '';
 $('pKey').onchange = () => { prefs.pKey = $('pKey').value.trim(); savePrefs(); };
+$('pProxy').value = prefs.pProxy || '';
+$('pProxy').onchange = () => {
+  const v = $('pProxy').value.trim(), ok = cleanProxy(v);
+  if (v && !ok) return toast('Die Cloudflare-Adresse muss mit https:// beginnen und auf .workers.dev enden', 3500);
+  prefs.pProxy = ok; savePrefs();
+};
 renderPriceSetup();
 render();
 loadPrices();

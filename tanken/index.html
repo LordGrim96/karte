@@ -440,6 +440,7 @@ input[type=date] { min-height: 46px; }
       <div class="rowin"><input class="inp" id="pPlace" placeholder="PLZ oder Ort, z. B. 50667 oder Bozen"><button class="btn sec" id="pFind" type="button">Suchen</button></div>
       <button class="btn sec full" id="pGps" type="button" style="margin-top:8px">📍 Immer meinen aktuellen Standort nehmen</button>
       <p class="note" id="pLoc" style="margin:8px 0 0"></p>
+      <p class="note" style="margin:4px 0 0;font-size:.72rem">Ortssuche: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-Mitwirkende (Nominatim)</p>
       <button class="btn full" id="pSave" type="button" style="margin-top:12px">Speichern &amp; Preise laden</button>
     </div>
     <div class="card">
@@ -1364,7 +1365,8 @@ $('pGps').onclick = async () => {
 $('pFind').onclick = async () => {
   const q = $('pPlace').value.trim(); if (!q) return $('pPlace').focus();
   try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de,it&accept-language=de&q=${encodeURIComponent(q)}`);
+    // Nominatim-Regeln: App muss erkennbar sein (Referrer) und darf nur selten fragen (nur auf Knopfdruck)
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de,it&accept-language=de&q=${encodeURIComponent(q)}`, { referrerPolicy: 'strict-origin' });
     const j = await r.json();
     if (!j.length) return toast('Ort nicht gefunden');
     prefs.pLoc = { lat: +j[0].lat, lng: +j[0].lon, label: j[0].display_name.split(',').slice(0, 2).join(',').trim() };

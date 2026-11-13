@@ -28,8 +28,29 @@ jobs:
         with:
           persist-credentials: false   # Token nicht im Arbeitsordner liegen lassen
 
-      - name: Preise laden und aufbereiten
-        run: python3 scripts/carburanti_it.py out
+      - name: Preise herunterladen
+        run: |
+          # Der Server des Ministeriums ist manchmal langsam oder antwortet nur über eine
+          # der Adressen/IP-Versionen – darum mehrere Versuche.
+          dl() {
+            for host in www.mimit.gov.it mimit.gov.it www.mise.gov.it; do
+              for ipv in -4 -6; do
+                echo "Versuche $host ($ipv) für $1"
+                if curl $ipv -fsSL --retry 3 --retry-delay 15 --retry-all-errors --connect-timeout 30 --max-time 300 \
+                     -A "Mozilla/5.0 (X11; Linux x86_64) tankbuch-data" -o "$1" "https://$host/images/exportCSV/$1"; then
+                  echo "OK: $host $ipv ($(wc -c < "$1") Bytes)"; return 0
+                fi
+              done
+            done
+            return 1
+          }
+          dl anagrafica_impianti_attivi.csv
+          dl prezzo_alle_8.csv
+          head -n 3 anagrafica_impianti_attivi.csv
+          head -n 3 prezzo_alle_8.csv
+
+      - name: Preise aufbereiten
+        run: python3 scripts/carburanti_it.py out anagrafica_impianti_attivi.csv prezzo_alle_8.csv
 
       - name: Auf Branch carburanti-data veröffentlichen
         run: |

@@ -18,13 +18,19 @@
   --blue: #2f6fd6; --blue-soft: #e5eefc;
   --red: #d33a2c; --green: #0f8a57; --ghost: #cfdcd5; --shadow: 0 6px 24px rgba(10, 60, 40, .08);
   --nav-h: 68px;
+  --h1: #17a571; --h2: #0c5a3f; --h3: #083828; --hi: #2bd08f; --glow: rgba(15,122,82,.45);
 }
+/* Dunkel: automatisch nach Handy-Einstellung, oder fest über data-theme */
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #0c120f; --card: #161e1a; --text: #e7efea; --dim: #95a69c; --line: #25302a;
+  :root:not([data-theme="light"]) { --bg: #0c120f; --card: #161e1a; --text: #e7efea; --dim: #95a69c; --line: #25302a;
     --primary: #34c486; --soft: #18352a; --amber: #fbbf24; --amber-soft: #3a2f12;
     --blue: #7aa7f5; --blue-soft: #1a2740;
-    --red: #ff7b6e; --green: #4fd69b; --ghost: #2c3a33; --shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+    --red: #ff7b6e; --green: #4fd69b; --ghost: #2c3a33; --shadow: 0 6px 24px rgba(0, 0, 0, .35); color-scheme: dark; }
 }
+:root[data-theme="dark"] { --bg: #0c120f; --card: #161e1a; --text: #e7efea; --dim: #95a69c; --line: #25302a;
+    --primary: #34c486; --soft: #18352a; --amber: #fbbf24; --amber-soft: #3a2f12;
+    --blue: #7aa7f5; --blue-soft: #1a2740;
+    --red: #ff7b6e; --green: #4fd69b; --ghost: #2c3a33; --shadow: 0 6px 24px rgba(0, 0, 0, .35); color-scheme: dark; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; }
 body { background: var(--bg); color: var(--text); min-height: 100vh;
@@ -34,7 +40,7 @@ button { font: inherit; cursor: pointer; color: inherit; }
 svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
 /* Kopf */
-.top { background: linear-gradient(150deg, #17a571 0%, #0c5a3f 55%, #083828 100%); color: #fff;
+.top { background: linear-gradient(150deg, var(--h1) 0%, var(--h2) 55%, var(--h3) 100%); color: #fff;
   padding: calc(env(safe-area-inset-top) + 14px) 18px 92px; position: relative; overflow: hidden; }
 .top::after { content: ""; position: absolute; width: 340px; height: 340px; border-radius: 50%;
   background: rgba(255,255,255,.07); right: -120px; top: -160px; }
@@ -94,7 +100,7 @@ main { max-width: 640px; margin: -72px auto 0; padding: 0 16px; position: relati
 .chart .col { position: relative; height: 100%; display: flex; align-items: flex-end; justify-content: center; border-radius: 6px; }
 .chart .prev, .chart .cur { position: absolute; bottom: 0; border-radius: 6px 6px 3px 3px; transition: height .5s cubic-bezier(.2,.8,.2,1); }
 .chart .prev { width: 100%; background: var(--ghost); }
-.chart .cur { width: 62%; background: linear-gradient(180deg, #2bd08f, var(--primary)); }
+.chart .cur { width: 62%; background: linear-gradient(180deg, var(--hi), var(--primary)); }
 .chart .col.now .cur { background: linear-gradient(180deg, #ffd166, var(--amber)); }
 .chart .col.sel { background: var(--soft); }
 .months { display: grid; grid-template-columns: repeat(12, 1fr); gap: 5px; margin-top: 6px; }
@@ -148,7 +154,7 @@ main { max-width: 640px; margin: -72px auto 0; padding: 0 16px; position: relati
 .yr .h { display: flex; justify-content: space-between; align-items: baseline; }
 .yr .h b { font-size: 1.1rem; } .yr .h span { font-weight: 750; font-variant-numeric: tabular-nums; }
 .yr .track { height: 10px; border-radius: 99px; background: var(--line); margin: 8px 0; overflow: hidden; display: flex; }
-.yr .fill { height: 100%; background: linear-gradient(90deg, #2bd08f, var(--primary)); }
+.yr .fill { height: 100%; background: linear-gradient(90deg, var(--hi), var(--primary)); }
 .yr .fill.o { background: var(--blue); opacity: .75; }
 .yr.sel .fill:not(.o) { background: linear-gradient(90deg, #ffd166, var(--amber)); }
 .yr .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .8rem; color: var(--dim); }
@@ -166,7 +172,8 @@ main { max-width: 640px; margin: -72px auto 0; padding: 0 16px; position: relati
 .empty { text-align: center; color: var(--dim); padding: 26px 10px; }
 .empty .e { font-size: 2.4rem; }
 .btn { border: 0; border-radius: 14px; padding: 14px 18px; font-weight: 700; background: var(--primary); color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-@media (prefers-color-scheme: dark) { .btn, .filter button.on { color: #06251a; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is(.btn, .filter button.on) { color: var(--on-dark, #06251a); } }
+:root[data-theme="dark"] :is(.btn, .filter button.on) { color: var(--on-dark, #06251a); }
 .btn.sec { background: var(--soft); color: var(--primary); font-weight: 600; }
 .btn.del { background: transparent; color: var(--red); font-weight: 600; }
 .btn.full { width: 100%; }
@@ -188,7 +195,7 @@ nav .in { max-width: 640px; margin: 0 auto; height: var(--nav-h); display: grid;
 nav button.tab { background: none; border: 0; display: grid; justify-items: center; gap: 2px; font-size: .68rem; color: var(--dim); font-weight: 600; padding: 6px 0; }
 nav button.tab.on { color: var(--primary); }
 .fab { justify-self: center; width: 62px; height: 62px; border-radius: 22px; border: 0; margin-top: -30px;
-  background: linear-gradient(150deg, #20c07f, #0c5a3f); color: #fff; box-shadow: 0 8px 22px rgba(15,122,82,.45); display: grid; place-items: center; }
+  background: linear-gradient(150deg, var(--hi), var(--h2)); color: #fff; box-shadow: 0 8px 22px var(--glow); display: grid; place-items: center; }
 .fab svg.i { width: 30px; height: 30px; stroke-width: 2.6; }
 .fab:active { transform: scale(.94); }
 
@@ -242,6 +249,14 @@ body.sheet-open .sheet { transform: none; visibility: visible; transition-delay:
 input[type=date] { min-height: 46px; }
 [hidden] { display: none !important; }
 
+/* Aussehen */
+.swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+.sw { border: 0; background: none; display: grid; justify-items: center; gap: 4px; font-size: .74rem; color: var(--dim); font-weight: 600; padding: 0; }
+.sw i { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-style: normal; font-size: 1.1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18); outline: 3px solid transparent; outline-offset: 3px; transition: outline-color .15s; }
+.sw.on { color: var(--text); }
+.sw.on i { outline-color: var(--primary); }
+
 /* Eigener Dialog statt confirm()/prompt() */
 .dlg { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px; background: rgba(5, 15, 10, .5); }
 .dlg .box { background: var(--card); border-radius: 22px; padding: 20px; width: min(360px, 100%); box-shadow: 0 20px 50px rgba(0,0,0,.3); animation: pop .18s ease; }
@@ -259,8 +274,8 @@ input[type=date] { min-height: 46px; }
   body { background: #fff !important; color: #000 !important; padding: 0; font-size: 11pt; }
   body > *:not(#report) { display: none !important; }
   #report { display: block; color: #000; }
-  #report h1 { font-size: 20pt; margin: 0 0 2px; color: #0c5a3f; }
-  #report h2 { font-size: 12pt; margin: 18px 0 6px; color: #0c5a3f; border-bottom: 1.5px solid #0c5a3f; padding-bottom: 3px; }
+  #report h1 { font-size: 20pt; margin: 0 0 2px; color: var(--h2); }
+  #report h2 { font-size: 12pt; margin: 18px 0 6px; color: var(--h2); border-bottom: 1.5px solid var(--h2); padding-bottom: 3px; }
   #report .sub { color: #555; margin-bottom: 12px; }
   #report .kp { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   #report .kp div { border: 1px solid #cfd8d3; border-radius: 8px; padding: 8px; }
@@ -358,6 +373,11 @@ input[type=date] { min-height: 46px; }
   <!-- Daten -->
   <div class="view" id="v-data">
     <div class="card">
+      <h2>Aussehen</h2>
+      <div class="swatches" id="swatches"></div>
+      <div class="seg" id="themeSeg" style="margin:0;grid-template-columns:repeat(3,1fr)"><button type="button" data-t="auto">📱 Automatisch</button><button type="button" data-t="light">☀️ Hell</button><button type="button" data-t="dark">🌙 Dunkel</button></div>
+    </div>
+    <div class="card">
       <h2>Fahrzeuge</h2>
       <div id="cars"></div>
       <button class="btn sec full" id="addCar" style="margin-top:10px">+ Fahrzeug hinzufügen</button>
@@ -387,7 +407,7 @@ input[type=date] { min-height: 46px; }
     <button class="tab" data-v="list"><svg class="i"><use href="#i-list"/></svg>Verlauf</button>
     <button class="fab" id="fab" aria-label="Eintragen"><svg class="i"><use href="#i-plus"/></svg></button>
     <button class="tab" data-v="years"><svg class="i"><use href="#i-chart"/></svg>Jahre</button>
-    <button class="tab" data-v="data"><svg class="i"><use href="#i-gear"/></svg>Daten</button>
+    <button class="tab" data-v="data"><svg class="i"><use href="#i-gear"/></svg>Mehr</button>
   </div>
 </nav>
 
@@ -454,7 +474,7 @@ let entries = read(KEY, []);
 if (!Array.isArray(entries)) entries = [];
 let cars = read(CARS, null);
 if (!Array.isArray(cars) || !cars.length) cars = [{ id: 'default', name: 'Mein Auto' }];
-let prefs = Object.assign({ mode: 'km', car: 'default', remind: true, lastBackup: null, snooze: null }, read(PREFS, {}));
+let prefs = Object.assign({ accent: 'gruen', theme: 'auto', mode: 'km', car: 'default', remind: true, lastBackup: null, snooze: null }, read(PREFS, {}));
 // alte Einträge (vor Fahrzeugen/Kosten) ergänzen
 entries.forEach(e => { e.type ||= 'fuel'; e.car ||= cars[0].id; });
 if (!cars.some(c => c.id === prefs.car)) prefs.car = cars[0].id;
@@ -713,6 +733,36 @@ function renderBackup() {
   $('backupBanner').hidden = !msg;
   if (msg) $('backupText').innerHTML = msg;
 }
+
+/* ---------- Farben & Hell/Dunkel ---------- */
+// h: Farbverlauf oben, hi: helle Akzentfarbe, l/d: Hauptfarbe + zarter Hintergrund für hell/dunkel, bg: Seitenhintergrund hell/dunkel
+const ACCENTS = {
+  gruen:   { name: 'Grün',    h: ['#17a571', '#0c5a3f', '#083828'], hi: '#2bd08f', l: ['#0f7a52', '#e2f3ea'], d: ['#34c486', '#18352a'], bg: ['#eef3f0', '#0c120f'] },
+  petrol:  { name: 'Petrol',  h: ['#14b8a6', '#0f766e', '#042f2e'], hi: '#2dd4bf', l: ['#0f766e', '#ddf3ef'], d: ['#3dd6c3', '#123532'], bg: ['#edf4f3', '#0b1312'] },
+  blau:    { name: 'Blau',    h: ['#3b82f6', '#1d4ed8', '#172554'], hi: '#60a5fa', l: ['#1d5fd1', '#e3ecfd'], d: ['#6ea4ff', '#18284a'], bg: ['#eef2f8', '#0b0f17'] },
+  lila:    { name: 'Lila',    h: ['#a855f7', '#6d28d9', '#2e1065'], hi: '#c084fc', l: ['#7c3aed', '#efe7fd'], d: ['#b794f6', '#2a1d45'], bg: ['#f2eff8', '#100c17'] },
+  pink:    { name: 'Pink',    h: ['#ec4899', '#be185d', '#500724'], hi: '#f472b6', l: ['#be185d', '#fce7f2'], d: ['#f58bc0', '#43162d'], bg: ['#f8eff3', '#160b10'] },
+  rot:     { name: 'Rot',     h: ['#f43f5e', '#be123c', '#4c0519'], hi: '#fb7185', l: ['#c81e4a', '#fde6eb'], d: ['#ff7a95', '#44161f'], bg: ['#f8eff1', '#160b0d'] },
+  orange:  { name: 'Orange',  h: ['#fb923c', '#ea580c', '#7c2d12'], hi: '#fdba74', l: ['#c2410c', '#fdeee3'], d: ['#ff9d5c', '#42240f'], bg: ['#f8f2ed', '#15100b'] },
+  graphit: { name: 'Graphit', h: ['#64748b', '#334155', '#0f172a'], hi: '#94a3b8', l: ['#334155', '#e8ecf1'], d: ['#a5b4c8', '#222b38'], bg: ['#f0f2f5', '#0d0f13'] },
+};
+const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+function applyTheme() {
+  const a = ACCENTS[prefs.accent] || ACCENTS.gruen, root = document.documentElement;
+  if (prefs.theme === 'auto') root.removeAttribute('data-theme'); else root.dataset.theme = prefs.theme;
+  const dark = prefs.theme === 'dark' || (prefs.theme === 'auto' && darkMQ.matches);
+  const [primary, soft] = dark ? a.d : a.l;
+  const v = { '--h1': a.h[0], '--h2': a.h[1], '--h3': a.h[2], '--hi': a.hi, '--primary': primary, '--soft': soft,
+    '--bg': dark ? a.bg[1] : a.bg[0], '--glow': a.h[1] + '73', '--on-dark': a.h[2] };
+  for (const k in v) root.style.setProperty(k, v[k]);
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', a.h[1]);
+  $('swatches').innerHTML = Object.entries(ACCENTS).map(([id, x]) =>
+    `<button type="button" class="sw${id === prefs.accent ? ' on' : ''}" data-a="${id}" aria-label="${x.name}"><i style="background:linear-gradient(150deg,${x.h[0]},${x.h[1]})">${id === prefs.accent ? '✓' : ''}</i>${x.name}</button>`).join('');
+  document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.t === prefs.theme));
+}
+darkMQ.addEventListener?.('change', applyTheme);
+$('swatches').onclick = e => { const b = e.target.closest('.sw'); if (!b) return; prefs.accent = b.dataset.a; savePrefs(); applyTheme(); };
+$('themeSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; prefs.theme = b.dataset.t; savePrefs(); applyTheme(); };
 
 /* ---------- Navigation ---------- */
 function show(v) {
@@ -1009,6 +1059,7 @@ function printReport() {
 }
 $('pdfBtn').onclick = $('pdfBtn2').onclick = printReport;
 
+applyTheme();
 render();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
   addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

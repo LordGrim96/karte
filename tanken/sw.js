@@ -2,7 +2,7 @@
 // - App-Dateien: sofort aus dem Speicher, im Hintergrund aktualisieren (neue Version beim nächsten Start)
 // - Bibliotheken vom CDN (Karte, Texterkennung): feste Versionen, darum dauerhaft aus dem Speicher
 // - Preise, Karten-Kacheln, Zwischendienst: immer direkt aus dem Netz (nicht hier zwischengespeichert)
-const CACHE = 'tankbuch-v15';
+const CACHE = 'tankbuch-v16';
 const LIBS = 'tankbuch-libs-v1';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 

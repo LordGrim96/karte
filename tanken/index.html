@@ -454,6 +454,26 @@ body.map-open nav { display: none; }
       <div id="termList"></div>
       <button class="btn sec full" id="addTerm" style="margin-top:10px">+ Termin hinzufügen</button>
     </div>
+    <div class="card" id="syncCard">
+      <h2>☁️ Profil &amp; Cloud-Sync</h2>
+      <div id="syncOff">
+        <p class="note">Mit einem Profil sind deine Daten zusätzlich in der Cloud gesichert und auf mehreren Handys gleich – z. B. auf einem neuen Handy oder gemeinsam mit deinem Partner (gleiches Profil, gleiches Passwort). Alles wird <b>auf dem Handy mit deinem Passwort verschlüsselt</b>; in der Cloud liegt nur unlesbarer Datensalat.</p>
+        <label class="flab" for="syName">Profilname</label>
+        <input class="inp" id="syName" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="z. B. edengrim-auto">
+        <label class="flab" for="syPass">Passwort (mind. 8 Zeichen)</label>
+        <input class="inp" id="syPass" type="password" autocomplete="current-password" placeholder="••••••••">
+        <p class="note" style="margin:6px 0 0">⚠️ Passwort gut merken! Ohne Passwort kommt niemand – auch du nicht – an die Cloud-Daten. Die Daten auf dem Handy bleiben trotzdem.</p>
+        <button class="btn full" id="syLogin" type="button" style="margin-top:12px">Anmelden / Profil anlegen</button>
+      </div>
+      <div id="syncOn" hidden>
+        <p class="note" id="syncInfo" style="margin-bottom:12px"></p>
+        <div class="stack">
+          <button class="btn sec" id="syNow" type="button">↻ Jetzt synchronisieren</button>
+          <button class="btn sec" id="syOut" type="button">Abmelden (Daten bleiben auf dem Handy)</button>
+          <button class="btn del" id="syDel" type="button">Profil in der Cloud löschen</button>
+        </div>
+      </div>
+    </div>
     <div class="card" id="alarmCard">
       <h2>🔔 Preis-Alarm per Telegram</h2>
       <p class="note">Dein Cloudflare-Worker schaut jeden Morgen in die Preise und schickt dir eine Telegram-Nachricht, wenn in deiner Nähe eine Tankstelle unter deinem Wunschpreis liegt – auch wenn die App geschlossen ist. Einrichten: Anleitung <a href="https://github.com/LordGrim96/karte/blob/main/cloudflare/ANLEITUNG.md" target="_blank" rel="noopener">cloudflare/ANLEITUNG.md</a> (Teil 2).</p>
@@ -616,7 +636,7 @@ const txt = (v, n) => String(v ?? '').slice(0, n);
 function cleanEntry(e) {
   if (!e || typeof e !== 'object') return null;
   const x = { id: safeId(e.id) || uid(), date: isoOrNull(e.date), cost: nOrNull(e.cost), type: e.type === 'cost' ? 'cost' : 'fuel',
-    car: safeId(e.car), note: txt(e.note, 200), created: nOrNull(e.created) || 0 };
+    car: safeId(e.car), note: txt(e.note, 200), created: nOrNull(e.created) || 0, updated: nOrNull(e.updated) || 0 };
   if (!x.date || !(x.cost > 0)) return null;
   if (x.type === 'cost') x.cat = CATS.some(c => c[0] === e.cat) ? e.cat : 'sonst';
   else Object.assign(x, { km: nOrNull(e.km), odo: nOrNull(e.odo), liter: nOrNull(e.liter) });
@@ -624,14 +644,14 @@ function cleanEntry(e) {
 }
 function cleanCar(c) {
   if (!c || !safeId(c.id)) return null;
-  const x = { id: safeId(c.id), name: txt(c.name || 'Auto', 60) };
+  const x = { id: safeId(c.id), name: txt(c.name || 'Auto', 60), updated: nOrNull(c.updated) || 0 };
   if (c.odo && nOrNull(c.odo.value) != null) x.odo = { value: nOrNull(c.odo.value), date: isoOrNull(c.odo.date) || today(), at: nOrNull(c.odo.at) || 0 };
   return x;
 }
 function cleanTerm(t) {
   if (!t || !safeId(t.id) || !t.title) return null;
   return { id: safeId(t.id), car: safeId(t.car), title: txt(t.title, 60), due: isoOrNull(t.due), dueKm: nOrNull(t.dueKm),
-    everyMonths: nOrNull(t.everyMonths), everyKm: nOrNull(t.everyKm) };
+    everyMonths: nOrNull(t.everyMonths), everyKm: nOrNull(t.everyKm), updated: nOrNull(t.updated) || 0 };
 }
 const cleanList = (a, f) => Array.isArray(a) ? a.map(f).filter(Boolean) : [];
 
@@ -646,7 +666,9 @@ if (!cars.some(c => c.id === prefs.car)) prefs.car = cars[0].id;
 let editId = null, selectedYear = null, selMonth = null, kind = 'fuel', mode = prefs.mode, cat = 'werkstatt', listFilter = 'all';
 
 function save() {
+  if (window.syncReady) stamp();
   const ok = write(KEY, entries) && write(CARS, cars);
+  if (window.syncReady) scheduleSync();
   if (!ok) toast('Speichern nicht möglich – bitte Sicherung herunterladen!');
   else if (!save.asked) { save.asked = true; protectStorage(true); }
 }
@@ -1200,7 +1222,7 @@ const TPL = [ // Name, Symbol, Monate, km, Kostenkategorie
   ['Bremsen', '🛑', null, 40000, 'werkstatt'], ['Zahnriemen', '⚙️', null, 120000, 'werkstatt'], ['Eigener Termin', '📌', null, null, 'sonst']];
 let terms = cleanList(read(TERMS, []), cleanTerm);
 let termEdit = null, termTpl = 0;
-const saveTerms = () => write(TERMS, terms) || toast('Speichern nicht möglich');
+const saveTerms = () => { if (window.syncReady) { stamp(); scheduleSync(); } return write(TERMS, terms) || toast('Speichern nicht möglich'); };
 const addMonths = (d, m) => { const x = new Date(d + 'T00:00'); x.setMonth(x.getMonth() + m); return iso(x); };
 
 // Kilometerstand schätzen: letzter bekannter Tachostand + seitdem gefahrene km
@@ -1758,7 +1780,147 @@ async function protectStorage(ask) {
     : '⚠️ Der Browser hat den dauerhaften Speicher (noch) nicht freigegeben. Tipp: App auf den Home-Bildschirm legen und regelmäßig sichern.';
 }
 protectStorage(entries.length > 0);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadPrices(); renderTerms(); } });
+
+/* ---------- Profile & Cloud-Sync (Ende-zu-Ende verschlüsselt) ---------- */
+// Änderungen erkennen: jedes Element bekommt einen Zeitstempel, gelöschte einen „Grabstein“,
+// damit beim Abgleich zweier Handys klar ist, welcher Stand neuer ist.
+const TOMB = 'tankbuch-geloescht';
+let tomb = read(TOMB, {}); if (!tomb || typeof tomb !== 'object') tomb = {};
+const known = new Map();
+const itemKey = x => JSON.stringify({ ...x, updated: undefined });
+const groups = () => [['e', entries], ['c', cars], ['t', terms]];
+function rememberAll() { known.clear(); for (const [p, list] of groups()) for (const x of list) known.set(p + ':' + x.id, itemKey(x)); }
+function stamp() {
+  const now = Date.now(), seen = new Set();
+  for (const [p, list] of groups()) for (const x of list) {
+    const k = p + ':' + x.id, j = itemKey(x); seen.add(k);
+    if (known.get(k) !== j) { x.updated = now; known.set(k, j); delete tomb[k]; }
+  }
+  for (const k of [...known.keys()]) if (!seen.has(k)) { tomb[k] = now; known.delete(k); }
+  const old = now - 365 * 864e5;
+  for (const k in tomb) if (tomb[k] < old) delete tomb[k];
+  write(TOMB, tomb);
+}
+rememberAll();
+window.syncReady = true;
+
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
+const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+const enc = new TextEncoder(), dec = new TextDecoder();
+// Aus Profilname + Passwort: Schlüssel zum Verschlüsseln und ein getrennter Anmelde-Schlüssel (PBKDF2, 310.000 Runden)
+async function deriveProfile(name, pass) {
+  const n = name.trim().toLowerCase();
+  const base = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode('tankbuch|' + n), iterations: 310000 }, base, 512);
+  const id = hex(await crypto.subtle.digest('SHA-256', enc.encode('tankbuch-id|' + n))).slice(0, 40);
+  return { name: name.trim(), id, k: b64u(bits.slice(0, 32)), a: b64u(bits.slice(32, 64)), v: 0, at: 0 };
+}
+const aesKey = () => crypto.subtle.importKey('raw', unb64u(prefs.sync.k), 'AES-GCM', false, ['encrypt', 'decrypt']);
+async function seal(obj) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await aesKey(), enc.encode(JSON.stringify(obj)));
+  const out = new Uint8Array(12 + ct.byteLength); out.set(iv); out.set(new Uint8Array(ct), 12);
+  return b64u(out);
+}
+async function open_(data) {
+  const raw = unb64u(data);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, await aesKey(), raw.slice(12));
+  return JSON.parse(dec.decode(pt));
+}
+async function cloud(method, body) {
+  const r = await fetch(`${proxyUrl()}/sync/${prefs.sync.id}`, { method, headers: { 'X-Auth': prefs.sync.a, 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
+  let j = {}; try { j = await r.json(); } catch {}
+  return { status: r.status, ...j };
+}
+// zwei Stände zusammenführen: pro Element gewinnt der neuere, Gelöschtes bleibt gelöscht
+function mergeAll(remote) {
+  const t = { ...remote.tomb };
+  for (const k in tomb) t[k] = Math.max(t[k] || 0, tomb[k]);
+  const pick = (p, local, rem, clean) => {
+    const m = new Map();
+    for (const x of [...cleanList(rem, clean), ...local]) { const k = p + ':' + x.id, cur = m.get(k); if (!cur || (x.updated || 0) > (cur.updated || 0)) m.set(k, x); }
+    return [...m.values()].filter(x => !(t[p + ':' + x.id] >= (x.updated || 0)));
+  };
+  return { entries: pick('e', entries, remote.entries, cleanEntry), cars: pick('c', cars, remote.cars, cleanCar), terms: pick('t', terms, remote.terms, cleanTerm), tomb: t };
+}
+let syncBusy = false, syncAgain = false, syncTimer = null;
+function scheduleSync() { if (!prefs.sync) return; clearTimeout(syncTimer); syncTimer = setTimeout(() => syncNow(false), 2500); }
+async function syncNow(manual) {
+  if (!prefs.sync) return;
+  if (syncBusy) { syncAgain = true; return; }
+  syncBusy = true; renderSync('Synchronisiere …');
+  try {
+    for (let tries = 0; tries < 3; tries++) {
+      const r = await cloud('GET');
+      if (r.status === 401) throw new Error('Passwort falsch oder Profil gehört jemand anderem');
+      if (r.status === 503) throw new Error(r.error);
+      if (r.status !== 200 && r.status !== 404) throw new Error('Cloud nicht erreichbar');
+      const remote = r.status === 200 ? await open_(r.data).catch(() => { throw new Error('Daten konnten nicht entschlüsselt werden (falsches Passwort?)'); }) : { entries: [], cars: [], terms: [], tomb: {} };
+      const m = mergeAll(remote);
+      const before = JSON.stringify([entries, cars, terms]);
+      entries = m.entries; cars = m.cars.length ? m.cars : cars; terms = m.terms; tomb = m.tomb;
+      if (!cars.some(c => c.id === prefs.car)) { prefs.car = cars[0].id; savePrefs(); }
+      write(KEY, entries); write(CARS, cars); write(TERMS, terms); write(TOMB, tomb); rememberAll();
+      if (JSON.stringify([entries, cars, terms]) !== before) render();
+      const same = r.status === 200 && JSON.stringify([remote.entries, remote.cars, remote.terms, remote.tomb]) === JSON.stringify([entries, cars, terms, tomb]);
+      if (same) { prefs.sync.v = r.v; break; }
+      const p = await cloud('PUT', { base: r.status === 200 ? r.v : 0, data: await seal({ entries, cars, terms, tomb }) });
+      if (p.status === 409) continue;               // anderes Handy war schneller → nochmal zusammenführen
+      if (p.status !== 200) throw new Error(p.error || 'Speichern in der Cloud fehlgeschlagen');
+      prefs.sync.v = p.v; break;
+    }
+    prefs.sync.at = Date.now(); prefs.sync.err = ''; savePrefs();
+    if (manual) toast('Synchronisiert ✓');
+  } catch (e) {
+    prefs.sync.err = /fetch|network|load/i.test(e.message) ? 'Keine Verbindung – wird später nachgeholt' : e.message; savePrefs();
+    if (manual) toast(prefs.sync.err, 3500);
+  }
+  syncBusy = false; renderSync();
+  if (syncAgain) { syncAgain = false; scheduleSync(); }
+}
+function renderSync(busy) {
+  const on = !!prefs.sync;
+  $('syncOff').hidden = on; $('syncOn').hidden = !on;
+  if (!on) return;
+  const when = prefs.sync.at ? new Date(prefs.sync.at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'noch nie';
+  $('syncInfo').innerHTML = `Angemeldet als <b>${esc(prefs.sync.name)}</b> 🔒<br>${busy ? busy : 'Zuletzt synchronisiert: ' + when}${prefs.sync.err && !busy ? `<br>⚠️ ${esc(prefs.sync.err)}` : ''}`;
+}
+$('syLogin').onclick = async () => {
+  const name = $('syName').value.trim(), pass = $('syPass').value;
+  if (!/^[\w.@+-]{3,40}$/.test(name)) return toast('Profilname: 3–40 Zeichen, nur Buchstaben, Zahlen und . _ - @');
+  if (pass.length < 8) return toast('Das Passwort braucht mindestens 8 Zeichen');
+  $('syLogin').disabled = true; $('syLogin').textContent = 'Verschlüssele …';
+  try {
+    prefs.sync = await deriveProfile(name, pass);
+    const r = await cloud('GET');
+    if (r.status === 401) { prefs.sync = null; throw new Error('Dieser Profilname ist schon vergeben oder das Passwort ist falsch'); }
+    if (r.status === 404 && !await ask(`Neues Profil „${name}“ anlegen und deine Daten verschlüsselt in die Cloud laden?`, { ok: 'Anlegen' })) { prefs.sync = null; return; }
+    if (r.status !== 200 && r.status !== 404) { prefs.sync = null; throw new Error(r.error || 'Cloud nicht erreichbar'); }
+    $('syPass').value = '';
+    await syncNow(false);
+    if (!prefs.sync.at) throw new Error(prefs.sync.err || 'Cloud nicht erreichbar');
+    toast(r.status === 404 ? 'Profil angelegt ✓' : 'Angemeldet – Daten zusammengeführt ✓', 3000);
+  } catch (e) {
+    if (prefs.sync && !prefs.sync.at) prefs.sync = null;   // nie erfolgreich verbunden → nicht als angemeldet zählen
+    toast(/fetch|network|load/i.test(e.message) ? 'Keine Verbindung zur Cloud' : e.message, 3500);
+  }
+  finally { $('syLogin').disabled = false; $('syLogin').textContent = 'Anmelden / Profil anlegen'; savePrefs(); renderSync(); }
+};
+$('syNow').onclick = () => syncNow(true);
+$('syOut').onclick = async () => {
+  if (!await ask('Abmelden? Deine Daten bleiben auf diesem Handy, werden aber nicht mehr abgeglichen.', { ok: 'Abmelden' })) return;
+  prefs.sync = null; savePrefs(); renderSync(); toast('Abgemeldet');
+};
+$('syDel').onclick = async () => {
+  if (!await ask('Profil und alle Daten in der Cloud endgültig löschen? Auf diesem Handy bleibt alles erhalten.', { ok: 'In der Cloud löschen', danger: true })) return;
+  const r = await cloud('DELETE').catch(() => ({ status: 0 }));
+  if (r.status !== 200) return toast('Löschen nicht möglich – keine Verbindung?');
+  prefs.sync = null; savePrefs(); renderSync(); toast('Cloud-Profil gelöscht');
+};
+renderSync();
+if (prefs.sync) syncNow(false);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadPrices(); renderTerms(); if (prefs.sync && Date.now() - (prefs.sync.at || 0) > 60e3) syncNow(false); } });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
   addEventListener('load', () => {
     const had = !!navigator.serviceWorker.controller;

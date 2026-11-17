@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c5a3f">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob:; connect-src 'self' https://creativecommons.tankerkoenig.de https://raw.githubusercontent.com https://nominatim.openstreetmap.org https://cdn.jsdelivr.net https://tessdata.projectnaptha.com https://*.workers.dev data: blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob:; connect-src 'self' https://creativecommons.tankerkoenig.de https://raw.githubusercontent.com https://nominatim.openstreetmap.org https://cdn.jsdelivr.net https://tessdata.projectnaptha.com https://*.workers.dev data: blob:; img-src 'self' data: blob: https://tile.openstreetmap.org; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Tankbuch</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -251,6 +251,15 @@ body.sheet-open .scrim { opacity: 1; pointer-events: auto; }
 input[type=date] { min-height: 46px; }
 [hidden] { display: none !important; }
 
+/* Tankstelle beim Eintragen erkennen */
+.here { display: flex; align-items: center; gap: 10px; border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; background: var(--soft); font-size: .86rem; }
+.here .em { font-size: 1.3rem; }
+.here .tx { flex: 1; min-width: 0; }
+.here .tx b { font-weight: 700; }
+.here .tx small { display: block; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.here button { border: 0; border-radius: 10px; padding: 7px 11px; font-weight: 700; font-size: .8rem; background: var(--primary); color: #fff; flex: none; }
+.here.done button { background: none; color: var(--primary); }
+
 /* Spritpreise */
 .st { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 11px 2px; border-bottom: 1px solid var(--line); text-decoration: none; color: inherit; }
 .st:last-of-type { border-bottom: 0; }
@@ -270,6 +279,27 @@ input[type=date] { min-height: 46px; }
 .rowin { display: flex; gap: 8px; }
 .rowin .inp { flex: 1; min-width: 0; }
 .rowin .btn { padding: 10px 14px; flex: none; }
+
+/* Karte der Tankstellen */
+.pmap-wrap { position: relative; margin-top: 12px; }
+.pmap { height: 210px; border-radius: 16px; overflow: hidden; background: var(--soft); z-index: 0; }
+.pmap-btn { position: absolute; right: 8px; top: 8px; z-index: 500; border: 0; border-radius: 10px; padding: 6px 10px; font-size: .8rem; font-weight: 700;
+  background: var(--card); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+.pmap-wrap.big { position: fixed; inset: 0; z-index: 45; margin: 0; background: var(--card); padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+.pmap-wrap.big .pmap { height: 100%; border-radius: 0; }
+.pmap-wrap.big .pmap-btn { top: calc(env(safe-area-inset-top) + 12px); right: 12px; padding: 9px 14px; font-size: .9rem; }
+.pm { background: none; border: 0; }
+body.map-open nav { display: none; }
+.pm span { display: inline-block; transform: translate(-50%, -100%); white-space: nowrap; background: var(--card); color: var(--text); border: 2px solid var(--line);
+  border-radius: 10px; padding: 2px 6px; font: 700 12px/1.2 -apple-system, system-ui, sans-serif; box-shadow: 0 2px 6px rgba(0,0,0,.25); position: relative; }
+.pm span::after { content: ""; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); border: 5px solid transparent; border-top-color: var(--line); border-bottom: 0; }
+.pm.best span { background: var(--primary); color: #fff; border-color: var(--primary); }
+.pm.best span::after { border-top-color: var(--primary); }
+.pm.near span { border-color: var(--blue); }
+.leaflet-popup-content { font: 13px/1.4 -apple-system, system-ui, sans-serif; margin: 10px 12px; }
+.leaflet-popup-content b { font-size: 14px; }
+.leaflet-popup-content a { color: var(--primary); font-weight: 700; }
+.leaflet-container .leaflet-control-attribution { font-size: 9px; }
 
 /* Termine */
 .due { display: flex; align-items: center; gap: 12px; padding: 10px 2px; border: 0; border-bottom: 1px solid var(--line); background: none; width: 100%; text-align: left; }
@@ -424,6 +454,12 @@ input[type=date] { min-height: 46px; }
       <div id="termList"></div>
       <button class="btn sec full" id="addTerm" style="margin-top:10px">+ Termin hinzufügen</button>
     </div>
+    <div class="card" id="alarmCard">
+      <h2>🔔 Preis-Alarm per Telegram</h2>
+      <p class="note">Dein Cloudflare-Worker schaut jeden Morgen in die Preise und schickt dir eine Telegram-Nachricht, wenn in deiner Nähe eine Tankstelle unter deinem Wunschpreis liegt – auch wenn die App geschlossen ist. Einrichten: Anleitung <a href="https://github.com/LordGrim96/karte/blob/main/cloudflare/ANLEITUNG.md" target="_blank" rel="noopener">cloudflare/ANLEITUNG.md</a> (Teil 2).</p>
+      <button class="btn sec full" id="alarmPos" type="button">📍 Meine Koordinaten für den Alarm anzeigen</button>
+      <p class="note" id="alarmPosOut" style="margin:8px 0 0" hidden></p>
+    </div>
     <div class="card" id="priceSetup">
       <h2>Spritpreise in der Nähe</h2>
       <p class="note">Aktuelle Preise für <b>Deutschland</b> und <b>Italien inkl. Südtirol</b>. Das Land wird automatisch am Ort erkannt.</p>
@@ -496,6 +532,7 @@ input[type=date] { min-height: 46px; }
     <span style="flex:1"><b id="scanTitle">Bon fotografieren</b><small id="scanSub">Betrag, Liter und Datum werden ausgelesen</small><span class="prog"><i id="scanProg"></i></span></span>
   </button>
   <input type="file" id="scanFile" accept="image/*" capture="environment" hidden>
+  <div class="here" id="hereBox" hidden></div>
 
   <label class="amount" id="amountBox"><input id="f-cost" inputmode="decimal" placeholder="0,00" aria-label="Betrag"><span>€</span></label>
   <div class="cap" id="amountCap">Betrag laut Bon</div>
@@ -901,6 +938,7 @@ function show(v) {
   document.querySelectorAll('.view').forEach(el => el.classList.toggle('on', el.id === 'v-' + v));
   document.querySelectorAll('nav .tab').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   window.scrollTo({ top: 0 });
+  if (v === 'home' && pmap) setTimeout(() => pmap.invalidateSize(), 50);
 }
 document.querySelectorAll('nav .tab').forEach(b => b.onclick = () => show(b.dataset.v));
 $('year').onchange = e => { selectedYear = +e.target.value; selMonth = null; render(); };
@@ -918,6 +956,7 @@ function setKind(k) {
   document.querySelectorAll('#kind button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
   document.querySelectorAll('.fuel-only').forEach(el => el.hidden = k !== 'fuel');
   document.querySelectorAll('.cost-only').forEach(el => el.hidden = k !== 'cost');
+  if ($('hereBox')) $('hereBox').hidden = k !== 'fuel' || !here;
   $('amountBox').classList.toggle('o', k === 'cost');
   $('amountCap').textContent = k === 'fuel' ? 'Betrag laut Bon' : 'Betrag';
   $('noteField').style.gridColumn = k === 'cost' ? '1 / -1' : '';
@@ -963,6 +1002,8 @@ function openSheet(e) {
   $('f-dist').value = e && e.type === 'fuel' ? f(m === 'km' ? e.km : e.odo) : '';
   setMode(m);
   resetScan();
+  $('f-liter').dataset.auto = '';
+  if (!e) setTimeout(detectStation, 0); else { here = null; $('hereBox').hidden = true; }
   $('formTitle').textContent = e ? 'Eintrag bearbeiten' : 'Eintragen';
   $('saveBtn').textContent = e ? 'Änderung speichern' : 'Speichern';
   $('delBtn').hidden = !e;
@@ -975,6 +1016,69 @@ $('kind').onclick = e => { const b = e.target.closest('button'); if (b) setKind(
 $('seg').onclick = e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); };
 $('catpick').onclick = e => { const b = e.target.closest('button'); if (b) setCat(b.dataset.c); };
 ['f-cost', 'f-dist', 'f-liter', 'f-date', 'f-car'].forEach(id => $(id).addEventListener('input', updateCalc));
+
+/* Tankstelle beim Eintragen erkennen (Standort + Spritpreise) */
+let here = null, hereRun = 0;
+async function nearestStation(pos) {
+  if (inItaly(pos)) {
+    const data = await italyTiles(pos, 1) || await italyViaProxy(pos);
+    if (!data) return null;
+    const fuel = prefs.pType === 'diesel' ? 'd' : 'b';
+    const best = data.items.map(x => ({ x, d: distKm(pos, x) })).filter(o => o.d <= 0.3 && o.x.p && o.x.p[fuel]).sort((a, b) => a.d - b.d)[0];
+    if (!best) return null;
+    const p = best.x.p[fuel];
+    return { name: txt(best.x.br || best.x.n, 60), street: txt(`${best.x.a}, ${best.x.c}`, 90), price: +(p[0] || p[1]), self: !!p[0], dist: best.d, it: true };
+  }
+  if (!prefs.pKey) return null;
+  const u = `https://creativecommons.tankerkoenig.de/json/list.php?lat=${pos.lat.toFixed(3)}&lng=${pos.lng.toFixed(3)}&rad=1&sort=dist&type=${prefs.pType}&apikey=${encodeURIComponent(prefs.pKey)}`;
+  const j = await (await fetch(u)).json();
+  const x = (j.stations || []).find(s => +s.dist <= 0.3 && +s.price > 0);
+  return x ? { name: txt(x.brand || x.name, 60), street: txt([x.street, x.houseNumber, x.place].filter(Boolean).join(' '), 90), price: +x.price, dist: +x.dist } : null;
+}
+async function detectStation() {
+  here = null; $('hereBox').hidden = true;
+  if (!prefs.pLoc || editId) return;           // nur wenn Spritpreise eingerichtet sind, nur bei neuen Einträgen
+  const run = ++hereRun;
+  try {
+    const pos = await getPosition();
+    const st = await nearestStation(pos);
+    if (run !== hereRun || !st || !Number.isFinite(st.price) || !document.body.classList.contains('sheet-open') || kind !== 'fuel') return;
+    here = st;
+    const sorte = prefs.pType === 'diesel' ? 'Diesel' : st.it ? 'Benzin' : prefs.pType === 'e5' ? 'Super E5' : 'Super E10';
+    $('hereBox').className = 'here';
+    $('hereBox').innerHTML = `<span class="em">📍</span><div class="tx">Du bist bei <b>${esc(st.name)}</b> – ${sorte} <b>${num(st.price, 3)} €/l</b>${st.self ? ' (Self)' : ''}
+      <small>${esc(st.street)}</small></div><button type="button" id="hereUse">Übernehmen</button>`;
+    $('hereBox').hidden = false;
+    $('hereUse').onclick = () => {
+      if (!$('f-note').value) $('f-note').value = st.name;
+      here.used = true; fillLiterFromPrice(true);
+      $('hereBox').classList.add('done'); $('hereUse').textContent = '✓';
+      toast('Tankstelle übernommen – Liter werden aus dem Betrag berechnet');
+    };
+  } catch { /* kein Standort oder keine Verbindung – dann eben ohne Vorschlag */ }
+}
+// Liter aus Betrag und Literpreis der erkannten Tankstelle ausrechnen (solange du sie nicht selbst änderst)
+function fillLiterFromPrice(force) {
+  if (!here || !here.used) return;
+  const cost = parseNum($('f-cost').value), li = $('f-liter');
+  if (!(cost > 0) || (li.value && li.dataset.auto !== '1' && !force)) return;
+  li.value = String(Math.round(cost / here.price * 100) / 100).replace('.', ','); li.dataset.auto = '1';
+  updateCalc();
+}
+$('f-cost').addEventListener('input', () => fillLiterFromPrice(false));
+$('f-liter').addEventListener('input', () => { $('f-liter').dataset.auto = ''; });
+
+/* Koordinaten für den Telegram-Alarm */
+$('alarmPos').onclick = async () => {
+  const out = $('alarmPosOut');
+  try {
+    const p = prefs.pLoc && !prefs.pLoc.gps ? prefs.pLoc : await getPosition();
+    const lat = p.lat.toFixed(3), lng = p.lng.toFixed(3);
+    out.innerHTML = `ALARM_LAT = <b>${lat}</b><br>ALARM_LNG = <b>${lng}</b><br><button class="linkbtn" type="button" id="alarmCopy">Kopieren</button>`;
+    out.hidden = false;
+    $('alarmCopy').onclick = () => navigator.clipboard?.writeText(`ALARM_LAT=${lat}\nALARM_LNG=${lng}`).then(() => toast('Kopiert ✓'), () => toast('Bitte von Hand abschreiben'));
+  } catch (e) { out.textContent = e.message + ' – du kannst auch unter „Spritpreise“ einen Ort suchen.'; out.hidden = false; }
+};
 $('list').addEventListener('click', e => { const b = e.target.closest('.entry'); if (b) openSheet(entries.find(x => x.id === b.dataset.id)); });
 
 $('form').addEventListener('submit', ev => {
@@ -1268,6 +1372,14 @@ function distKm(a, b) {
   const h = Math.sin(dLa / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLo / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
+// für die Karte: die 30 günstigsten (plus die nächste), Standort nur grob (≈100 m) merken
+function mapStations(all) {
+  const sel = [...all].sort((a, b) => a.price - b.price || a.dist - b.dist).slice(0, 30);
+  const near = [...all].sort((a, b) => a.dist - b.dist)[0];
+  if (near && !sel.includes(near)) sel.push(near);
+  return sel.map(x => ({ name: x.name, street: x.street, place: x.place, price: x.price, lat: x.lat, lng: x.lng, dist: x.dist, near: x === near }));
+}
+const roughPos = p => ({ lat: Math.round(p.lat * 1000) / 1000, lng: Math.round(p.lng * 1000) / 1000 });
 // die 5 günstigsten – und die nächstgelegene Tankstelle, falls sie nicht schon dabei ist
 function pickStations(all) {
   const cheap = [...all].sort((a, b) => a.price - b.price || a.dist - b.dist).slice(0, 5);
@@ -1354,7 +1466,7 @@ async function loadItaly(pos) {
     const price = p[0] || p[1], dist = distKm(pos, x);
     return dist <= rad && +price > 0 && Number.isFinite(dist) ? { name: txt(x.br || x.n, 60), street: txt(x.a, 80), place: txt(x.c, 40), dist, price: +price, self: !!p[0], when: isoOrNull(String(p[2] || '').slice(0, 10)), lat: +x.lat, lng: +x.lng } : null;
   }).filter(Boolean);
-  return { stations: pickStations(stations), updated: data.updated };
+  return { stations: pickStations(stations), map: mapStations(stations), updated: data.updated };
 }
 async function loadPrices(force = false) {
   if (!prefs.pLoc || priceBusy) return renderPrices();
@@ -1364,17 +1476,17 @@ async function loadPrices(force = false) {
     let pos = prefs.pLoc;
     if (pos.gps) pos = await getPosition();
     if (inItaly(pos)) {
-      priceState = { at: Date.now(), type: prefs.pType, rad: prefs.pRad, country: 'it', ...(await loadItaly(pos)), error: null };
+      priceState = { at: Date.now(), type: prefs.pType, rad: prefs.pRad, country: 'it', ...(await loadItaly(pos)), error: null, pos: roughPos(pos) };
       throw null;  // fertig – überspringt die deutsche Abfrage
     }
     if (!prefs.pKey) throw new Error('Für Deutschland wird ein Tankerkönig-Schlüssel gebraucht (unter „Mehr“)');
     const u = `https://creativecommons.tankerkoenig.de/json/list.php?lat=${pos.lat.toFixed(3)}&lng=${pos.lng.toFixed(3)}&rad=${Math.min(25, prefs.pRad)}&sort=dist&type=${prefs.pType}&apikey=${encodeURIComponent(prefs.pKey)}`;
     const r = await fetch(u), j = await r.json();
     if (!j.ok) throw new Error(j.message || 'Abfrage fehlgeschlagen');
-    const st = pickStations((j.stations || []).filter(x => x.isOpen && x.price > 0)
+    const st = ((j.stations || []).filter(x => x.isOpen && x.price > 0)
       .map(x => ({ name: txt(x.brand || x.name, 60), street: txt([x.street, x.houseNumber].filter(Boolean).join(' '), 80), place: txt(x.place, 40), dist: +x.dist, price: +x.price, lat: +x.lat, lng: +x.lng }))
       .filter(x => [x.dist, x.price, x.lat, x.lng].every(Number.isFinite)));
-    priceState = { at: Date.now(), type: prefs.pType, rad: prefs.pRad, country: 'de', stations: st, error: null };
+    priceState = { at: Date.now(), type: prefs.pType, rad: prefs.pRad, country: 'de', stations: pickStations(st), map: mapStations(st), error: null, pos: roughPos(pos) };
   } catch (e) {
     if (e === null) { write(PRICE_CACHE, priceState); priceBusy = false; return renderPrices(); }
     priceState = { ...(priceState || {}), error: /fetch|network|load/i.test(e.message) ? 'Keine Verbindung zu den Spritpreisen' : e.message };
@@ -1410,9 +1522,69 @@ function renderPrices() {
       : `<p class="note" style="margin:0">${priceBusy ? 'Preise werden geladen …' : s && s.error ? '⚠️ ' + esc(s.error) : `Keine geöffnete Tankstelle mit aktuellem Preis im Umkreis von ${it ? prefs.pRad : Math.min(25, prefs.pRad)} km gefunden. Umkreis unter „Mehr“ vergrößern.`}</p>`}
     <div class="small"><span>${s && s.at ? 'Stand ' + new Date(s.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + (s.error && list.length ? ' · ⚠️ ' + esc(s.error) : '') : ''}${priceBusy ? ' · lädt …' : ''}</span>
       <button class="linkbtn" id="pRefresh">↻ Aktualisieren</button></div>
-    <div class="small" style="margin-top:4px"><span>${it ? `Daten: MIMIT Osservaprezzi (IODL 2.0)${s.updated ? ', Stand ' + dmy(s.updated.slice(0, 10)) : ''}` : 'Daten: MTS-K via Tankerkönig (CC BY 4.0)'} · Antippen öffnet die Route</span></div>`;
+    <div class="small" style="margin-top:4px"><span>${it ? `Daten: MIMIT Osservaprezzi (IODL 2.0)${s.updated ? ', Stand ' + dmy(s.updated.slice(0, 10)) : ''}` : 'Daten: MTS-K via Tankerkönig (CC BY 4.0)'} · Antippen öffnet die Route</span></div>
+    ${list.length && s.map && s.map.length ? `<div class="pmap-wrap" id="pmapWrap"><div class="pmap" id="pmap" role="img" aria-label="Karte der Tankstellen"></div>
+      <button class="pmap-btn" id="pmapBig" type="button">⤢ Groß</button></div>` : ''}`;
   $('pRefresh').onclick = () => loadPrices(true);
+  if ($('pmap')) drawMap(s);
 }
+/* Karte (Leaflet + OpenStreetMap), wird nur bei Bedarf geladen */
+let leafletP = null, pmap = null;
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  return leafletP ||= new Promise((res, rej) => {
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
+    css.integrity = 'sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H'; css.crossOrigin = 'anonymous';
+    document.head.appendChild(css);
+    const js = document.createElement('script');
+    js.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+    js.integrity = 'sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH'; js.crossOrigin = 'anonymous';
+    js.onload = res; js.onerror = () => { leafletP = null; rej(new Error('Karte nicht verfügbar')); };
+    document.head.appendChild(js);
+  });
+}
+async function drawMap(s) {
+  try { await loadLeaflet(); } catch { $('pmapWrap')?.remove(); return; }
+  const el = $('pmap'); if (!el || el._leaflet_id) return;
+  if (pmap) { pmap.remove(); pmap = null; }
+  const small = { dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, zoomControl: false };
+  pmap = L.map(el, { ...small, attributionControl: true, tap: false });
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, referrerPolicy: 'strict-origin-when-cross-origin',
+    attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+  }).addTo(pmap);
+  const pts = [], extras = L.layerGroup();
+  const cheapest = Math.min(...s.map.map(x => x.price));
+  // kleine Karte: nur die 5 günstigsten + die nächste; groß: alle (bis 30)
+  const top = new Set([...s.map].sort((a, b) => a.price - b.price).slice(0, 5));
+  for (const x of s.map) {
+    if (![x.lat, x.lng, x.price].every(Number.isFinite)) continue;
+    const cls = 'pm' + (x.price === cheapest ? ' best' : '') + (x.near ? ' near' : '');
+    const m = L.marker([x.lat, x.lng], { icon: L.divIcon({ className: cls, html: `<span>${num(x.price, 3)}</span>`, iconSize: null }),
+      zIndexOffset: x.price === cheapest ? 1000 : x.near ? 500 : 0, keyboard: false });
+    m.bindPopup(`<b>${esc(x.name)}</b><br>${esc(x.street)}, ${esc(x.place)}<br>${num(x.price, 3)} €/l · ${num(x.dist, 1)} km${x.near ? ' · am nächsten' : ''}<br>
+      <a href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}" target="_blank" rel="noopener">Route ›</a>`);
+    if (top.has(x) || x.near) { m.addTo(pmap); pts.push([x.lat, x.lng]); } else m.addTo(extras);
+  }
+  if (s.pos && Number.isFinite(s.pos.lat)) {
+    L.circleMarker([s.pos.lat, s.pos.lng], { radius: 7, weight: 3, color: '#fff', fillColor: '#2f6fd6', fillOpacity: 1 }).bindPopup('Dein Standort').addTo(pmap);
+    pts.push([s.pos.lat, s.pos.lng]);
+  }
+  pmap.fitBounds(pts, { padding: [28, 28], maxZoom: 15 });
+  const setBig = big => {
+    $('pmapWrap').classList.toggle('big', big);
+    document.body.classList.toggle('map-open', big);
+    big ? extras.addTo(pmap) : extras.remove();
+    $('pmapBig').textContent = big ? '✕ Schließen' : '⤢ Groß';
+    for (const h of ['dragging', 'touchZoom', 'scrollWheelZoom', 'doubleClickZoom']) big ? pmap[h].enable() : pmap[h].disable();
+    if (big && !pmap.zoomControl) pmap.zoomControl = L.control.zoom({ position: 'bottomright' }).addTo(pmap);
+    else if (!big && pmap.zoomControl) { pmap.zoomControl.remove(); pmap.zoomControl = null; }
+    setTimeout(() => { pmap.invalidateSize(); pmap.fitBounds(pts, { padding: [36, 36], maxZoom: 15 }); }, 60);
+  };
+  $('pmapBig').onclick = () => setBig(!$('pmapWrap').classList.contains('big'));
+}
+
 // Einstellungen
 function renderPriceSetup() {
   document.querySelectorAll('#pType button').forEach(b => b.classList.toggle('on', b.dataset.p === prefs.pType));

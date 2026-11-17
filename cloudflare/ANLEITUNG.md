@@ -21,3 +21,49 @@ kostenloser Cloudflare Worker holt die Preise stattdessen über einen europäisc
 - Der kostenlose Tarif erlaubt 100.000 Aufrufe pro Tag – das Tankbuch braucht pro Handy etwa 2 am Tag.
 - Der Worker speichert nichts. Er reicht nur die zwei öffentlichen Dateien des Ministeriums weiter.
 - Andere Webseiten können ihn nicht aus dem Browser heraus benutzen (nur das Tankbuch ist freigegeben).
+
+---
+
+# Teil 2: Preis-Alarm per Telegram (optional)
+
+Der Worker schaut jeden Morgen in die Preise und schickt dir eine Telegram-Nachricht, wenn in
+deiner Nähe eine Tankstelle unter deinem Wunschpreis liegt. Funktioniert für Italien.
+
+## A) Telegram-Bot anlegen (5 Minuten)
+
+1. Telegram öffnen und nach **@BotFather** suchen (blauer Haken!) → **Starten**.
+2. `/newbot` schicken.
+3. Einen Namen eingeben, z. B. `Mein Tankbuch`.
+4. Einen Benutzernamen eingeben, der auf `bot` endet, z. B. `tankbuch_edengrim_bot`.
+5. BotFather schickt dir einen **Token** (sieht so aus: `1234567890:AAH...`). **Geheim halten!**
+6. Deinen neuen Bot öffnen (Link in der Nachricht) → **Starten** drücken und „hallo“ schicken.
+7. Im Browser öffnen (TOKEN durch deinen Token ersetzen):
+   `https://api.telegram.org/botTOKEN/getUpdates`
+   Dort steht `"chat":{"id":123456789` – diese Zahl ist deine **Chat-ID**.
+
+## B) Worker in Cloudflare erweitern
+
+1. **dash.cloudflare.com** → **Workers und Pages** → **tankbuch-proxy**.
+2. **Code bearbeiten** → alles löschen → den neuen Inhalt von [`tankbuch-proxy.js`](tankbuch-proxy.js) einfügen → **Bereitstellen**.
+3. Zurück zum Worker → **Einstellungen** → **Variablen und geheime Schlüssel** → **Hinzufügen**:
+
+   | Name | Typ | Wert (Beispiel) |
+   |---|---|---|
+   | `TELEGRAM_TOKEN` | **Geheim** (Secret) | dein Token von BotFather |
+   | `TELEGRAM_CHAT_ID` | Text | `123456789` |
+   | `ALARM_LAT` | Text | `46.498` (aus der App: Mehr → Preis-Alarm → Koordinaten) |
+   | `ALARM_LNG` | Text | `11.354` |
+   | `ALARM_RADIUS` | Text | `10` (km) |
+   | `ALARM_FUEL` | Text | `benzina` oder `gasolio` |
+   | `ALARM_MAX_PRICE` | Text | `1.80` – leer lassen = jeden Tag die 5 günstigsten |
+
+   → **Bereitstellen**.
+4. **Einstellungen** → **Trigger** (Triggers) → **Cron-Trigger hinzufügen** → `45 8 * * *`
+   (jeden Tag 9:45 Uhr Winterzeit / 10:45 Uhr Sommerzeit) → **Hinzufügen**.
+
+## C) Testen
+
+Im Browser öffnen (CHATID durch deine Chat-ID ersetzen):
+`https://tankbuch-proxy.edengrim67.workers.dev/alarm-test?chat=CHATID`
+
+Es erscheint „Nachricht gesendet ✓“ und in Telegram kommt eine Test-Nachricht.

@@ -1,17 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9a3c"/><stop offset=".5" stop-color="#ff5f6d"/><stop offset="1" stop-color="#8e2de2"/></linearGradient>
-    <linearGradient id="pin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f1e9ff"/></linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d1b2a"/><stop offset="1" stop-color="#123a3a"/></linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".55" r=".5"><stop offset="0" stop-color="#2ee6a6" stop-opacity=".55"/><stop offset="1" stop-color="#2ee6a6" stop-opacity="0"/></radialGradient>
+    <linearGradient id="drop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5ff2c0"/><stop offset=".55" stop-color="#16c79a"/><stop offset="1" stop-color="#0e8f8a"/></linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <circle cx="110" cy="80" r="200" fill="#fff" opacity=".08"/>
-  <ellipse cx="256" cy="440" rx="80" ry="16" fill="#000" opacity=".18"/>
-  <path d="M256 448s-140-150-140-250a140 140 0 0 1 280 0c0 100-140 250-140 250z" fill="url(#pin)"/>
-  <g fill="#7b2ff7">
-    <rect x="200" y="132" width="88" height="140" rx="16"/>
-    <rect x="186" y="262" width="116" height="20" rx="8"/>
-  </g>
-  <rect x="216" y="150" width="56" height="38" rx="8" fill="#fff"/>
-  <path d="M288 176h18c10 0 16 6 16 16v54c0 8 6 13 13 13s13-5 13-13v-74l-22-24" fill="none" stroke="#7b2ff7" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M244 210c-12 16-18 26-18 35a18 18 0 0 0 36 0c0-9-6-19-18-35z" fill="#ffb84d"/>
+  <circle cx="256" cy="290" r="230" fill="url(#glow)"/>
+  <path d="M256 64C206 140 136 220 136 300a120 120 0 0 0 240 0c0-80-70-160-120-236z" fill="url(#drop)"/>
+  <path d="M220 130c-30 46-62 96-62 150 0 18 4 34 11 48" fill="none" stroke="url(#shine)" stroke-width="16" stroke-linecap="round"/>
+  <path d="M182 348l52-52 34 30 64-70" fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M300 252h38v38" fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="392" cy="122" r="14" fill="#ffd166"/><circle cx="420" cy="170" r="7" fill="#ffd166" opacity=".8"/>
 </svg>

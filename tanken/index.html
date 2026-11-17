@@ -281,8 +281,8 @@ input[type=date] { min-height: 46px; }
 .rowin .btn { padding: 10px 14px; flex: none; }
 
 /* Karte der Tankstellen */
-.pmap-wrap { position: relative; margin-top: 12px; }
-.pmap { height: 210px; border-radius: 16px; overflow: hidden; background: var(--soft); z-index: 0; }
+.pmap-wrap { position: relative; margin-top: 4px; }
+.pmap { height: 280px; border-radius: 16px; overflow: hidden; background: var(--soft); z-index: 0; }
 .pmap-btn { position: absolute; right: 8px; top: 8px; z-index: 500; border: 0; border-radius: 10px; padding: 6px 10px; font-size: .8rem; font-weight: 700;
   background: var(--card); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
 .pmap-wrap.big { position: fixed; inset: 0; z-index: 45; margin: 0; background: var(--card); padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
@@ -1515,16 +1515,18 @@ function renderPrices() {
   const where = prefs.pLoc.gps ? 'in deiner Nähe' : `bei ${esc(prefs.pLoc.label || 'deinem Ort')}`;
   const it = s && s.country === 'it';
   const typeName = it ? (prefs.pType === 'diesel' ? 'Diesel (Gasolio)' : 'Benzin (Benzina)') : TYPES[prefs.pType];
+  // Karte allein reicht – die Liste gibt es nur noch als Ersatz, falls die Karte nicht lädt
+  const hasMap = list.length && s.map && s.map.length;
   box.innerHTML = `<h2>⛽ Günstig tanken <small>${it ? '🇮🇹 ' : ''}${typeName} · ${where}</small></h2>${hint}${tip}
-    ${list.length ? list.map((x, i) => `<a class="st${i ? '' : ' best'}" href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}" target="_blank" rel="noopener">
+    ${hasMap ? `<div class="pmap-wrap" id="pmapWrap"><div class="pmap" id="pmap" role="img" aria-label="Karte der Tankstellen"></div>
+      <button class="pmap-btn" id="pmapBig" type="button">⤢ Groß</button></div>` : ''}
+    <div id="pList"${hasMap ? ' hidden' : ''}>${list.length ? list.map((x, i) => `<a class="st${i ? '' : ' best'}" href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}" target="_blank" rel="noopener">
       <div class="n">${esc(x.name)}${i ? '' : '<span class="badge">am günstigsten</span>'}${x.nearest ? '<span class="badge">am nächsten</span>' : ''}</div><div class="p">${priceFmt(x.price)}</div>
       <div class="a">${esc(x.street)}, ${esc(x.place)} · ${num(x.dist, 1)} km${it ? (x.self ? ' · Self' : ' · bedient') + (x.when ? ' · ' + dmy(x.when).slice(0, -5) : '') : ''}</div></a>`).join('')
-      : `<p class="note" style="margin:0">${priceBusy ? 'Preise werden geladen …' : s && s.error ? '⚠️ ' + esc(s.error) : `Keine geöffnete Tankstelle mit aktuellem Preis im Umkreis von ${it ? prefs.pRad : Math.min(25, prefs.pRad)} km gefunden. Umkreis unter „Mehr“ vergrößern.`}</p>`}
+      : `<p class="note" style="margin:0">${priceBusy ? 'Preise werden geladen …' : s && s.error ? '⚠️ ' + esc(s.error) : `Keine geöffnete Tankstelle mit aktuellem Preis im Umkreis von ${it ? prefs.pRad : Math.min(25, prefs.pRad)} km gefunden. Umkreis unter „Mehr“ vergrößern.`}</p>`}</div>
     <div class="small"><span>${s && s.at ? 'Stand ' + new Date(s.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + (s.error && list.length ? ' · ⚠️ ' + esc(s.error) : '') : ''}${priceBusy ? ' · lädt …' : ''}</span>
       <button class="linkbtn" id="pRefresh">↻ Aktualisieren</button></div>
-    <div class="small" style="margin-top:4px"><span>${it ? `Daten: MIMIT Osservaprezzi (IODL 2.0)${s.updated ? ', Stand ' + dmy(s.updated.slice(0, 10)) : ''}` : 'Daten: MTS-K via Tankerkönig (CC BY 4.0)'} · Antippen öffnet die Route</span></div>
-    ${list.length && s.map && s.map.length ? `<div class="pmap-wrap" id="pmapWrap"><div class="pmap" id="pmap" role="img" aria-label="Karte der Tankstellen"></div>
-      <button class="pmap-btn" id="pmapBig" type="button">⤢ Groß</button></div>` : ''}`;
+    <div class="small" style="margin-top:4px"><span>${it ? `Daten: MIMIT Osservaprezzi (IODL 2.0)${s.updated ? ', Stand ' + dmy(s.updated.slice(0, 10)) : ''}` : 'Daten: MTS-K via Tankerkönig (CC BY 4.0)'} · ${hasMap ? 'Preisschild antippen für Details und Route' : 'Antippen öffnet die Route'}</span></div>`;
   $('pRefresh').onclick = () => loadPrices(true);
   if ($('pmap')) drawMap(s);
 }
@@ -1545,7 +1547,7 @@ function loadLeaflet() {
   });
 }
 async function drawMap(s) {
-  try { await loadLeaflet(); } catch { $('pmapWrap')?.remove(); return; }
+  try { await loadLeaflet(); } catch { $('pmapWrap')?.remove(); if ($('pList')) $('pList').hidden = false; return; }
   const el = $('pmap'); if (!el || el._leaflet_id) return;
   if (pmap) { pmap.remove(); pmap = null; }
   const small = { dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, zoomControl: false };

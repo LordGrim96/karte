@@ -251,6 +251,15 @@ body.sheet-open .scrim { opacity: 1; pointer-events: auto; }
 input[type=date] { min-height: 46px; }
 [hidden] { display: none !important; }
 
+/* Tankstelle beim Eintragen erkennen */
+.here { display: flex; align-items: center; gap: 10px; border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; background: var(--soft); font-size: .86rem; }
+.here .em { font-size: 1.3rem; }
+.here .tx { flex: 1; min-width: 0; }
+.here .tx b { font-weight: 700; }
+.here .tx small { display: block; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.here button { border: 0; border-radius: 10px; padding: 7px 11px; font-weight: 700; font-size: .8rem; background: var(--primary); color: #fff; flex: none; }
+.here.done button { background: none; color: var(--primary); }
+
 /* Spritpreise */
 .st { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 11px 2px; border-bottom: 1px solid var(--line); text-decoration: none; color: inherit; }
 .st:last-of-type { border-bottom: 0; }
@@ -445,6 +454,12 @@ body.map-open nav { display: none; }
       <div id="termList"></div>
       <button class="btn sec full" id="addTerm" style="margin-top:10px">+ Termin hinzufügen</button>
     </div>
+    <div class="card" id="alarmCard">
+      <h2>🔔 Preis-Alarm per Telegram</h2>
+      <p class="note">Dein Cloudflare-Worker schaut jeden Morgen in die Preise und schickt dir eine Telegram-Nachricht, wenn in deiner Nähe eine Tankstelle unter deinem Wunschpreis liegt – auch wenn die App geschlossen ist. Einrichten: Anleitung <a href="https://github.com/LordGrim96/karte/blob/main/cloudflare/ANLEITUNG.md" target="_blank" rel="noopener">cloudflare/ANLEITUNG.md</a> (Teil 2).</p>
+      <button class="btn sec full" id="alarmPos" type="button">📍 Meine Koordinaten für den Alarm anzeigen</button>
+      <p class="note" id="alarmPosOut" style="margin:8px 0 0" hidden></p>
+    </div>
     <div class="card" id="priceSetup">
       <h2>Spritpreise in der Nähe</h2>
       <p class="note">Aktuelle Preise für <b>Deutschland</b> und <b>Italien inkl. Südtirol</b>. Das Land wird automatisch am Ort erkannt.</p>
@@ -517,6 +532,7 @@ body.map-open nav { display: none; }
     <span style="flex:1"><b id="scanTitle">Bon fotografieren</b><small id="scanSub">Betrag, Liter und Datum werden ausgelesen</small><span class="prog"><i id="scanProg"></i></span></span>
   </button>
   <input type="file" id="scanFile" accept="image/*" capture="environment" hidden>
+  <div class="here" id="hereBox" hidden></div>
 
   <label class="amount" id="amountBox"><input id="f-cost" inputmode="decimal" placeholder="0,00" aria-label="Betrag"><span>€</span></label>
   <div class="cap" id="amountCap">Betrag laut Bon</div>
@@ -940,6 +956,7 @@ function setKind(k) {
   document.querySelectorAll('#kind button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
   document.querySelectorAll('.fuel-only').forEach(el => el.hidden = k !== 'fuel');
   document.querySelectorAll('.cost-only').forEach(el => el.hidden = k !== 'cost');
+  if ($('hereBox')) $('hereBox').hidden = k !== 'fuel' || !here;
   $('amountBox').classList.toggle('o', k === 'cost');
   $('amountCap').textContent = k === 'fuel' ? 'Betrag laut Bon' : 'Betrag';
   $('noteField').style.gridColumn = k === 'cost' ? '1 / -1' : '';
@@ -985,6 +1002,8 @@ function openSheet(e) {
   $('f-dist').value = e && e.type === 'fuel' ? f(m === 'km' ? e.km : e.odo) : '';
   setMode(m);
   resetScan();
+  $('f-liter').dataset.auto = '';
+  if (!e) setTimeout(detectStation, 0); else { here = null; $('hereBox').hidden = true; }
   $('formTitle').textContent = e ? 'Eintrag bearbeiten' : 'Eintragen';
   $('saveBtn').textContent = e ? 'Änderung speichern' : 'Speichern';
   $('delBtn').hidden = !e;
@@ -997,6 +1016,69 @@ $('kind').onclick = e => { const b = e.target.closest('button'); if (b) setKind(
 $('seg').onclick = e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); };
 $('catpick').onclick = e => { const b = e.target.closest('button'); if (b) setCat(b.dataset.c); };
 ['f-cost', 'f-dist', 'f-liter', 'f-date', 'f-car'].forEach(id => $(id).addEventListener('input', updateCalc));
+
+/* Tankstelle beim Eintragen erkennen (Standort + Spritpreise) */
+let here = null, hereRun = 0;
+async function nearestStation(pos) {
+  if (inItaly(pos)) {
+    const data = await italyTiles(pos, 1) || await italyViaProxy(pos);
+    if (!data) return null;
+    const fuel = prefs.pType === 'diesel' ? 'd' : 'b';
+    const best = data.items.map(x => ({ x, d: distKm(pos, x) })).filter(o => o.d <= 0.3 && o.x.p && o.x.p[fuel]).sort((a, b) => a.d - b.d)[0];
+    if (!best) return null;
+    const p = best.x.p[fuel];
+    return { name: txt(best.x.br || best.x.n, 60), street: txt(`${best.x.a}, ${best.x.c}`, 90), price: +(p[0] || p[1]), self: !!p[0], dist: best.d, it: true };
+  }
+  if (!prefs.pKey) return null;
+  const u = `https://creativecommons.tankerkoenig.de/json/list.php?lat=${pos.lat.toFixed(3)}&lng=${pos.lng.toFixed(3)}&rad=1&sort=dist&type=${prefs.pType}&apikey=${encodeURIComponent(prefs.pKey)}`;
+  const j = await (await fetch(u)).json();
+  const x = (j.stations || []).find(s => +s.dist <= 0.3 && +s.price > 0);
+  return x ? { name: txt(x.brand || x.name, 60), street: txt([x.street, x.houseNumber, x.place].filter(Boolean).join(' '), 90), price: +x.price, dist: +x.dist } : null;
+}
+async function detectStation() {
+  here = null; $('hereBox').hidden = true;
+  if (!prefs.pLoc || editId) return;           // nur wenn Spritpreise eingerichtet sind, nur bei neuen Einträgen
+  const run = ++hereRun;
+  try {
+    const pos = await getPosition();
+    const st = await nearestStation(pos);
+    if (run !== hereRun || !st || !Number.isFinite(st.price) || !document.body.classList.contains('sheet-open') || kind !== 'fuel') return;
+    here = st;
+    const sorte = prefs.pType === 'diesel' ? 'Diesel' : st.it ? 'Benzin' : prefs.pType === 'e5' ? 'Super E5' : 'Super E10';
+    $('hereBox').className = 'here';
+    $('hereBox').innerHTML = `<span class="em">📍</span><div class="tx">Du bist bei <b>${esc(st.name)}</b> – ${sorte} <b>${num(st.price, 3)} €/l</b>${st.self ? ' (Self)' : ''}
+      <small>${esc(st.street)}</small></div><button type="button" id="hereUse">Übernehmen</button>`;
+    $('hereBox').hidden = false;
+    $('hereUse').onclick = () => {
+      if (!$('f-note').value) $('f-note').value = st.name;
+      here.used = true; fillLiterFromPrice(true);
+      $('hereBox').classList.add('done'); $('hereUse').textContent = '✓';
+      toast('Tankstelle übernommen – Liter werden aus dem Betrag berechnet');
+    };
+  } catch { /* kein Standort oder keine Verbindung – dann eben ohne Vorschlag */ }
+}
+// Liter aus Betrag und Literpreis der erkannten Tankstelle ausrechnen (solange du sie nicht selbst änderst)
+function fillLiterFromPrice(force) {
+  if (!here || !here.used) return;
+  const cost = parseNum($('f-cost').value), li = $('f-liter');
+  if (!(cost > 0) || (li.value && li.dataset.auto !== '1' && !force)) return;
+  li.value = String(Math.round(cost / here.price * 100) / 100).replace('.', ','); li.dataset.auto = '1';
+  updateCalc();
+}
+$('f-cost').addEventListener('input', () => fillLiterFromPrice(false));
+$('f-liter').addEventListener('input', () => { $('f-liter').dataset.auto = ''; });
+
+/* Koordinaten für den Telegram-Alarm */
+$('alarmPos').onclick = async () => {
+  const out = $('alarmPosOut');
+  try {
+    const p = prefs.pLoc && !prefs.pLoc.gps ? prefs.pLoc : await getPosition();
+    const lat = p.lat.toFixed(3), lng = p.lng.toFixed(3);
+    out.innerHTML = `ALARM_LAT = <b>${lat}</b><br>ALARM_LNG = <b>${lng}</b><br><button class="linkbtn" type="button" id="alarmCopy">Kopieren</button>`;
+    out.hidden = false;
+    $('alarmCopy').onclick = () => navigator.clipboard?.writeText(`ALARM_LAT=${lat}\nALARM_LNG=${lng}`).then(() => toast('Kopiert ✓'), () => toast('Bitte von Hand abschreiben'));
+  } catch (e) { out.textContent = e.message + ' – du kannst auch unter „Spritpreise“ einen Ort suchen.'; out.hidden = false; }
+};
 $('list').addEventListener('click', e => { const b = e.target.closest('.entry'); if (b) openSheet(entries.find(x => x.id === b.dataset.id)); });
 
 $('form').addEventListener('submit', ev => {

@@ -495,6 +495,7 @@ body.map-open nav { display: none; }
     <div class="card">
       <h2>Daten sichern</h2>
       <p class="note">Deine Einträge sind nur auf diesem Handy gespeichert. <span id="lastBackup"></span></p>
+      <p class="note" id="storageState"></p>
       <div class="stack">
         <button class="btn" id="exportJson">💾 Sicherung speichern</button>
         <button class="btn sec" id="importBtn">Sicherung wiederherstellen</button>
@@ -647,6 +648,7 @@ let editId = null, selectedYear = null, selMonth = null, kind = 'fuel', mode = p
 function save() {
   const ok = write(KEY, entries) && write(CARS, cars);
   if (!ok) toast('Speichern nicht möglich – bitte Sicherung herunterladen!');
+  else if (!save.asked) { save.asked = true; protectStorage(true); }
 }
 const savePrefs = () => write(PREFS, prefs);
 function toast(msg, ms = 2400) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms); }
@@ -1494,8 +1496,13 @@ async function loadPrices(force = false) {
   write(PRICE_CACHE, priceState);
   priceBusy = false; renderPrices();
 }
+let priceKey = '';
 function renderPrices() {
   const box = $('priceNow');
+  // nichts geändert → Karte nicht neu aufbauen (spart viel Zeit bei jedem Speichern)
+  const key = JSON.stringify([!!prefs.pLoc, priceBusy, priceState && priceState.at, priceState && priceState.error, prefs.pType, prefs.accent, lastPaid()]);
+  if (key === priceKey && box.childElementCount) return;
+  priceKey = key;
   if (!prefs.pLoc) {
     box.innerHTML = `<h2>⛽ Wo ist es gerade günstig?</h2><p class="note" style="margin:0 0 12px">Zeig dir die aktuell günstigsten Tankstellen in deiner Nähe – live aus dem Internet.</p>
       <button class="btn sec full" id="pSetupBtn">Spritpreise einrichten</button>`;
@@ -1737,10 +1744,31 @@ $('pProxy').onchange = () => {
 };
 renderPriceSetup();
 render();
+// Karte schon mal im Hintergrund vorbereiten, während Standort und Preise geladen werden
+if (prefs.pLoc) setTimeout(() => loadLeaflet().catch(() => {}), 0);
 loadPrices();
+
+/* Speicher schützen: Browser bitten, die Daten nicht automatisch zu löschen */
+async function protectStorage(ask) {
+  const out = $('storageState');
+  if (!navigator.storage || !navigator.storage.persisted) { out.textContent = ''; return; }
+  let ok = await navigator.storage.persisted().catch(() => false);
+  if (!ok && ask && navigator.storage.persist) ok = await navigator.storage.persist().catch(() => false);
+  out.innerHTML = ok ? '🔒 Speicher ist geschützt – das Handy löscht deine Daten nicht von selbst.'
+    : '⚠️ Der Browser hat den dauerhaften Speicher (noch) nicht freigegeben. Tipp: App auf den Home-Bildschirm legen und regelmäßig sichern.';
+}
+protectStorage(entries.length > 0);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadPrices(); renderTerms(); } });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
-  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  addEventListener('load', () => {
+    const had = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+    // neue Version wurde im Hintergrund geladen → sofort anzeigen, aber nie mitten in einer Eingabe
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!had || document.body.classList.contains('sheet-open')) return;
+      location.reload();
+    });
+  });
 </script>
 </body>
 </html>

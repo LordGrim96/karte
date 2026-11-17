@@ -442,8 +442,8 @@ input[type=date] { min-height: 46px; }
       <p class="note" id="pLoc" style="margin:8px 0 0"></p>
       <p class="note" style="margin:4px 0 0;font-size:.72rem">Ortssuche: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-Mitwirkende (Nominatim)</p>
       <label class="flab" for="pProxy">Italien-Zwischendienst (Cloudflare-Adresse)</label>
-      <input class="inp" id="pProxy" placeholder="https://tankbuch-proxy.….workers.dev" autocomplete="off" spellcheck="false" inputmode="url">
-      <p class="note" style="margin:5px 0 0">Nur nötig, falls die Italien-Preise sonst nicht kommen. Anleitung im Projekt unter <code>cloudflare/ANLEITUNG.md</code>.</p>
+      <input class="inp" id="pProxy" placeholder="Standard: tankbuch-proxy.edengrim67.workers.dev" autocomplete="off" spellcheck="false" inputmode="url">
+      <p class="note" style="margin:5px 0 0">Leer lassen – der Standard-Zwischendienst ist schon eingetragen. Nur für einen eigenen Worker ändern. Anleitung im Projekt unter <code>cloudflare/ANLEITUNG.md</code>.</p>
       <button class="btn full" id="pSave" type="button" style="margin-top:12px">Speichern &amp; Preise laden</button>
     </div>
     <div class="card">
@@ -1277,7 +1277,7 @@ function pickStations(all) {
   return cheap;
 }
 // Cloudflare-Adresse prüfen: nur https://….workers.dev ohne Pfad
-const PROXY_DEFAULT = '';
+const PROXY_DEFAULT = 'https://tankbuch-proxy.edengrim67.workers.dev';  // Cloudflare-Worker aus cloudflare/tankbuch-proxy.js
 const cleanProxy = v => { v = String(v || '').trim().replace(/\/+$/, ''); return /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.workers\.dev$/i.test(v) ? v : ''; };
 const proxyUrl = () => prefs.pProxy || PROXY_DEFAULT;
 

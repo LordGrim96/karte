@@ -30,7 +30,7 @@ jobs:
 
       - name: Preise herunterladen
         env:
-          PROXY: ${{ vars.CARBURANTI_PROXY }}   # Cloudflare-Zwischendienst (siehe cloudflare/ANLEITUNG.md)
+          PROXY: ${{ vars.CARBURANTI_PROXY || 'https://tankbuch-proxy.edengrim67.workers.dev' }}   # Cloudflare-Zwischendienst (siehe cloudflare/ANLEITUNG.md)
         run: |
           # Der Server des Ministeriums ist manchmal langsam oder antwortet nur über eine
           # der Adressen/IP-Versionen – darum mehrere Versuche.

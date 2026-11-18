@@ -15,6 +15,8 @@
 //      ALARM_RADIUS                         Umkreis in km (Standard 10)
 //      ALARM_FUEL                           benzina oder gasolio (Standard benzina)
 //      ALARM_MAX_PRICE                      Wunschpreis, z. B. 1.80 – leer = jeden Tag die günstigsten melden
+//    Zusätzlich beantwortet der Bot Befehle (/preise, /diesel, /benzin oder einen geteilten Standort).
+//    Einmalig einschalten: /telegram-setup?chat=DEINE_CHAT_ID im Browser öffnen.
 //
 // 3) Profile & Cloud-Sync (optional):
 //    Speichert das Tankbuch eines Profils – vorher auf dem Handy mit dem Passwort verschlüsselt.
@@ -46,9 +48,21 @@ export default {
     // Profile & Cloud-Sync: /sync/<id>
     const sm = file.match(/^sync\/([a-f0-9]{40})$/);
     if (sm) return sync(request, env, sm[1], cors);
+
+    // Telegram schickt Nachrichten an den Bot hierher (nur mit geheimem Kennwort von Telegram)
+    if (file === 'telegram' && request.method === 'POST') return botUpdate(request, env);
     if (request.method !== 'GET') return new Response('Nur GET erlaubt', { status: 405, headers: cors });
 
     // Test des Preis-Alarms: /alarm-test?chat=DEINE_CHAT_ID (nur mit der richtigen Chat-ID)
+    // Bot-Befehle einschalten: /telegram-setup?chat=DEINE_CHAT_ID
+    if (file === 'telegram-setup') {
+      if (!env.TELEGRAM_TOKEN || !env.TELEGRAM_CHAT_ID || url.searchParams.get('chat') !== String(env.TELEGRAM_CHAT_ID)) {
+        return text('Bitte so aufrufen: /telegram-setup?chat=DEINE_CHAT_ID (TELEGRAM_TOKEN und TELEGRAM_CHAT_ID müssen eingetragen sein).', 403);
+      }
+      try { return text(await botSetup(env, url.origin)); }
+      catch (e) { return text('Fehler: ' + e.message, 500); }
+    }
+
     if (file === 'alarm-test') {
       if (!env.TELEGRAM_CHAT_ID || url.searchParams.get('chat') !== String(env.TELEGRAM_CHAT_ID)) {
         return text('Bitte so aufrufen: /alarm-test?chat=DEINE_CHAT_ID (die Chat-ID muss mit TELEGRAM_CHAT_ID übereinstimmen).', 403);
@@ -99,15 +113,8 @@ function distKm(a, b) {
 const fmt = p => p.toFixed(3).replace('.', ',');
 const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-async function runAlarm(env, isTest) {
-  if (!env.TELEGRAM_TOKEN || !env.TELEGRAM_CHAT_ID) throw new Error('TELEGRAM_TOKEN oder TELEGRAM_CHAT_ID fehlt');
-  const pos = { lat: parseFloat(env.ALARM_LAT), lng: parseFloat(env.ALARM_LNG) };
-  if (!Number.isFinite(pos.lat) || !Number.isFinite(pos.lng)) throw new Error('ALARM_LAT / ALARM_LNG fehlen oder sind ungültig');
-  const rad = Math.min(100, parseFloat(env.ALARM_RADIUS) || 10);
-  const fuel = /^(gasolio|diesel|d)$/i.test(env.ALARM_FUEL || '') ? 'd' : 'b';
-  const max = parseFloat(String(env.ALARM_MAX_PRICE || '').replace(',', '.'));
-
-  // aufbereitete Tagespreise von GitHub (nur die Kacheln rund um den Ort)
+// Tankstellen rund um einen Ort aus den täglich aufbereiteten Preisen (GitHub)
+async function stationsNear(pos, rad, fuel) {
   const meta = await (await fetch(IT_DATA + 'meta.json', { cf: { cacheTtl: 0 } })).json();
   const dLat = rad / 111, dLng = rad / (111 * Math.cos(pos.lat * Math.PI / 180)), keys = [];
   for (let la = Math.floor(pos.lat - dLat); la <= Math.floor(pos.lat + dLat); la++)
@@ -118,7 +125,24 @@ async function runAlarm(env, isTest) {
     const price = p[0] || p[1], dist = distKm(pos, x);
     return dist <= rad && price ? { name: x.br || x.n, addr: `${x.a}, ${x.c}`, price, dist, lat: x.lat, lng: x.lng } : null;
   }).filter(Boolean).sort((a, b) => a.price - b.price);
+  const stand = meta.updated ? meta.updated.slice(0, 10).split('-').reverse().join('.') : 'heute';
+  return { list, stand };
+}
+const stationLines = list => list.slice(0, 5).map((x, i) =>
+  `${i ? '•' : '🏆'} <b>${fmt(x.price)} €</b> – ${esc(x.name)}\n   ${esc(x.addr)} · ${x.dist.toFixed(1).replace('.', ',')} km · ` +
+  `<a href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}">Route</a>`).join('\n');
+function settings(env) {
+  const pos = { lat: parseFloat(env.ALARM_LAT), lng: parseFloat(env.ALARM_LNG) };
+  if (!Number.isFinite(pos.lat) || !Number.isFinite(pos.lng) || Math.abs(pos.lat) > 90 || Math.abs(pos.lng) > 180)
+    throw new Error('ALARM_LAT / ALARM_LNG fehlen oder sind ungültig (mit Punkt schreiben, z. B. 46.651)');
+  return { pos, rad: Math.min(100, parseFloat(env.ALARM_RADIUS) || 10), fuel: /^(gasolio|diesel|d)$/i.test(env.ALARM_FUEL || '') ? 'd' : 'b',
+    max: parseFloat(String(env.ALARM_MAX_PRICE || '').replace(',', '.')) };
+}
 
+async function runAlarm(env, isTest) {
+  if (!env.TELEGRAM_TOKEN || !env.TELEGRAM_CHAT_ID) throw new Error('TELEGRAM_TOKEN oder TELEGRAM_CHAT_ID fehlt');
+  const { pos, rad, fuel, max } = settings(env);
+  const { list, stand } = await stationsNear(pos, rad, fuel);
   const sorte = fuel === 'd' ? 'Diesel' : 'Benzin';
   const hits = Number.isFinite(max) ? list.filter(x => x.price <= max) : list;
   if (!hits.length) {
@@ -126,15 +150,65 @@ async function runAlarm(env, isTest) {
     if (isTest) await telegram(env, '🧪 Test – ' + msg);
     return isTest ? 'Test gesendet: ' + msg : msg;
   }
-  const lines = hits.slice(0, 5).map((x, i) =>
-    `${i ? '•' : '🏆'} <b>${fmt(x.price)} €</b> – ${esc(x.name)}\n   ${esc(x.addr)} · ${x.dist.toFixed(1).replace('.', ',')} km · ` +
-    `<a href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}">Route</a>`);
   const head = Number.isFinite(max)
     ? `⛽ <b>Preis-Alarm:</b> ${sorte} unter ${fmt(max)} € in deiner Nähe!`
     : `⛽ <b>Günstigstes ${sorte}</b> in deiner Nähe heute:`;
-  const msg = `${isTest ? '🧪 Test\n' : ''}${head}\n\n${lines.join('\n')}\n\n<i>Stand ${meta.updated ? meta.updated.slice(0, 10).split('-').reverse().join('.') : 'heute'} · Daten: MIMIT</i>`;
-  await telegram(env, msg);
+  await telegram(env, `${isTest ? '🧪 Test\n' : ''}${head}\n\n${stationLines(hits)}\n\n<i>Stand ${stand} · Daten: MIMIT</i>`);
   return 'Nachricht gesendet ✓';
+}
+
+/* ---------- Telegram-Bot: Befehle beantworten ---------- */
+const KEYBOARD = { keyboard: [[{ text: '⛽ Preise' }, { text: '📍 Standort senden', request_location: true }], [{ text: 'Diesel' }, { text: 'Benzin' }]],
+  resize_keyboard: true, is_persistent: true };
+async function botSecret(env) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('tankbuch-bot|' + env.TELEGRAM_TOKEN));
+  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 48);
+}
+async function tg(env, method, body) {
+  const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/${method}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!j.ok) throw new Error('Telegram: ' + (j.description || r.status));
+  return j;
+}
+async function botSetup(env, origin) {
+  await tg(env, 'setWebhook', { url: origin + '/telegram', secret_token: await botSecret(env), allowed_updates: ['message'], drop_pending_updates: true });
+  await tg(env, 'setMyCommands', { commands: [
+    { command: 'preise', description: 'Günstigste Tankstellen bei dir' },
+    { command: 'diesel', description: 'Diesel-Preise' },
+    { command: 'benzin', description: 'Benzin-Preise' },
+    { command: 'hilfe', description: 'Was kann der Bot?' } ] });
+  await tg(env, 'sendMessage', { chat_id: env.TELEGRAM_CHAT_ID, text: '✅ Bot ist bereit! Tippe unten auf „⛽ Preise“ oder teile deinen Standort.', reply_markup: KEYBOARD });
+  return 'Bot-Befehle eingeschaltet ✓ – schau in Telegram.';
+}
+const HELP = '⛽ <b>Tankbuch-Bot</b>\n\n' +
+  '• <b>⛽ Preise</b> oder /preise – die 5 günstigsten Tankstellen bei dir zuhause\n' +
+  '• <b>Diesel</b> / <b>Benzin</b> – dieselbe Liste für die gewählte Sorte\n' +
+  '• <b>📍 Standort senden</b> – Preise genau da, wo du gerade bist\n\n' +
+  '<i>Preise vom italienischen Ministerium, Stand jeden Morgen.</i>';
+async function botUpdate(request, env) {
+  const ok = new Response('ok');
+  if (!env.TELEGRAM_TOKEN || request.headers.get('X-Telegram-Bot-Api-Secret-Token') !== await botSecret(env)) return new Response('nein', { status: 403 });
+  let u; try { u = await request.json(); } catch { return ok; }
+  const m = u && u.message; if (!m || !m.chat) return ok;
+  const reply = (t, extra = {}) => tg(env, 'sendMessage', { chat_id: m.chat.id, text: t, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: KEYBOARD, ...extra }).catch(() => {});
+  if (String(m.chat.id) !== String(env.TELEGRAM_CHAT_ID)) { await reply('🔒 Dieser Bot ist privat.', { reply_markup: { remove_keyboard: true } }); return ok; }
+  try {
+    const cfg = settings(env);
+    let pos = cfg.pos, fuel = cfg.fuel, where = 'bei dir zuhause';
+    if (m.location) { pos = { lat: m.location.latitude, lng: m.location.longitude }; where = 'an deinem Standort'; }
+    else {
+      const t = String(m.text || '').toLowerCase();
+      if (/diesel|gasolio/.test(t)) fuel = 'd';
+      else if (/benzin|benzina|super/.test(t)) fuel = 'b';
+      else if (!/preis/.test(t)) { await reply(HELP); return ok; }
+    }
+    const sorte = fuel === 'd' ? 'Diesel' : 'Benzin';
+    const { list, stand } = await stationsNear(pos, cfg.rad, fuel);
+    if (!list.length) await reply(`Keine Tankstelle mit ${sorte}-Preis im Umkreis von ${cfg.rad} km gefunden ${where}. (Preise gibt es nur für Italien.)`);
+    else await reply(`⛽ <b>${sorte} ${where}</b> – die günstigsten im Umkreis von ${cfg.rad} km:\n\n${stationLines(list)}\n\n<i>Stand ${stand} · Daten: MIMIT</i>`);
+  } catch (e) { await reply('⚠️ ' + esc(e.message)); }
+  return ok;
 }
 
 async function telegram(env, msg) {

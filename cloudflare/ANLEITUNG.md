@@ -68,6 +68,22 @@ Im Browser öffnen (CHATID durch deine Chat-ID ersetzen):
 
 Es erscheint „Nachricht gesendet ✓“ und in Telegram kommt eine Test-Nachricht.
 
+## D) Bot-Befehle einschalten (Preise jederzeit abfragen)
+
+Einmal im Browser öffnen (CHATID durch deine Chat-ID ersetzen):
+`https://tankbuch-proxy.edengrim67.workers.dev/telegram-setup?chat=CHATID`
+
+Danach kannst du dem Bot jederzeit schreiben:
+
+| Du schickst | Antwort |
+|---|---|
+| **⛽ Preise** oder `/preise` | die 5 günstigsten Tankstellen bei dir zuhause (Sorte aus `ALARM_FUEL`) |
+| **Diesel** / **Benzin** | dieselbe Liste für die gewählte Sorte |
+| **📍 Standort senden** | Preise genau dort, wo du gerade bist |
+
+Der Bot antwortet nur dir (deiner Chat-ID). Telegram schickt die Nachrichten mit einem geheimen
+Kennwort an den Worker, das aus deinem Bot-Token abgeleitet ist – andere können den Bot nicht benutzen.
+
 ---
 
 # Teil 3: Profile & Cloud-Sync

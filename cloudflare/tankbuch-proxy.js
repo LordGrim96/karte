@@ -16,6 +16,11 @@
 //      ALARM_FUEL                           benzina oder gasolio (Standard benzina)
 //      ALARM_MAX_PRICE                      Wunschpreis, z. B. 1.80 – leer = jeden Tag die günstigsten melden
 //
+// 3) Profile & Cloud-Sync (optional):
+//    Speichert das Tankbuch eines Profils – vorher auf dem Handy mit dem Passwort verschlüsselt.
+//    Der Worker sieht weder Passwort noch Profilname noch Inhalt, nur einen unlesbaren Datenblock.
+//    Braucht einen KV-Speicher mit dem Namen TANKBUCH_KV (siehe cloudflare/ANLEITUNG.md, Teil 3).
+//
 // Einrichten: siehe cloudflare/ANLEITUNG.md
 
 const FILES = ['anagrafica_impianti_attivi.csv', 'prezzo_alle_8.csv'];   // nur diese zwei Dateien
@@ -28,14 +33,20 @@ export default {
     const origin = request.headers.get('Origin');
     const cors = {
       'Access-Control-Allow-Origin': ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
-      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Auth',
+      'Access-Control-Max-Age': '86400',
       'Vary': 'Origin',
     };
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
-    if (request.method !== 'GET') return new Response('Nur GET erlaubt', { status: 405, headers: cors });
 
     const url = new URL(request.url);
     const file = url.pathname.replace(/^\/+/, '');
+
+    // Profile & Cloud-Sync: /sync/<id>
+    const sm = file.match(/^sync\/([a-f0-9]{40})$/);
+    if (sm) return sync(request, env, sm[1], cors);
+    if (request.method !== 'GET') return new Response('Nur GET erlaubt', { status: 405, headers: cors });
 
     // Test des Preis-Alarms: /alarm-test?chat=DEINE_CHAT_ID (nur mit der richtigen Chat-ID)
     if (file === 'alarm-test') {
@@ -132,4 +143,45 @@ async function telegram(env, msg) {
     body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text: msg, parse_mode: 'HTML', disable_web_page_preview: true }),
   });
   if (!r.ok) throw new Error('Telegram: ' + (await r.text()).slice(0, 200));
+}
+
+/* ---------- Profile & Cloud-Sync ---------- */
+const MAX_BYTES = 5 * 1024 * 1024;
+const json = (o, status, cors) => new Response(JSON.stringify(o), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+async function sha256hex(t) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+// Vergleich in konstanter Zeit
+const same = (a, b) => { if (a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0; };
+
+async function sync(request, env, id, cors) {
+  if (!env.TANKBUCH_KV) return json({ error: 'Cloud-Speicher ist im Worker nicht eingerichtet (KV TANKBUCH_KV fehlt)' }, 503, cors);
+  const auth = request.headers.get('X-Auth') || '';
+  if (!/^[A-Za-z0-9_-]{43}$/.test(auth)) return json({ error: 'Anmeldung fehlt' }, 401, cors);
+  const authHash = await sha256hex(auth);
+  const key = 'p:' + id;
+  const rec = await env.TANKBUCH_KV.get(key, 'json');
+  if (rec && !same(rec.auth, authHash)) return json({ error: 'Profilname schon vergeben oder Passwort falsch' }, 401, cors);
+
+  if (request.method === 'GET') {
+    if (!rec) return json({ error: 'Profil nicht gefunden' }, 404, cors);
+    return json({ v: rec.v, data: rec.data, at: rec.at }, 200, cors);
+  }
+  if (request.method === 'PUT') {
+    const body = await request.text();
+    if (body.length > MAX_BYTES) return json({ error: 'Daten zu groß' }, 413, cors);
+    let b; try { b = JSON.parse(body); } catch { return json({ error: 'Ungültige Daten' }, 400, cors); }
+    if (typeof b.data !== 'string' || !Number.isInteger(b.base)) return json({ error: 'Ungültige Daten' }, 400, cors);
+    const cur = rec ? rec.v : 0;
+    if (b.base !== cur) return json({ error: 'Veraltet', v: cur }, 409, cors);
+    const next = { v: cur + 1, data: b.data, auth: authHash, at: new Date().toISOString() };
+    await env.TANKBUCH_KV.put(key, JSON.stringify(next));
+    return json({ v: next.v, at: next.at }, 200, cors);
+  }
+  if (request.method === 'DELETE') {
+    if (rec) await env.TANKBUCH_KV.delete(key);
+    return json({ ok: true }, 200, cors);
+  }
+  return json({ error: 'Methode nicht erlaubt' }, 405, cors);
 }

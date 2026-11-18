@@ -67,3 +67,39 @@ Im Browser öffnen (CHATID durch deine Chat-ID ersetzen):
 `https://tankbuch-proxy.edengrim67.workers.dev/alarm-test?chat=CHATID`
 
 Es erscheint „Nachricht gesendet ✓“ und in Telegram kommt eine Test-Nachricht.
+
+---
+
+# Teil 3: Profile & Cloud-Sync
+
+Damit das Tankbuch Profile in der Cloud speichern kann, braucht der Worker einen kleinen
+Datenspeicher („KV“). Die Daten kommen schon **verschlüsselt** vom Handy – der Worker und
+Cloudflare können sie nicht lesen.
+
+## A) Speicher anlegen
+
+1. **dash.cloudflare.com** → links **„Speicher und Datenbanken“** (Storage & Databases) → **„KV“**
+   (manchmal direkt unter „Workers und Pages“ → „KV“).
+2. **„Erstellen“** bzw. **„Namespace erstellen“** (Create namespace) → Name: **`tankbuch`** → **„Hinzufügen“**.
+
+## B) Speicher mit dem Worker verbinden
+
+1. **Workers und Pages** → **tankbuch-proxy** → **„Einstellungen“** (Settings) → **„Bindungen“** (Bindings).
+2. **„Hinzufügen“** (Add) → **„KV-Namespace“**.
+3. Variablenname: **`TANKBUCH_KV`** (genau so, Großbuchstaben) – KV-Namespace: **`tankbuch`** → **„Speichern“/„Bereitstellen“**.
+
+## C) Neuen Code einfügen
+
+1. **„Code bearbeiten“** → alles löschen → den aktuellen Inhalt von [`tankbuch-proxy.js`](tankbuch-proxy.js) einfügen → **„Bereitstellen“**.
+
+## D) In der App
+
+**Mehr → ☁️ Profil & Cloud-Sync** → Profilname und Passwort eingeben → **„Anmelden / Profil anlegen“**.
+Auf einem zweiten Handy denselben Profilnamen und dasselbe Passwort eingeben – fertig.
+
+## Kosten & Sicherheit
+
+- Kostenlos: 1.000 Speichervorgänge und 100.000 Abrufe pro Tag.
+- Verschlüsselung: AES-256 auf dem Handy, Schlüssel aus dem Passwort (PBKDF2, 310.000 Runden).
+  Der Worker speichert nur den verschlüsselten Block und einen Prüfwert für die Anmeldung.
+- **Passwort vergessen = Cloud-Daten weg.** Die Daten auf dem Handy bleiben erhalten.

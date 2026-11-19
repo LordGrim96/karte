@@ -84,6 +84,22 @@ Danach kannst du dem Bot jederzeit schreiben:
 Der Bot antwortet nur dir (deiner Chat-ID). Telegram schickt die Nachrichten mit einem geheimen
 Kennwort an den Worker, das aus deinem Bot-Token abgeleitet ist – andere können den Bot nicht benutzen.
 
+## F) Termin-Erinnerungen, Preisverlauf, Profil-Meldung
+
+Brauchen den KV-Speicher aus Teil 3 (`TANKBUCH_KV`) und den aktuellen Worker-Code.
+
+- **Termin-Erinnerungen:** Schreib deinem Bot `/code`. Trag den Code in der App unter
+  **Mehr → Preis-Alarm → Termin-Erinnerungen** ein und schalte „Termine an Telegram senden“ ein.
+  Der Bot erinnert 14, 7, 3 und 1 Tag vorher und am Tag selbst (zur Uhrzeit deines Cron-Triggers).
+  `/termine` zeigt jederzeit alle anstehenden Termine. Die App schickt nur Bezeichnung, Datum und Betrag.
+- **Preisverlauf:** Läuft automatisch mit dem Cron-Trigger – jeden Morgen werden die Preise der
+  ~40 Tankstellen rund um `ALARM_LAT`/`ALARM_LNG` gespeichert (bis 120 Tage). Die App zeigt den
+  Verlauf auf der Übersicht und in der Karte.
+- **Neues Cloud-Profil:** Der Bot meldet dir, wenn jemand ein neues Profil anlegt.
+
+Nach dem Einfügen des neuen Codes einmal `/telegram-setup?chat=DEINE_CHAT_ID` öffnen, damit
+die neuen Befehle (`/termine`, `/code`) im Bot-Menü erscheinen.
+
 ---
 
 # Teil 3: Profile & Cloud-Sync

@@ -17,6 +17,11 @@
 //      ALARM_MAX_PRICE                      Wunschpreis, z. B. 1.80 – leer = jeden Tag die günstigsten melden
 //    Zusätzlich beantwortet der Bot Befehle (/preise, /diesel, /benzin oder einen geteilten Standort).
 //    Einmalig einschalten: /telegram-setup?chat=DEINE_CHAT_ID im Browser öffnen.
+//    Außerdem (braucht den KV-Speicher TANKBUCH_KV):
+//      • Termin-Erinnerungen: die App schickt Bezeichnung + Datum deiner Termine (Code: /code im Bot),
+//        der Bot erinnert 14, 7, 3, 1 und 0 Tage vorher.
+//      • Preisverlauf: jeden Morgen werden die Preise der Tankstellen rund um ALARM_LAT/ALARM_LNG gesammelt.
+//      • Meldung, wenn jemand ein neues Cloud-Profil anlegt.
 //
 // 3) Profile & Cloud-Sync (optional):
 //    Speichert das Tankbuch eines Profils – vorher auf dem Handy mit dem Passwort verschlüsselt.
@@ -33,12 +38,12 @@ const ALLOWED_ORIGINS = ['https://lordgrim96.github.io'];                // nur 
 const IT_DATA = 'https://raw.githubusercontent.com/LordGrim96/karte/carburanti-data/it/';
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin');
     const cors = {
       'Access-Control-Allow-Origin': ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
       'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
-      'Access-Control-Allow-Headers': 'Content-Type, X-Auth, X-Invite',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Auth, X-Invite, X-Bot-Code',
       'X-Content-Type-Options': 'nosniff',
       'Access-Control-Max-Age': '86400',
       'Vary': 'Origin',
@@ -50,7 +55,15 @@ export default {
 
     // Profile & Cloud-Sync: /sync/<id>
     const sm = file.match(/^sync\/([a-f0-9]{40})$/);
-    if (sm) return sync(request, env, sm[1], cors);
+    if (sm) return sync(request, env, sm[1], cors, ctx);
+
+    // Termine für die Telegram-Erinnerung (nur mit dem Code aus /code im Bot)
+    if (file === 'reminders') return remindersApi(request, env, cors);
+    // gesammelter Preisverlauf (öffentliche Preise, nur lesen)
+    if (file === 'history' && request.method === 'GET') {
+      const h = env.TANKBUCH_KV ? await env.TANKBUCH_KV.get('hist', 'json') : null;
+      return json(h || { stations: {} }, 200, { ...cors, 'Cache-Control': 'public, max-age=1800' });
+    }
 
     // Telegram schickt Nachrichten an den Bot hierher (nur mit geheimem Kennwort von Telegram)
     if (file === 'telegram' && request.method === 'POST') return botUpdate(request, env);
@@ -103,6 +116,8 @@ export default {
   // Cron-Trigger: täglicher Preis-Alarm
   async scheduled(event, env, ctx) {
     ctx.waitUntil(runAlarm(env, false).catch(e => console.log('Preis-Alarm fehlgeschlagen: ' + e.message)));
+    ctx.waitUntil(recordHistory(env).catch(e => console.log('Preisverlauf fehlgeschlagen: ' + e.message)));
+    ctx.waitUntil(runReminders(env).catch(e => console.log('Termin-Erinnerung fehlgeschlagen: ' + e.message)));
   },
 };
 
@@ -180,6 +195,8 @@ async function botSetup(env, origin) {
     { command: 'preise', description: 'Günstigste Tankstellen bei dir' },
     { command: 'diesel', description: 'Diesel-Preise' },
     { command: 'benzin', description: 'Benzin-Preise' },
+    { command: 'termine', description: 'Anstehende Termine' },
+    { command: 'code', description: 'Code für die App (Termin-Erinnerung)' },
     { command: 'hilfe', description: 'Was kann der Bot?' } ] });
   await tg(env, 'sendMessage', { chat_id: env.TELEGRAM_CHAT_ID, text: '✅ Bot ist bereit! Tippe unten auf „⛽ Preise“ oder teile deinen Standort.', reply_markup: KEYBOARD });
   return 'Bot-Befehle eingeschaltet ✓ – schau in Telegram.';
@@ -187,7 +204,9 @@ async function botSetup(env, origin) {
 const HELP = '⛽ <b>Tankbuch-Bot</b>\n\n' +
   '• <b>⛽ Preise</b> oder /preise – die 5 günstigsten Tankstellen bei dir zuhause\n' +
   '• <b>Diesel</b> / <b>Benzin</b> – dieselbe Liste für die gewählte Sorte\n' +
-  '• <b>📍 Standort senden</b> – Preise genau da, wo du gerade bist\n\n' +
+  '• <b>📍 Standort senden</b> – Preise genau da, wo du gerade bist\n' +
+  '• /termine – deine anstehenden Termine (Revision, Bollo …)\n' +
+  '• /code – Code für die App, damit sie dir Termine schicken kann\n\n' +
   '<i>Preise vom italienischen Ministerium, Stand jeden Morgen.</i>';
 async function botUpdate(request, env) {
   const ok = new Response('ok');
@@ -202,6 +221,11 @@ async function botUpdate(request, env) {
     if (m.location) { pos = { lat: m.location.latitude, lng: m.location.longitude }; where = 'an deinem Standort'; }
     else {
       const t = String(m.text || '').toLowerCase();
+      if (/^\/code\b/.test(t)) {
+        await reply(`🔑 Dein Code für die App:\n\n<code>${await reminderCode(env)}</code>\n\nIm Tankbuch unter <b>Mehr → Preis-Alarm → Termin-Erinnerungen</b> eintragen. Nicht weitergeben.`);
+        return ok;
+      }
+      if (/^\/?termine?\b/.test(t)) { await reply(await remindersText(env, false) || 'Keine Termine gespeichert. Schalte in der App unter Mehr → Preis-Alarm die Termin-Erinnerungen ein.'); return ok; }
       if (/diesel|gasolio/.test(t)) fuel = 'd';
       else if (/benzin|benzina|super/.test(t)) fuel = 'b';
       else if (!/preis/.test(t)) { await reply(HELP); return ok; }
@@ -232,7 +256,7 @@ async function sha256hex(t) {
 // Vergleich in konstanter Zeit
 const same = (a, b) => { if (a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0; };
 
-async function sync(request, env, id, cors) {
+async function sync(request, env, id, cors, ctx) {
   if (!env.TANKBUCH_KV) return json({ error: 'Cloud-Speicher ist im Worker nicht eingerichtet (KV TANKBUCH_KV fehlt)' }, 503, cors);
   const auth = request.headers.get('X-Auth') || '';
   if (!/^[A-Za-z0-9_-]{43}$/.test(auth)) return json({ error: 'Anmeldung fehlt' }, 401, cors);
@@ -259,6 +283,11 @@ async function sync(request, env, id, cors) {
     if (b.base !== cur) return json({ error: 'Veraltet', v: cur }, 409, cors);
     const next = { v: cur + 1, data: b.data, auth: authHash, at: new Date().toISOString() };
     await env.TANKBUCH_KV.put(key, JSON.stringify(next));
+    // Meldung an den Besitzer, wenn ein neues Profil entsteht (ohne Namen – den kennt der Worker nicht)
+    if (!rec && env.TELEGRAM_TOKEN && env.TELEGRAM_CHAT_ID && ctx) ctx.waitUntil((async () => {
+      const n = (await env.TANKBUCH_KV.list({ prefix: 'p:' })).keys.length;
+      await telegram(env, `🆕 <b>Neues Cloud-Profil angelegt</b>\nInsgesamt ${n} Profil${n === 1 ? '' : 'e'} in deinem Speicher.\n<i>Warst du das nicht? Dann ändere den Einladungscode (SYNC_INVITE).</i>`);
+    })().catch(() => {}));
     return json({ v: next.v, at: next.at }, 200, cors);
   }
   if (request.method === 'DELETE') {
@@ -266,4 +295,76 @@ async function sync(request, env, id, cors) {
     return json({ ok: true }, 200, cors);
   }
   return json({ error: 'Methode nicht erlaubt' }, 405, cors);
+}
+
+/* ---------- Termin-Erinnerungen per Telegram ---------- */
+async function reminderCode(env) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('tankbuch-termine|' + env.TELEGRAM_TOKEN));
+  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+}
+async function remindersApi(request, env, cors) {
+  if (!env.TANKBUCH_KV || !env.TELEGRAM_TOKEN) return json({ error: 'Im Worker nicht eingerichtet (TANKBUCH_KV / TELEGRAM_TOKEN)' }, 503, cors);
+  if (!same(request.headers.get('X-Bot-Code') || '', await reminderCode(env))) return json({ error: 'Code falsch – schreib deinem Bot /code' }, 401, cors);
+  if (request.method === 'DELETE') { await env.TANKBUCH_KV.delete('reminders'); return json({ ok: true }, 200, cors); }
+  if (request.method !== 'PUT') return json({ error: 'Methode nicht erlaubt' }, 405, cors);
+  if (+(request.headers.get('Content-Length') || 0) > 50000) return json({ error: 'Zu groß' }, 413, cors);
+  let b; try { b = JSON.parse(await request.text()); } catch { return json({ error: 'Ungültige Daten' }, 400, cors); }
+  const items = (Array.isArray(b.items) ? b.items : []).slice(0, 100).map(x => ({
+    t: String(x && x.t || '').replace(/[<>&]/g, '').slice(0, 60), c: String(x && x.c || '').replace(/[<>&]/g, '').slice(0, 40),
+    d: /^\d{4}-\d\d-\d\d$/.test(x && x.d) ? x.d : null, a: Number.isFinite(+(x && x.a)) && +x.a > 0 ? +x.a : null,
+  })).filter(x => x.t && x.d);
+  await env.TANKBUCH_KV.put('reminders', JSON.stringify({ items, at: new Date().toISOString() }));
+  return json({ ok: true, count: items.length }, 200, cors);
+}
+const romeToday = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+const daysUntil = d => Math.round((new Date(d + 'T00:00:00Z') - new Date(romeToday() + 'T00:00:00Z')) / 864e5);
+const dmy = d => d.split('-').reverse().join('.');
+// onlyDue: nur Termine, an die heute erinnert werden soll (14/7/3/1/0 Tage vorher, überfällig jeden 3. Tag)
+async function remindersText(env, onlyDue) {
+  if (!env.TANKBUCH_KV) return '';
+  const r = await env.TANKBUCH_KV.get('reminders', 'json');
+  if (!r || !r.items || !r.items.length) return '';
+  const list = r.items.map(x => ({ ...x, n: daysUntil(x.d) })).sort((a, b) => a.n - b.n)
+    .filter(x => onlyDue ? ([14, 7, 3, 1, 0].includes(x.n) || (x.n < 0 && x.n >= -60 && -x.n % 3 === 0)) : x.n >= -60 && x.n <= 400);
+  if (!list.length) return '';
+  const when = n => n < 0 ? `⚠️ seit ${-n} Tag${n === -1 ? '' : 'en'} überfällig` : n === 0 ? '❗ heute fällig' : n === 1 ? 'morgen fällig' : `in ${n} Tagen`;
+  const lines = list.slice(0, 12).map(x => `• <b>${esc(x.t)}</b>${x.c ? ' (' + esc(x.c) + ')' : ''} – ${when(x.n)} (${dmy(x.d)})${x.a ? ' · ca. ' + x.a.toFixed(2).replace('.', ',') + ' €' : ''}`);
+  return `${onlyDue ? '🔔 <b>Erinnerung</b>' : '📅 <b>Deine Termine</b>'}\n\n${lines.join('\n')}`;
+}
+async function runReminders(env) {
+  if (!env.TELEGRAM_TOKEN || !env.TELEGRAM_CHAT_ID) return;
+  const t = await remindersText(env, true);
+  if (t) await telegram(env, t);
+}
+
+/* ---------- Preisverlauf: jeden Morgen die Preise rund um den Heimatort sammeln ---------- */
+async function recordHistory(env) {
+  if (!env.TANKBUCH_KV) return;
+  let cfg; try { cfg = settings(env); } catch { return; }
+  const day = romeToday();
+  const h = (await env.TANKBUCH_KV.get('hist', 'json')) || { stations: {} };
+  if (h.day === day) return;                                // heute schon gesammelt
+  const pos = cfg.pos, rad = Math.max(cfg.rad, 15);
+  const dLat = rad / 111, dLng = rad / (111 * Math.cos(pos.lat * Math.PI / 180)), keys = [];
+  for (let la = Math.floor(pos.lat - dLat); la <= Math.floor(pos.lat + dLat); la++)
+    for (let lo = Math.floor(pos.lng - dLng); lo <= Math.floor(pos.lng + dLng); lo++) keys.push(`${la}_${lo}`);
+  const tiles = (await Promise.all(keys.map(k => fetch(IT_DATA + k + '.json').then(r => r.ok ? r.json() : [])))).flat();
+  const near = tiles.map(x => ({ x, d: distKm(pos, x) })).filter(o => o.d <= rad && o.x.p).sort((a, b) => a.d - b.d).slice(0, 40);
+  const cutoff = new Date(Date.now() - 120 * 864e5).toISOString().slice(0, 10);
+  for (const { x } of near) {
+    const s = h.stations[x.id] ||= { n: x.br || x.n, a: `${x.a}, ${x.c}`, lat: x.lat, lng: x.lng, p: {} };
+    s.n = x.br || x.n; s.a = `${x.a}, ${x.c}`;
+    for (const f of ['b', 'd']) {
+      const q = x.p[f]; if (!q) continue;
+      const price = q[0] || q[1];
+      const arr = (s.p[f] ||= []).filter(e => e[0] !== day && e[0] >= cutoff);
+      arr.push([day, price]); s.p[f] = arr;
+    }
+  }
+  for (const id in h.stations) {                            // alte, nicht mehr gemeldete Tankstellen entfernen
+    const s = h.stations[id];
+    if (!['b', 'd'].some(f => (s.p[f] || []).some(e => e[0] >= cutoff))) delete h.stations[id];
+  }
+  h.day = day; h.fuel = cfg.fuel;
+  await env.TANKBUCH_KV.put('hist', JSON.stringify(h));
 }

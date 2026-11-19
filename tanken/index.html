@@ -442,6 +442,25 @@ body:not(.tab-home) .top .hero, body:not(.tab-home) .top .trio { display: none; 
 body:not(.tab-home) .top { padding-bottom: 12px; border-radius: 0 0 22px 22px; }
 #priceNow h2 { flex-direction: column; align-items: flex-start; gap: 2px; }
 #priceNow h2 small { font-size: .82rem; }
+
+/* Preisverlauf & Tankstellen-Statistik */
+.hrow { display: grid; grid-template-columns: 1fr 84px auto; gap: 4px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.hrow:last-child { border-bottom: 0; }
+.hrow .n { font-weight: 650; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hrow .a { grid-column: 1; font-size: .76rem; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hrow svg { grid-row: span 2; grid-column: 2; width: 84px; height: 34px; overflow: visible; }
+.hrow svg polyline { fill: none; stroke: var(--primary); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.hrow svg circle { fill: var(--primary); }
+.hrow .p { grid-row: span 2; grid-column: 3; text-align: right; font-weight: 750; font-variant-numeric: tabular-nums; }
+.hrow .p small { display: block; font-size: .72rem; font-weight: 600; }
+.srow { display: grid; grid-template-columns: 28px 1fr auto; gap: 2px 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.srow:last-child { border-bottom: 0; }
+.srow .rk { font-weight: 800; color: var(--dim); text-align: center; }
+.srow .n { font-weight: 650; }
+.srow .s { grid-column: 2; font-size: .78rem; color: var(--dim); }
+.srow .v { grid-row: span 2; grid-column: 3; text-align: right; font-weight: 750; font-variant-numeric: tabular-nums; }
+.srow .v small { display: block; font-size: .72rem; font-weight: 500; color: var(--dim); }
+.srow.best .v { color: var(--primary); }
 </style>
 </head>
 <body class="tab-home">
@@ -508,6 +527,10 @@ body:not(.tab-home) .top { padding-bottom: 12px; border-radius: 0 0 22px 22px; }
       <div id="priceChart"></div>
       <div class="facts" id="priceFacts"></div>
     </div>
+    <div class="card" id="histCard" hidden>
+      <h2>Preisverlauf <small id="histSub"></small></h2>
+      <div id="histList"></div>
+    </div>
     <div class="card" id="otherCard">
       <h2>Autokosten gesamt <small id="otherSub"></small></h2>
       <div class="cats" id="cats"></div>
@@ -528,6 +551,7 @@ body:not(.tab-home) .top { padding-bottom: 12px; border-radius: 0 0 22px 22px; }
   <div class="view" id="v-years">
     <h1 class="ltitle">Jahre</h1>
     <div class="card"><h2>Vergleich <span class="legend"><span><i style="background:var(--primary)"></i>Tanken</span><span><i style="background:var(--blue)"></i>Sonstiges</span></span></h2><div id="compare"></div></div>
+    <div class="card"><h2>Deine Tankstellen <small id="statSub"></small></h2><div id="stationStats"></div></div>
     <button class="btn full" id="pdfBtn">📄 Jahresbericht als PDF</button>
   </div>
 
@@ -620,6 +644,15 @@ body:not(.tab-home) .top { padding-bottom: 12px; border-radius: 0 0 22px 22px; }
       <p class="note">Dein Cloudflare-Worker schaut jeden Morgen in die Preise und schickt dir eine Telegram-Nachricht, wenn in deiner Nähe eine Tankstelle unter deinem Wunschpreis liegt – auch wenn die App geschlossen ist. Einrichten: Anleitung <a href="https://github.com/LordGrim96/karte/blob/main/cloudflare/ANLEITUNG.md" target="_blank" rel="noopener">cloudflare/ANLEITUNG.md</a> (Teil 2).</p>
       <button class="btn sec full" id="alarmPos" type="button">📍 Meine Koordinaten für den Alarm anzeigen</button>
       <p class="note" id="alarmPosOut" style="margin:8px 0 0" hidden></p>
+    </div>
+    <div class="card">
+      <h2>Termin-Erinnerungen</h2>
+      <p class="note">Dein Telegram-Bot erinnert dich an Revision, Bollo &amp; Co. – 14, 7, 3 und 1 Tag vorher und am Tag selbst, auch wenn die App zu ist. Dafür schickt die App nur <b>Bezeichnung, Datum und Betrag</b> deiner Termine an deinen Worker (keine Tankdaten).</p>
+      <div class="row" style="margin-bottom:10px"><span>Termine an Telegram senden</span><label class="switch"><input type="checkbox" id="tgOn"><span></span></label></div>
+      <label class="flab" for="tgCode">Code (schreib deinem Bot <b>/code</b>)</label>
+      <input class="inp" id="tgCode" autocomplete="off" spellcheck="false" placeholder="16 Zeichen, z. B. 2e78b0605e394fab">
+      <button class="btn sec full" id="tgSend" type="button" style="margin-top:10px">Termine jetzt senden</button>
+      <p class="note" id="tgState" style="margin:8px 0 0"></p>
     </div>
   </div>
 </section>

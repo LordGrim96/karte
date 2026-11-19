@@ -22,6 +22,8 @@
 //    Speichert das Tankbuch eines Profils – vorher auf dem Handy mit dem Passwort verschlüsselt.
 //    Der Worker sieht weder Passwort noch Profilname noch Inhalt, nur einen unlesbaren Datenblock.
 //    Braucht einen KV-Speicher mit dem Namen TANKBUCH_KV (siehe cloudflare/ANLEITUNG.md, Teil 3).
+//    Empfohlen: Variable SYNC_INVITE (Einladungscode) – dann kann nur ein neues Profil anlegen,
+//    wer den Code kennt. So kann niemand Fremdes deinen Speicher vollschreiben.
 //
 // Einrichten: siehe cloudflare/ANLEITUNG.md
 
@@ -36,7 +38,8 @@ export default {
     const cors = {
       'Access-Control-Allow-Origin': ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
       'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
-      'Access-Control-Allow-Headers': 'Content-Type, X-Auth',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Auth, X-Invite',
+      'X-Content-Type-Options': 'nosniff',
       'Access-Control-Max-Age': '86400',
       'Vary': 'Origin',
     };
@@ -56,7 +59,7 @@ export default {
     // Test des Preis-Alarms: /alarm-test?chat=DEINE_CHAT_ID (nur mit der richtigen Chat-ID)
     // Bot-Befehle einschalten: /telegram-setup?chat=DEINE_CHAT_ID
     if (file === 'telegram-setup') {
-      if (!env.TELEGRAM_TOKEN || !env.TELEGRAM_CHAT_ID || url.searchParams.get('chat') !== String(env.TELEGRAM_CHAT_ID)) {
+      if (!env.TELEGRAM_TOKEN || !env.TELEGRAM_CHAT_ID || !same(url.searchParams.get('chat') || '', String(env.TELEGRAM_CHAT_ID))) {
         return text('Bitte so aufrufen: /telegram-setup?chat=DEINE_CHAT_ID (TELEGRAM_TOKEN und TELEGRAM_CHAT_ID müssen eingetragen sein).', 403);
       }
       try { return text(await botSetup(env, url.origin)); }
@@ -64,11 +67,11 @@ export default {
     }
 
     if (file === 'alarm-test') {
-      if (!env.TELEGRAM_CHAT_ID || url.searchParams.get('chat') !== String(env.TELEGRAM_CHAT_ID)) {
+      if (!env.TELEGRAM_CHAT_ID || !same(url.searchParams.get('chat') || '', String(env.TELEGRAM_CHAT_ID))) {
         return text('Bitte so aufrufen: /alarm-test?chat=DEINE_CHAT_ID (die Chat-ID muss mit TELEGRAM_CHAT_ID übereinstimmen).', 403);
       }
       try { return text(await runAlarm(env, true)); }
-      catch (e) { return text('Fehler: ' + e.message, 500); }
+      catch (e) { return text('Fehler: ' + String(e.message).slice(0, 200), 500); }
     }
 
     if (!FILES.includes(file)) {
@@ -103,7 +106,7 @@ export default {
   },
 };
 
-const text = (t, status = 200) => new Response(t, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+const text = (t, status = 200) => new Response(t, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store' } });
 
 function distKm(a, b) {
   const R = 6371, r = x => x * Math.PI / 180, dLa = r(b.lat - a.lat), dLo = r(b.lng - a.lng);
@@ -188,7 +191,7 @@ const HELP = '⛽ <b>Tankbuch-Bot</b>\n\n' +
   '<i>Preise vom italienischen Ministerium, Stand jeden Morgen.</i>';
 async function botUpdate(request, env) {
   const ok = new Response('ok');
-  if (!env.TELEGRAM_TOKEN || request.headers.get('X-Telegram-Bot-Api-Secret-Token') !== await botSecret(env)) return new Response('nein', { status: 403 });
+  if (!env.TELEGRAM_TOKEN || !same(request.headers.get('X-Telegram-Bot-Api-Secret-Token') || '', await botSecret(env))) return new Response('nein', { status: 403 });
   let u; try { u = await request.json(); } catch { return ok; }
   const m = u && u.message; if (!m || !m.chat) return ok;
   const reply = (t, extra = {}) => tg(env, 'sendMessage', { chat_id: m.chat.id, text: t, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: KEYBOARD, ...extra }).catch(() => {});
@@ -221,7 +224,7 @@ async function telegram(env, msg) {
 
 /* ---------- Profile & Cloud-Sync ---------- */
 const MAX_BYTES = 5 * 1024 * 1024;
-const json = (o, status, cors) => new Response(JSON.stringify(o), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+const json = (o, status, cors) => new Response(JSON.stringify(o), { status, headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 async function sha256hex(t) {
   const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
   return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -243,6 +246,11 @@ async function sync(request, env, id, cors) {
     return json({ v: rec.v, data: rec.data, at: rec.at }, 200, cors);
   }
   if (request.method === 'PUT') {
+    if (+(request.headers.get('Content-Length') || 0) > MAX_BYTES) return json({ error: 'Daten zu groß' }, 413, cors);
+    // neues Profil: nur mit Einladungscode, falls einer eingestellt ist
+    if (!rec && env.SYNC_INVITE && !same(request.headers.get('X-Invite') || '', String(env.SYNC_INVITE))) {
+      return json({ error: 'Für ein neues Profil wird ein Einladungscode gebraucht', invite: true }, 403, cors);
+    }
     const body = await request.text();
     if (body.length > MAX_BYTES) return json({ error: 'Daten zu groß' }, 413, cors);
     let b; try { b = JSON.parse(body); } catch { return json({ error: 'Ungültige Daten' }, 400, cors); }

@@ -1980,6 +1980,35 @@ const PEER_URLS = [
   'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js',
   'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js',
 ];
+const PEER_SRI = 'sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR';
+
+// Sicherheit: Alles, was über das Netz von einem anderen Gerät kommt, wird vor der Anzeige gereinigt –
+// sonst könnte ein manipuliertes Gerät über Namen, Farben oder Texte Code in das Spiel der anderen schleusen.
+const BAD_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+function netClean(v, key) {
+  if (typeof v === 'string') {
+    if (key === 'color') return /^#[0-9a-f]{3,8}$/i.test(v) ? v : '#888888';
+    return v.replace(/[<>"'`]/g, '').slice(0, 300);
+  }
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  if (Array.isArray(v)) return v.slice(0, 2000).map(x => netClean(x, key));
+  if (v && typeof v === 'object') {
+    const out = {};
+    for (const k of Object.keys(v)) if (!BAD_KEYS.has(k)) out[k] = netClean(v[k], k);
+    return out;
+  }
+  return typeof v === 'boolean' || v === null || v === undefined ? v : null;
+}
+// Spielprotokoll enthält etwas HTML (fette, farbige Namen) – nur genau diese Form ist erlaubt
+function netLog(h) {
+  // Text und Tags trennen: Text wird maskiert, von den Tags bleibt nur <b>, </b> und <b style="color:#…">
+  return String(h).slice(0, 500).split(/(<[^<>]*>)/).map(part => {
+    if (!part.startsWith('<') || !part.endsWith('>')) return part.replace(/[<>]/g, '');
+    if (part === '<b>' || part === '</b>') return part;
+    const c = part.match(/^<b style="color:(#[0-9a-fA-F]{3,8})">$/);
+    return c ? `<b style="color:${c[1]}">` : '';
+  }).join('');
+}
 
 async function loadPeer() {
   if (new URLSearchParams(location.search).has('nettest')) return LocalPeer; // Test mit zwei Fenstern im selben Browser
@@ -1989,6 +2018,7 @@ async function loadPeer() {
       await new Promise((res, rej) => {
         const s = document.createElement('script');
         s.src = src; s.onload = res; s.onerror = rej;
+        s.integrity = PEER_SRI; s.crossOrigin = 'anonymous';   // nur die echte, unveränderte Bibliothek ausführen
         document.head.appendChild(s);
       });
       if (window.Peer) return window.Peer;
@@ -2099,6 +2129,7 @@ function drawHostLobby() {
 
 function hostOnData(conn, msg) {
   if (!msg || typeof msg !== 'object') return;
+  msg = netClean(msg);
   if (msg.t === 'hello') {
     const name = String(msg.name || 'Gast').replace(/[<>&"]/g, '').slice(0, 14);
     if (!G) {
@@ -2232,6 +2263,9 @@ async function joinRoom(code) {
 
 function clientOnData(msg) {
   if (!msg || typeof msg !== 'object') return;
+  const rawLog = msg.t === 'state' && msg.g && Array.isArray(msg.g.log) ? msg.g.log.slice(0, 80).map(netLog) : null;
+  msg = netClean(msg);
+  if (rawLog && msg.g) msg.g.log = rawLog;
   if (msg.t === 'lobby') {
     netStatus(`<p>Verbunden mit Raum <b>${NET.code}</b>. Warte, bis der Gastgeber startet …</p>
       <ul class="lobby">${msg.names.map((n, i) => `<li><span class="dot" style="background:${COLORS[i]}"></span> ${n}${n === netName() ? ' (du)' : ''}</li>`).join('')}</ul>`);

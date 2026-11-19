@@ -119,3 +119,25 @@ Auf einem zweiten Handy denselben Profilnamen und dasselbe Passwort eingeben –
 - Verschlüsselung: AES-256 auf dem Handy, Schlüssel aus dem Passwort (PBKDF2, 310.000 Runden).
   Der Worker speichert nur den verschlüsselten Block und einen Prüfwert für die Anmeldung.
 - **Passwort vergessen = Cloud-Daten weg.** Die Daten auf dem Handy bleiben erhalten.
+
+## E) Einladungscode (empfohlen)
+
+Damit niemand Fremdes in deinem Cloudflare-Speicher Profile anlegen kann:
+**Worker → Einstellungen → Variablen und geheime Schlüssel → Hinzufügen**
+`SYNC_INVITE` – Typ **Geheim** – Wert: ein Code deiner Wahl, z. B. `Familie-Tank-2026`.
+
+Wer ein **neues** Profil anlegt, wird in der App einmal nach diesem Code gefragt.
+Bestehende Profile und das Anmelden auf weiteren Handys brauchen ihn nicht.
+
+---
+
+# Teil 4: Sicherheits-Checkliste für deine Konten
+
+Die App und der Worker sind abgesichert – am wichtigsten ist jetzt, dass niemand an deine Konten kommt:
+
+- [ ] **GitHub:** Zwei-Faktor-Anmeldung einschalten (Settings → Password and authentication → Two-factor authentication).
+- [ ] **Cloudflare:** Zwei-Faktor-Anmeldung einschalten (Profil → Authentifizierung → Zwei-Faktor-Authentifizierung).
+- [ ] **Telegram:** Zweistufige Bestätigung einschalten (Einstellungen → Datenschutz und Sicherheit).
+- [ ] **Geheimnisse nie weitergeben:** Bot-Token, Tankerkönig-Schlüssel, Cloud-Passwort, Einladungscode.
+- [ ] **Bot-Token verraten?** → bei @BotFather `/revoke`, neuen Token in Cloudflare eintragen, `/telegram-setup?chat=…` erneut öffnen.
+- [ ] **Sicherung:** ab und zu unter „Mehr → Sicherung speichern“ eine Datei in iCloud/Google Drive ablegen.

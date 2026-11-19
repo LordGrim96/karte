@@ -204,7 +204,7 @@ function render() {
 
   renderPrice(s, p);
   renderOther(s, p);
-  renderList(); renderCompare(ys); renderCars(); renderBackup(); renderTerms(); renderPrices();
+  renderList(); renderCompare(ys); renderCars(); renderBackup(); renderTerms(); renderPrices(); renderMore();
 }
 
 function showTip(s, p) {
@@ -319,6 +319,7 @@ function renderBackup() {
   }
   $('backupBanner').hidden = !msg;
   if (msg) $('backupText').innerHTML = msg;
+  try { renderMore(); } catch { /* beim Start noch nicht bereit */ }
 }
 
 /* ---------- Farben & Hell/Dunkel ---------- */
@@ -341,7 +342,7 @@ function applyTheme() {
   const dark = prefs.theme === 'dark' || (prefs.theme === 'auto' && darkMQ.matches);
   const [primary, soft] = dark ? a.d : a.l;
   const v = { '--h1': a.h[0], '--h2': a.h[1], '--h3': a.h[2], '--hi': a.hi, '--primary': primary, '--soft': soft,
-    '--bg': dark ? a.bg[1] : a.bg[0], '--glow': (a.fab ? a.fab[1] : a.h[1]) + '73', '--on-dark': a.ink || a.h[2],
+    '--bg': a.ink ? (dark ? a.bg[1] : a.bg[0]) : (dark ? '#121215' : '#f2f2f7'), '--glow': (a.fab ? a.fab[1] : a.h[1]) + '73', '--on-dark': a.ink || a.h[2],
     // helle Farbschemas bekommen dunkle Schrift im Kopfbereich
     '--on-h': a.ink || '#fff', '--pill-bg': a.ink ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.16)',
     '--pill-line': a.ink ? 'rgba(52,16,95,.18)' : 'rgba(255,255,255,.25)',
@@ -352,6 +353,7 @@ function applyTheme() {
   $('swatches').innerHTML = Object.entries(ACCENTS).map(([id, x]) =>
     `<button type="button" class="sw${id === prefs.accent ? ' on' : ''}" data-a="${id}" aria-label="${x.name}"><i style="background:linear-gradient(150deg,${x.h[x.ink ? 1 : 0]},${x.h[x.ink ? 2 : 1]});color:${x.ink || '#fff'}">${id === prefs.accent ? '✓' : ''}</i>${x.name}</button>`).join('');
   document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.t === prefs.theme));
+  try { renderMore(); } catch { /* beim Start noch nicht bereit */ }
 }
 darkMQ.addEventListener?.('change', applyTheme);
 $('swatches').onclick = e => { const b = e.target.closest('.sw'); if (!b) return; prefs.accent = b.dataset.a; savePrefs(); applyTheme(); };
@@ -359,10 +361,35 @@ $('themeSeg').onclick = e => { const b = e.target.closest('button'); if (!b) ret
 
 /* ---------- Navigation ---------- */
 function show(v) {
+  closePage();
   document.querySelectorAll('.view').forEach(el => el.classList.toggle('on', el.id === 'v-' + v));
   document.querySelectorAll('nav .tab').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  document.body.className = document.body.className.replace(/\btab-\S+/g, '').trim() + ' tab-' + v;
   window.scrollTo({ top: 0 });
   if (v === 'home' && pmap) setTimeout(() => pmap.invalidateSize(), 50);
+}
+
+/* ---------- „Mehr“: Einstellungs-Liste mit Unterseiten (wie in iOS) ---------- */
+function openPage(name) {
+  closePage();
+  const pg = $('pg-' + name); if (!pg) return;
+  pg.classList.add('open'); pg.querySelector('.pbody').scrollTop = 0;
+  if (name === 'terms') renderTerms();
+}
+function closePage() { document.querySelectorAll('.page.open').forEach(p => p.classList.remove('open')); }
+document.querySelectorAll('.row-item[data-page]').forEach(b => b.onclick = () => openPage(b.dataset.page));
+document.querySelectorAll('[data-back]').forEach(b => b.onclick = closePage);
+// rechts in der Liste den aktuellen Stand zeigen
+function renderMore() {
+  const set = (k, v) => { const el = $('rv-' + k); if (el) el.textContent = v; };
+  set('cars', cars.length > 1 ? `${cars.length} · ${curCar().name}` : curCar().name);
+  const mine = terms.filter(t => t.car === prefs.car), due = mine.filter(t => termState(t).level > 0).length;
+  set('terms', due ? `${due} fällig` : mine.length ? `${mine.length}` : 'Keine');
+  set('prices', prefs.pLoc ? `${TYPES[prefs.pType]} · ${prefs.pRad} km` : 'Aus');
+  set('alarm', '');
+  set('sync', prefs.sync ? 'Angemeldet' : 'Aus');
+  set('backup', prefs.lastBackup ? dmy(prefs.lastBackup) : 'Nie');
+  set('look', (ACCENTS[prefs.accent] || ACCENTS.gruen).name);
 }
 document.querySelectorAll('nav .tab').forEach(b => b.onclick = () => show(b.dataset.v));
 $('year').onchange = e => { selectedYear = +e.target.value; selMonth = null; render(); };
@@ -774,7 +801,7 @@ $('tCal').onclick = () => {
 $('tClose').onclick = closeSheet;
 $('addTerm').onclick = () => openTerm();
 $('termList').onclick = $('dueList').onclick = e => { const b = e.target.closest('.due'); if (b) openTerm(terms.find(x => x.id === b.dataset.t)); };
-$('dueAll').onclick = $('dueOpen').onclick = () => show('data');
+$('dueAll').onclick = $('dueOpen').onclick = () => { show('data'); openPage('terms'); };
 
 /* ---------- Spritpreise (Tankerkönig / MTS-K) ---------- */
 const PRICE_CACHE = 'tankbuch-preise';
@@ -932,7 +959,7 @@ function renderPrices() {
   if (!prefs.pLoc) {
     box.innerHTML = `<h2>⛽ Wo ist es gerade günstig?</h2><p class="note" style="margin:0 0 12px">Zeig dir die aktuell günstigsten Tankstellen in deiner Nähe – live aus dem Internet.</p>
       <button class="btn sec full" id="pSetupBtn">Spritpreise einrichten</button>`;
-    $('pSetupBtn').onclick = () => { show('data'); setTimeout(() => $('priceSetup').scrollIntoView({ behavior: 'smooth' }), 50); };
+    $('pSetupBtn').onclick = () => { show('data'); openPage('prices'); };
     return;
   }
   const s = priceState, list = s && s.type === prefs.pType ? s.stations || [] : [];
@@ -1025,6 +1052,7 @@ function renderPriceSetup() {
   document.querySelectorAll('#pType button').forEach(b => b.classList.toggle('on', b.dataset.p === prefs.pType));
   document.querySelectorAll('#pRad button').forEach(b => b.classList.toggle('on', +b.dataset.r === +prefs.pRad));
   $('pLoc').textContent = !prefs.pLoc ? 'Noch kein Ort gewählt.' : prefs.pLoc.gps ? '📍 Es wird immer dein aktueller Standort verwendet.' : `📍 ${prefs.pLoc.label}`;
+  try { renderMore(); } catch { /* beim Start noch nicht bereit */ }
 }
 $('pType').onclick = e => { const b = e.target.closest('button'); if (!b) return; prefs.pType = b.dataset.p; savePrefs(); renderPriceSetup(); };
 $('pRad').onclick = e => { const b = e.target.closest('button'); if (!b) return; prefs.pRad = +b.dataset.r; savePrefs(); renderPriceSetup(); };
@@ -1282,6 +1310,7 @@ function renderSync(busy) {
   if (!on) return;
   const when = prefs.sync.at ? new Date(prefs.sync.at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'noch nie';
   $('syncInfo').innerHTML = `Angemeldet als <b>${esc(prefs.sync.name)}</b> 🔒<br>${busy ? busy : 'Zuletzt synchronisiert: ' + when}${prefs.sync.err && !busy ? `<br>⚠️ ${esc(prefs.sync.err)}` : ''}`;
+  try { renderMore(); } catch { /* beim Start noch nicht bereit */ }
 }
 $('syLogin').onclick = async () => {
   const name = $('syName').value.trim(), pass = $('syPass').value;

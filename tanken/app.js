@@ -279,7 +279,31 @@ function renderList() {
   $('list').innerHTML = html;
 }
 
+/* ---------- Deine Tankstellen: wo am häufigsten, wo am günstigsten ---------- */
+function renderStationStats() {
+  const fuel = fuelOf(prefs.car).filter(e => e.liter > 0 || e.note);
+  const groups = new Map();
+  for (const e of fuel) {
+    const name = (e.note || '').trim(); if (!name) continue;
+    const k = name.toLowerCase();
+    const g = groups.get(k) || { name, n: 0, cost: 0, liter: 0, last: '' };
+    g.n++; if (e.liter > 0) { g.cost += e.cost; g.liter += e.liter; } if (e.date > g.last) g.last = e.date;
+    groups.set(k, g);
+  }
+  const list = [...groups.values()].sort((a, b) => b.n - a.n || (a.liter ? a.cost / a.liter : 9) - (b.liter ? b.cost / b.liter : 9));
+  const withPrice = list.filter(g => g.liter > 0);
+  const best = withPrice.length > 1 ? withPrice.reduce((a, b) => a.cost / a.liter <= b.cost / b.liter ? a : b) : null;
+  $('statSub').textContent = list.length ? `${list.length} Tankstellen` : '';
+  $('stationStats').innerHTML = !list.length
+    ? `<p class="note" style="margin:0">Hier siehst du, wo du am häufigsten und am günstigsten tankst. Tipp: Beim Eintragen auf „Übernehmen“ tippen – dann wird die Tankstelle automatisch gespeichert.</p>`
+    : list.slice(0, 8).map((g, i) => `<div class="srow${g === best ? ' best' : ''}"><div class="rk">${i + 1}</div>
+        <div class="n">${esc(g.name)}${g === best ? ' 🏆' : ''}</div>
+        <div class="v">${g.liter ? num(g.cost / g.liter, 3) + ' €' : '–'}<small>Ø pro Liter</small></div>
+        <div class="s">${g.n}× getankt · zuletzt ${dmy(g.last)}</div></div>`).join('') +
+      (best ? `<p class="note" style="margin:10px 0 0">🏆 Im Schnitt am günstigsten: <b>${esc(best.name)}</b>.</p>` : '');
+}
 function renderCompare(ys) {
+  renderStationStats();
   const rows = ys.map(y => [y, stats(y)]).filter(([, st]) => st.n || st.otherN);
   if (!rows.length) { $('compare').innerHTML = `<div class="empty"><div class="e">📊</div>Sobald du tankst, siehst du hier die Jahre im Vergleich.</div>`; return; }
   const max = Math.max(...rows.map(([, st]) => st.total));
@@ -387,7 +411,7 @@ function renderMore() {
   const mine = terms.filter(t => t.car === prefs.car), due = mine.filter(t => termState(t).level > 0).length;
   set('terms', due ? `${due} fällig` : mine.length ? `${mine.length}` : 'Keine');
   set('prices', prefs.pLoc ? `${TYPES[prefs.pType]} · ${prefs.pRad} km` : 'Aus');
-  set('alarm', '');
+  set('alarm', prefs.tg && prefs.tg.on ? 'Termine an' : '');
   set('sync', prefs.sync ? 'Angemeldet' : 'Aus');
   set('backup', prefs.lastBackup ? dmy(prefs.lastBackup) : 'Nie');
   set('look', (ACCENTS[prefs.accent] || ACCENTS.gruen).name);
@@ -670,7 +694,7 @@ function revisionDue(reg) {
 }
 let terms = cleanList(read(TERMS, []), cleanTerm);
 let termEdit = null, termTpl = 0;
-const saveTerms = () => { if (window.syncReady) { stamp(); scheduleSync(); } return write(TERMS, terms) || toast('Speichern nicht möglich'); };
+const saveTerms = () => { if (window.syncReady) { stamp(); scheduleSync(); } if (window.tgReady) scheduleReminders(); return write(TERMS, terms) || toast('Speichern nicht möglich'); };
 const addMonths = (d, m) => { const x = new Date(d + 'T00:00'); x.setMonth(x.getMonth() + m); return iso(x); };
 
 // Kilometerstand schätzen: letzter bekannter Tachostand + seitdem gefahrene km
@@ -869,7 +893,7 @@ function mapStations(all) {
   const sel = [...all].sort((a, b) => a.price - b.price || a.dist - b.dist).slice(0, 30);
   const near = [...all].sort((a, b) => a.dist - b.dist)[0];
   if (near && !sel.includes(near)) sel.push(near);
-  return sel.map(x => ({ name: x.name, street: x.street, place: x.place, price: x.price, lat: x.lat, lng: x.lng, dist: x.dist, near: x === near }));
+  return sel.map(x => ({ id: x.id || '', name: x.name, street: x.street, place: x.place, price: x.price, lat: x.lat, lng: x.lng, dist: x.dist, near: x === near }));
 }
 const roughPos = p => ({ lat: Math.round(p.lat * 1000) / 1000, lng: Math.round(p.lng * 1000) / 1000 });
 // die 5 günstigsten – und die nächstgelegene Tankstelle, falls sie nicht schon dabei ist
@@ -956,7 +980,7 @@ async function loadItaly(pos) {
   const stations = data.items.map(x => {
     const p = x.p && x.p[fuel]; if (!p) return null;
     const price = p[0] || p[1], dist = distKm(pos, x);
-    return dist <= rad && +price > 0 && Number.isFinite(dist) ? { name: txt(x.br || x.n, 60), street: txt(x.a, 80), place: txt(x.c, 40), dist, price: +price, self: !!p[0], when: isoOrNull(String(p[2] || '').slice(0, 10)), lat: +x.lat, lng: +x.lng } : null;
+    return dist <= rad && +price > 0 && Number.isFinite(dist) ? { id: safeId(x.id), name: txt(x.br || x.n, 60), street: txt(x.a, 80), place: txt(x.c, 40), dist, price: +price, self: !!p[0], when: isoOrNull(String(p[2] || '').slice(0, 10)), lat: +x.lat, lng: +x.lng } : null;
   }).filter(Boolean);
   return { stations: pickStations(stations), map: mapStations(stations), updated: data.updated };
 }
@@ -1062,7 +1086,7 @@ async function drawMap(s) {
     const cls = 'pm' + (x.price === cheapest ? ' best' : '') + (x.near ? ' near' : '');
     const m = L.marker([x.lat, x.lng], { icon: L.divIcon({ className: cls, html: `<span>${num(x.price, 3)}</span>`, iconSize: null }),
       zIndexOffset: x.price === cheapest ? 1000 : x.near ? 500 : 0, keyboard: false });
-    m.bindPopup(`<b>${esc(x.name)}</b><br>${esc(x.street)}, ${esc(x.place)}<br>${num(x.price, 3)} €/l · ${num(x.dist, 1)} km${x.near ? ' · am nächsten' : ''}<br>
+    m.bindPopup(`<b>${esc(x.name)}</b><br>${esc(x.street)}, ${esc(x.place)}<br>${num(x.price, 3)} €/l · ${num(x.dist, 1)} km${x.near ? ' · am nächsten' : ''}<br>${histPopup(x.id)}
       <a href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}" target="_blank" rel="noopener">Route ›</a>`);
     if (top.has(x) || x.near) { m.addTo(pmap); pts.push([x.lat, x.lng]); } else m.addTo(extras);
   }
@@ -1090,6 +1114,7 @@ function renderPriceSetup() {
   document.querySelectorAll('#pRad button').forEach(b => b.classList.toggle('on', +b.dataset.r === +prefs.pRad));
   $('pLoc').textContent = !prefs.pLoc ? 'Noch kein Ort gewählt.' : prefs.pLoc.gps ? '📍 Es wird immer dein aktueller Standort verwendet.' : `📍 ${prefs.pLoc.label}`;
   try { renderMore(); } catch { /* beim Start noch nicht bereit */ }
+  try { renderHistory(); } catch { /* beim Start noch nicht bereit */ }
 }
 $('pType').onclick = e => { const b = e.target.closest('button'); if (!b) return; prefs.pType = b.dataset.p; savePrefs(); renderPriceSetup(); };
 $('pRad').onclick = e => { const b = e.target.closest('button'); if (!b) return; prefs.pRad = +b.dataset.r; savePrefs(); renderPriceSetup(); };
@@ -1231,6 +1256,96 @@ render();
 // Karte schon mal im Hintergrund vorbereiten, während Standort und Preise geladen werden
 if (prefs.pLoc) setTimeout(() => loadLeaflet().catch(() => {}), 0);
 loadPrices();
+
+/* ---------- Preisverlauf (vom Worker jeden Morgen gesammelt) ---------- */
+let hist = read('tankbuch-verlauf', null);
+async function loadHistory() {
+  if (!prefs.pLoc) return;
+  if (hist && Date.now() - (hist.fetched || 0) < 3 * 36e5) return renderHistory();
+  try {
+    const r = await fetch(PROXY_DEFAULT + '/history');
+    if (!r.ok) return;
+    const j = await r.json();
+    if (!j || typeof j.stations !== 'object') return;
+    hist = { fetched: Date.now(), stations: {} };
+    for (const [id, st] of Object.entries(j.stations).slice(0, 60)) {       // bereinigen
+      const p = {};
+      for (const f of ['b', 'd']) p[f] = (Array.isArray(st.p && st.p[f]) ? st.p[f] : []).filter(e => Array.isArray(e) && isoOrNull(e[0]) && +e[1] > 0).map(e => [e[0], +e[1]]).slice(-120);
+      hist.stations[safeId(id)] = { n: txt(st.n, 60), a: txt(st.a, 90), p };
+    }
+    write('tankbuch-verlauf', hist); renderHistory();
+  } catch { /* ohne Netz: alter Stand */ }
+}
+const hfuel = () => prefs.pType === 'diesel' ? 'd' : 'b';
+function spark(pts) {
+  if (pts.length < 2) return '<svg viewBox="0 0 84 34"></svg>';
+  const v = pts.map(p => p[1]), lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 0.01;
+  const xy = pts.map((p, i) => [i / (pts.length - 1) * 80 + 2, 30 - (p[1] - lo) / span * 26]);
+  const last = xy[xy.length - 1];
+  return `<svg viewBox="0 0 84 34" aria-hidden="true"><polyline points="${xy.map(q => q.map(n => n.toFixed(1)).join(',')).join(' ')}"/><circle r="3" cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}"/></svg>`;
+}
+function renderHistory() {
+  if (!hist || !hist.stations) return;
+  const f = hfuel();
+  const rows = Object.values(hist.stations).map(st => ({ st, pts: (st.p[f] || []).slice(-30) })).filter(r => r.pts.length)
+    .sort((a, b) => a.pts[a.pts.length - 1][1] - b.pts[b.pts.length - 1][1]).slice(0, 5);
+  const days = Math.max(0, ...rows.map(r => r.pts.length));
+  $('histCard').hidden = !rows.length;
+  if (!rows.length) return;
+  $('histSub').textContent = `${prefs.pType === 'diesel' ? 'Diesel' : 'Benzin'} · ${days} ${days === 1 ? 'Tag' : 'Tage'}`;
+  $('histList').innerHTML = (days < 3 ? `<p class="note" style="margin:0 0 6px">📈 Der Verlauf wird seit Kurzem jeden Morgen gesammelt – nach ein paar Tagen siehst du hier, wie sich die Preise entwickeln.</p>` : '') +
+    rows.map(({ st, pts }) => {
+      const now = pts[pts.length - 1][1], ref = pts[Math.max(0, pts.length - 8)][1], d = (now - ref) * 100;
+      const v = pts.map(p => p[1]);
+      const trend = pts.length < 2 ? '' : Math.abs(d) < 0.5 ? '<small class="same">≈ gleich</small>' : `<small class="${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'} ${num(Math.abs(d), 1)} ct</small>`;
+      return `<div class="hrow"><div class="n">${esc(st.n)}</div>${spark(pts)}<div class="p">${num(now, 3)}${trend}</div>
+        <div class="a">${pts.length > 1 ? `30 T.: ${num(Math.min(...v), 3)} – ${num(Math.max(...v), 3)} € · ` : ''}${esc(st.a)}</div></div>`;
+    }).join('');
+}
+function histPopup(id) {
+  const st = hist && hist.stations && hist.stations[id];
+  const pts = st ? (st.p[hfuel()] || []).slice(-30) : [];
+  if (pts.length < 2) return '';
+  const v = pts.map(p => p[1]);
+  return `📈 ${pts.length} Tage: ${num(Math.min(...v), 3)} – ${num(Math.max(...v), 3)} €<br>`;
+}
+renderHistory(); loadHistory();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) loadHistory(); });
+
+/* ---------- Termin-Erinnerungen per Telegram ---------- */
+let tgTimer = null;
+function renderTg(msg) {
+  $('tgOn').checked = !!(prefs.tg && prefs.tg.on);
+  $('tgCode').value = (prefs.tg && prefs.tg.code) || '';
+  $('tgState').textContent = msg || (prefs.tg && prefs.tg.at ? `Zuletzt gesendet: ${new Date(prefs.tg.at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}${prefs.tg.err ? ' · ⚠️ ' + prefs.tg.err : ''}` : '');
+  try { renderMore(); } catch {}
+}
+function scheduleReminders() { if (!prefs.tg || !prefs.tg.on) return; clearTimeout(tgTimer); tgTimer = setTimeout(() => pushReminders(false), 2000); }
+async function pushReminders(manual) {
+  const code = (prefs.tg && prefs.tg.code) || '';
+  if (!/^[0-9a-f]{16}$/.test(code)) { if (manual) toast('Bitte zuerst den Code aus /code eintragen'); return; }
+  const items = terms.filter(t => t.due).map(t => ({ t: t.title, d: t.due, a: t.amount || null, c: cars.length > 1 ? (cars.find(c => c.id === t.car) || {}).name || '' : '' }));
+  try {
+    const r = await fetch(PROXY_DEFAULT + '/reminders', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Bot-Code': code }, body: JSON.stringify({ items }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Senden fehlgeschlagen');
+    prefs.tg.at = Date.now(); prefs.tg.err = ''; savePrefs(); renderTg();
+    if (manual) toast(`✓ ${j.count} Termin${j.count === 1 ? '' : 'e'} an Telegram gesendet`);
+  } catch (e) {
+    prefs.tg.err = /fetch|network|load/i.test(e.message) ? 'keine Verbindung' : e.message; savePrefs(); renderTg();
+    if (manual) toast(prefs.tg.err, 3500);
+  }
+}
+$('tgOn').onchange = () => { prefs.tg = { ...(prefs.tg || {}), on: $('tgOn').checked }; savePrefs(); if (prefs.tg.on) pushReminders(true); renderTg(); };
+$('tgCode').onchange = () => {
+  const c = $('tgCode').value.trim().toLowerCase();
+  if (c && !/^[0-9a-f]{16}$/.test(c)) return toast('Der Code hat 16 Zeichen (0–9, a–f) – schreib deinem Bot /code');
+  prefs.tg = { ...(prefs.tg || {}), code: c }; savePrefs();
+};
+$('tgSend').onclick = () => { $('tgCode').onchange(); if (!(prefs.tg && prefs.tg.on)) { prefs.tg = { ...(prefs.tg || {}), on: true }; savePrefs(); } pushReminders(true); renderTg(); };
+renderTg();
+window.tgReady = true;
+if (prefs.tg && prefs.tg.on && Date.now() - (prefs.tg.at || 0) > 864e5) pushReminders(false);   // einmal täglich abgleichen
 
 /* Speicher schützen: Browser bitten, die Daten nicht automatisch zu löschen */
 async function protectStorage(ask) {

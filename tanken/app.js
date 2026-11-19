@@ -9,7 +9,7 @@ if (window.top !== window.self) { try { window.top.location = window.self.locati
 const KEY = 'tankbuch-v1', CARS = 'tankbuch-cars', PREFS = 'tankbuch-prefs';
 const MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 const MONTHS_LONG = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-const CATS = [['werkstatt','Werkstatt','🔧'], ['versicherung','Versicherung','🛡️'], ['steuer','Kfz-Steuer','🏛️'],
+const CATS = [['werkstatt','Werkstatt','🔧'], ['versicherung','Versicherung','🛡️'], ['steuer','Kfz-Steuer (Bollo)','🏛️'], ['revision','Revision / Collaudo','🔍'],
   ['reifen','Reifen & Pflege','🛞'], ['waesche','Autowäsche','🧽'], ['parken','Parken & Maut','🅿️'], ['sonst','Sonstiges','📎']];
 const catOf = id => CATS.find(c => c[0] === id) || CATS[CATS.length - 1];
 const $ = id => document.getElementById(id);
@@ -51,7 +51,8 @@ function cleanCar(c) {
 function cleanTerm(t) {
   if (!t || !safeId(t.id) || !t.title) return null;
   return { id: safeId(t.id), car: safeId(t.car), title: txt(t.title, 60), due: isoOrNull(t.due), dueKm: nOrNull(t.dueKm),
-    everyMonths: nOrNull(t.everyMonths), everyKm: nOrNull(t.everyKm), updated: nOrNull(t.updated) || 0 };
+    everyMonths: nOrNull(t.everyMonths), everyKm: nOrNull(t.everyKm), amount: nOrNull(t.amount),
+    reg: typeof t.reg === 'string' && /^\d{4}-\d\d$/.test(t.reg) ? t.reg : null, updated: nOrNull(t.updated) || 0 };
 }
 const cleanList = (a, f) => Array.isArray(a) ? a.map(f).filter(Boolean) : [];
 
@@ -647,10 +648,26 @@ $('scanFile').onchange = async ev => {
 
 /* ---------- Termine & Erinnerungen ---------- */
 const TERMS = 'tankbuch-termine';
-const TPL = [ // Name, Symbol, Monate, km, Kostenkategorie
-  ['TÜV / HU', '🔍', 24, null, 'werkstatt'], ['Inspektion', '🧰', 12, 20000, 'werkstatt'], ['Ölwechsel', '🛢️', 12, 15000, 'werkstatt'],
-  ['Reifenwechsel', '🛞', 6, null, 'reifen'], ['Versicherung', '🛡️', 12, null, 'versicherung'], ['Kfz-Steuer', '🏛️', 12, null, 'steuer'],
+// Name, Symbol, Monate, km, Kostenkategorie, feste Frist (nächster Termin ab der alten Frist statt ab heute)
+const TPL = [
+  ['Revision / Collaudo', '🔍', 24, null, 'revision', true], ['Kfz-Steuer (Bollo)', '🏛️', 12, null, 'steuer', true],
+  ['Versicherung', '🛡️', 12, null, 'versicherung', true], ['Inspektion', '🧰', 12, 20000, 'werkstatt'], ['Ölwechsel', '🛢️', 12, 15000, 'werkstatt'],
+  ['Reifenwechsel', '🛞', 6, null, 'reifen'], ['TÜV / HU (Deutschland)', '🔍', 24, null, 'werkstatt', true],
   ['Bremsen', '🛑', null, 40000, 'werkstatt'], ['Zahnriemen', '⚙️', null, 120000, 'werkstatt'], ['Eigener Termin', '📌', null, null, 'sonst']];
+const TPL_ALIAS = { 'Kfz-Steuer': 'Kfz-Steuer (Bollo)', 'TÜV / HU': 'TÜV / HU (Deutschland)' };  // ältere Termine
+const tplOf = title => TPL.find(x => x[0] === (TPL_ALIAS[title] || title)) || TPL[TPL.length - 1];
+const TPL_TIP = {
+  'Kfz-Steuer (Bollo)': '💡 Der Bollo ist in Italien meist bis zum Ende des Monats nach Ablauf zu zahlen. Trag als Datum den Ablauf ein.',
+  'Versicherung': '💡 Tipp: Rechtzeitig vergleichen – viele Versicherungen kann man bis kurz vor Ablauf wechseln.',
+};
+const endOfMonth = d => { const x = new Date(d + 'T00:00'); return iso(new Date(x.getFullYear(), x.getMonth() + 1, 0)); };
+// Revision in Italien: erste nach 4 Jahren ab Erstzulassung, dann alle 2 Jahre – bis Monatsende
+function revisionDue(reg) {
+  if (!/^\d{4}-\d\d$/.test(reg || '')) return null;
+  let d = endOfMonth(addMonths(reg + '-01', 48));
+  while (d < today()) d = endOfMonth(addMonths(d.slice(0, 8) + '01', 24));
+  return d;
+}
 let terms = cleanList(read(TERMS, []), cleanTerm);
 let termEdit = null, termTpl = 0;
 const saveTerms = () => { if (window.syncReady) { stamp(); scheduleSync(); } return write(TERMS, terms) || toast('Speichern nicht möglich'); };
@@ -689,19 +706,19 @@ function termState(t) {
   out.text = parts.join(' · ') || 'ohne Datum';
   return out;
 }
-const termIcon = t => (TPL.find(x => x[0] === t.title) || TPL[TPL.length - 1])[1];
+const termIcon = t => tplOf(t.title)[1];
 function termRow(t) {
   const st = termState(t);
   const tag = st.level === 2 ? '<span class="tag bad">Fällig</span>' : st.level === 1 ? '<span class="tag warn">Bald</span>' : '<span class="tag">OK</span>';
   const rep = [t.everyMonths ? `alle ${t.everyMonths} Monate` : '', t.everyKm ? `alle ${num(t.everyKm)} km` : ''].filter(Boolean).join(' / ');
   return `<button class="due" data-t="${esc(t.id)}"><div class="em">${termIcon(t)}</div><div class="mid"><div class="t">${esc(t.title)}</div>
-    <div class="s">${st.text}${rep ? ' · ↻ ' + rep : ''}</div></div>${tag}</button>`;
+    <div class="s">${st.text}${rep ? ' · ↻ ' + rep : ''}${t.amount ? ' · ca. ' + eur(t.amount) : ''}</div></div>${tag}</button>`;
 }
 function renderTerms() {
   const mine = terms.filter(t => t.car === prefs.car).map(t => [t, termState(t)]).sort((a, b) => b[1].level - a[1].level || a[1].sort - b[1].sort);
   $('termCar').textContent = cars.length > 1 ? curCar().name : '';
   $('termList').innerHTML = mine.length ? mine.map(([t]) => termRow(t)).join('')
-    : `<p class="note" style="margin:0">Lass dich an TÜV, Ölwechsel, Reifenwechsel oder Versicherung erinnern – nach Datum oder Kilometerstand.</p>`;
+    : `<p class="note" style="margin:0">Lass dich an Revision (Collaudo), Bollo, Versicherung, Ölwechsel oder Reifenwechsel erinnern – nach Datum oder Kilometerstand.</p>`;
   $('dueCard').hidden = !mine.length;
   $('dueList').innerHTML = mine.slice(0, 3).map(([t]) => termRow(t)).join('');
   const urgent = mine.filter(([, st]) => st.level > 0);
@@ -720,13 +737,23 @@ function odoHint() {
   const o = currentOdo(prefs.car);
   $('t-odoHint').textContent = o != null ? `Geschätzt aus deinen Einträgen: ${num(o)} km` : 'Noch kein Kilometerstand bekannt.';
 }
+function tplExtras() {
+  const name = TPL[termTpl][0];
+  $('t-regBox').hidden = name !== 'Revision / Collaudo';
+  $('t-tip').hidden = !TPL_TIP[name]; $('t-tip').textContent = TPL_TIP[name] || '';
+}
+$('t-reg').addEventListener('input', () => {
+  const d = revisionDue($('t-reg').value);
+  if (d) { $('t-date').value = d; $('t-every').value = '24'; }
+});
 function openTerm(t) {
   termEdit = t ? t.id : null;
   $('tform').reset();
-  termTpl = t ? Math.max(0, TPL.findIndex(x => x[0] === t.title)) : 0;
-  if (t && TPL.findIndex(x => x[0] === t.title) < 0) termTpl = TPL.length - 1;
+  termTpl = t ? TPL.indexOf(tplOf(t.title)) : 0;
   renderTpl();
-  const f = t || { title: TPL[0][0], due: addMonths(today(), TPL[0][2]), everyMonths: TPL[0][2] };
+  const f = t || { title: TPL[0][0], due: '', everyMonths: TPL[0][2] };
+  $('t-reg').value = t && t.reg || ''; $('t-amount').value = t && t.amount ? String(t.amount).replace('.', ',') : '';
+  tplExtras();
   $('t-name').value = f.title; $('t-date').value = f.due || ''; $('t-km').value = f.dueKm || '';
   $('t-every').value = f.everyMonths || ''; $('t-everykm').value = f.everyKm || '';
   const o = currentOdo(prefs.car); $('t-odo').value = o != null ? o : '';
@@ -741,8 +768,9 @@ $('tTpl').onclick = e => {
   const [name, , months, km] = TPL[termTpl], o = parseNum($('t-odo').value);
   $('t-name').value = termTpl === TPL.length - 1 ? '' : name;
   $('t-every').value = months || ''; $('t-everykm').value = km || '';
-  $('t-date').value = months ? addMonths(today(), months) : '';
+  $('t-date').value = TPL[termTpl][0] === 'Revision / Collaudo' ? (revisionDue($('t-reg').value) || '') : months ? addMonths(today(), months) : '';
   $('t-km').value = km && o ? o + km : '';
+  tplExtras();
   if (termTpl === TPL.length - 1) $('t-name').focus();
 };
 function readTermForm() {
@@ -751,7 +779,10 @@ function readTermForm() {
   if (!title) { $('t-name').focus(); toast('Bitte eine Bezeichnung eingeben'); return null; }
   if (!due && !(dueKm > 0)) { toast('Bitte ein Datum oder einen km-Stand angeben'); return null; }
   if ([dueKm, everyKm, odo].some(Number.isNaN)) { toast('Kilometer bitte als Zahl eingeben'); return null; }
-  return { title, due, dueKm: dueKm > 0 ? Math.round(dueKm) : null, everyMonths: every, everyKm: everyKm > 0 ? Math.round(everyKm) : null, odo };
+  const amount = parseNum($('t-amount').value);
+  if (Number.isNaN(amount) || amount < 0) { toast('Betrag bitte als Zahl eingeben'); return null; }
+  const reg = /^\d{4}-\d\d$/.test($('t-reg').value) && !$('t-regBox').hidden ? $('t-reg').value : null;
+  return { title, due, dueKm: dueKm > 0 ? Math.round(dueKm) : null, everyMonths: every, everyKm: everyKm > 0 ? Math.round(everyKm) : null, odo, amount: amount || null, reg };
 }
 function rememberOdo(odo) {
   if (!(odo > 0)) return;
@@ -770,16 +801,22 @@ $('tDone').onclick = async () => {
   const t = terms.find(x => x.id === termEdit); if (!t) return;
   const odo = parseNum($('t-odo').value); rememberOdo(odo);
   const o = currentOdo(t.car);
+  const fixed = tplOf(t.title)[5];
   if (t.everyMonths || t.everyKm) {
-    t.due = t.everyMonths ? addMonths(today(), t.everyMonths) : null;
+    if (t.everyMonths && fixed && t.due) {
+      // feste Frist (Revision, Bollo, Versicherung …): ab der alten Frist weiter, nicht ab heute
+      let d = t.due; do { d = addMonths(d, t.everyMonths); } while (d <= today());
+      t.due = tplOf(t.title)[0] === 'Revision / Collaudo' ? endOfMonth(d) : d;
+    } else t.due = t.everyMonths ? addMonths(today(), t.everyMonths) : null;
     t.dueKm = t.everyKm && o != null ? o + t.everyKm : null;
     if (!t.due && !t.dueKm) t.due = addMonths(today(), 12);
   } else terms = terms.filter(x => x.id !== t.id);
   saveTerms(); closeSheet(); render();
   toast(t.everyMonths || t.everyKm ? 'Erledigt ✓ – nächster Termin ist eingetragen' : 'Erledigt ✓');
-  const cat = (TPL.find(x => x[0] === t.title) || TPL[TPL.length - 1])[4];
+  const cat = tplOf(t.title)[4];
   if (await ask(`Möchtest du die Kosten für „${t.title}“ gleich eintragen?`, { ok: 'Kosten eintragen' })) {
     openSheet(); setKind('cost'); setCat(cat); $('f-note').value = t.title;
+    if (t.amount) $('f-cost').value = String(t.amount.toFixed(2)).replace('.', ',');
   }
 };
 $('tDel').onclick = async () => {

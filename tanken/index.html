@@ -721,6 +721,12 @@ body:not(.tab-home) .top { padding-bottom: 12px; border-radius: 0 0 22px 22px; }
   <div class="grip"></div>
   <h3><span id="tTitle">Termin</span><button type="button" class="x" id="tClose" aria-label="Schließen"><svg class="i"><use href="#i-x"/></svg></button></h3>
   <div class="tpl" id="tTpl"></div>
+  <div id="t-regBox" hidden>
+    <label class="flab" for="t-reg">Erstzulassung (Monat und Jahr)</label>
+    <input class="inp" id="t-reg" type="month">
+    <p class="note" style="margin:5px 0 0">Erste Revision nach 4 Jahren, danach alle 2 Jahre – jeweils bis zum Monatsende. Das Datum wird automatisch berechnet.</p>
+  </div>
+  <p class="note" id="t-tip" hidden style="margin:8px 0 0"></p>
   <label class="flab" for="t-name">Bezeichnung</label>
   <input class="inp" id="t-name" placeholder="z. B. TÜV / HU">
   <div class="two">
@@ -734,6 +740,8 @@ body:not(.tab-home) .top { padding-bottom: 12px; border-radius: 0 0 22px 22px; }
   </div>
   <label class="flab" for="t-odo">Aktueller Kilometerstand</label>
   <input class="inp" id="t-odo" inputmode="numeric" placeholder="damit km-Termine berechnet werden können">
+  <label class="flab" for="t-amount">Betrag (optional)</label>
+  <input class="inp" id="t-amount" inputmode="decimal" placeholder="z. B. 180,00 – wird bei „Erledigt“ als Kosten vorgeschlagen">
   <p class="note" id="t-odoHint" style="margin:5px 0 0"></p>
   <div class="stack" style="margin-top:14px">
     <button type="submit" class="btn full" id="tSave">Speichern</button>

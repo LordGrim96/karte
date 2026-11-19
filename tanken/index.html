@@ -359,9 +359,92 @@ body.map-open nav { display: none; }
   #report .foot { margin-top: 20px; font-size: 8pt; color: #777; }
   #report table, #report .kp { break-inside: avoid; }
 }
+
+/* =====================================================================
+   iPhone-Design (iOS-Stil): Systemfarben, große Titel, gruppierte Listen
+   ===================================================================== */
+:root { --bg: #f2f2f7; --card: #ffffff; --text: #111114; --dim: #6e6e73; --line: rgba(60,60,67,.14); --ghost: #d9d9e0;
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.05); --nav-h: 64px; --r: 22px; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #121215; --card: #1f1f24; --text: #f5f5f7; --dim: #a1a1a8; --line: rgba(255,255,255,.1); --ghost: #3a3a42; --shadow: none; }
+}
+:root[data-theme="dark"] { --bg: #121215; --card: #1f1f24; --text: #f5f5f7; --dim: #a1a1a8; --line: rgba(255,255,255,.1); --ghost: #3a3a42; --shadow: none; }
+body { font-size: 17px; line-height: 1.4; letter-spacing: -.2px; -webkit-font-smoothing: antialiased; }
+
+/* Kopf: Verlauf mit runden Ecken unten, Kennzahlen als Glas-Kacheln */
+.top { padding: calc(env(safe-area-inset-top) + 10px) 18px 18px; border-radius: 0 0 30px 30px; box-shadow: 0 10px 30px var(--glow); }
+.brand { font-size: 1.05rem; }
+.brand img { width: 30px; height: 30px; border-radius: 8px; }
+.hero { margin-top: 18px; }
+.hero .big { font-size: 3rem; letter-spacing: -1.5px; }
+.top .trio { position: relative; z-index: 1; margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: left; }
+.top .trio > div, .top .trio > div + div { border: 0; background: var(--pill-bg, rgba(255,255,255,.16)); border-radius: 16px; padding: 10px 12px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.top .trio .v { font-size: 1.12rem; font-weight: 750; letter-spacing: -.3px; }
+.top .trio .l { font-size: .72rem; color: inherit; opacity: .8; }
+main { margin-top: 18px; gap: 18px; }
+.view { gap: 18px; }
+
+/* Karten */
+.card { border-radius: var(--r); padding: 18px 18px 16px; box-shadow: var(--shadow); }
+.card h2 { font-size: 1.22rem; font-weight: 750; letter-spacing: -.4px; margin-bottom: 12px; }
+.card h2 small { font-size: .8rem; }
+.kpis { gap: 12px; }
+.kpi { border-radius: 20px; padding: 14px 14px 12px; background: var(--card); box-shadow: var(--shadow); }
+.kpi.amber, .kpi.blue { background: var(--card); }
+.kpi .ic { width: 32px; height: 32px; border-radius: 10px; background: var(--soft); }
+.kpi.amber .ic { background: var(--amber-soft); } .kpi.blue .ic { background: var(--blue-soft); }
+.kpi .v { font-size: 1.3rem; letter-spacing: -.4px; }
+.banner { border-radius: 18px; }
+
+/* Große Titel wie in iOS */
+.ltitle { font-size: 2.1rem; font-weight: 800; letter-spacing: -1px; margin: 4px 4px -6px; display: flex; align-items: baseline; gap: 10px; }
+.ltitle small { font-size: .9rem; font-weight: 500; color: var(--dim); letter-spacing: 0; }
+#v-list, #v-years, #v-data { padding-top: 8px; }
+
+/* Einstellungs-Listen */
+.group-h { font-size: .8rem; text-transform: uppercase; letter-spacing: .4px; color: var(--dim); margin: 6px 16px -10px; font-weight: 600; }
+.group { background: var(--card); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
+.group-f { font-size: .8rem; color: var(--dim); margin: -8px 16px 0; }
+.row-item { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: none; padding: 11px 14px; text-align: left; min-height: 52px; position: relative; }
+.row-item + .row-item::before { content: ""; position: absolute; top: 0; left: 58px; right: 0; height: 1px; background: var(--line); }
+.row-item:active { background: var(--line); }
+.ri { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; font-size: 1.05rem; flex: none; }
+.rt { flex: 1; font-size: 1.02rem; }
+.rv { color: var(--dim); font-size: .92rem; max-width: 42%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chev { color: var(--dim); opacity: .6; font-size: 1.4rem; line-height: 1; margin-left: 2px; }
+
+/* Unterseiten (schieben von rechts herein) */
+.page { position: fixed; inset: 0; z-index: 18; background: var(--bg); transform: translateX(100%); transition: transform .32s cubic-bezier(.2,.8,.2,1), visibility 0s linear .32s;
+  visibility: hidden; display: flex; flex-direction: column; }
+.page.open { transform: none; visibility: visible; transition-delay: 0s; }
+.pnav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: calc(env(safe-area-inset-top) + 8px) 8px 8px;
+  background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 2; }
+.back { border: 0; background: none; color: var(--primary); font-size: 1.05rem; padding: 8px; justify-self: start; font-weight: 500; }
+.ptitle { font-weight: 650; font-size: 1.05rem; }
+.pbody { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 16px calc(var(--nav-h) + env(safe-area-inset-bottom) + 30px); display: grid; gap: 16px; align-content: start; }
+.page .card > h2:first-child { display: none; }
+
+/* Tab-Leiste wie iOS: durchscheinend, große Symbole */
+nav { background: color-mix(in srgb, var(--card) 78%, transparent); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border-top: 1px solid var(--line); }
+nav button.tab { font-size: .66rem; font-weight: 600; gap: 3px; }
+nav button.tab svg.i { width: 25px; height: 25px; }
+.fab { width: 58px; height: 58px; border-radius: 50%; margin-top: -26px; border: 4px solid var(--bg); }
+
+/* Eingabe-Blatt */
+.sheet { border-radius: 28px 28px 0 0; }
+.btn { border-radius: 14px; font-size: 1rem; }
+.inp, .field { border-radius: 12px; }
+
+/* Nur auf der Übersicht den großen Kopf zeigen, sonst schmale Leiste */
+body:not(.tab-home) .top .hero, body:not(.tab-home) .top .trio { display: none; }
+body:not(.tab-home) .top { padding-bottom: 12px; border-radius: 0 0 22px 22px; }
+#priceNow h2 { flex-direction: column; align-items: flex-start; gap: 2px; }
+#priceNow h2 small { font-size: .82rem; }
 </style>
 </head>
-<body>
+<body class="tab-home">
 
 <svg width="0" height="0" style="position:absolute">
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
@@ -395,6 +478,7 @@ body.map-open nav { display: none; }
     <div class="big" id="heroBig">0,00 €</div>
     <div class="pills" id="heroPill"></div>
   </div>
+  <div class="trio" id="trio"></div>
 </header>
 
 <main>
@@ -411,9 +495,8 @@ body.map-open nav { display: none; }
       <div class="tx" id="backupText"></div>
       <div class="act"><button id="bannerSave">Sichern</button><button class="l" id="bannerLater">Später</button></div>
     </div>
-    <div class="card trio" id="trio"></div>
     <div class="card">
-      <h2>Tankkosten pro Monat <span class="legend"><span><i style="background:var(--primary)"></i><span id="lgCur"></span></span><span><i style="background:var(--ghost)"></i><span id="lgPrev"></span></span></span></h2>
+      <h2>Kosten pro Monat <span class="legend"><span><i style="background:var(--primary)"></i><span id="lgCur"></span></span><span><i style="background:var(--ghost)"></i><span id="lgPrev"></span></span></span></h2>
       <div class="chart" id="chart"></div>
       <div class="months" id="monthLbl"></div>
       <div class="tip" id="tip"></div>
@@ -434,8 +517,8 @@ body.map-open nav { display: none; }
 
   <!-- Verlauf -->
   <div class="view" id="v-list">
+    <h1 class="ltitle">Verlauf <small id="listCount"></small></h1>
     <div class="card">
-      <h2>Verlauf <small id="listCount"></small></h2>
       <div class="filter" id="filter"><button data-f="all" class="on">Alle</button><button data-f="fuel">⛽ Tanken</button><button data-f="cost">🔧 Kosten</button></div>
       <div id="list"></div>
     </div>
@@ -443,17 +526,106 @@ body.map-open nav { display: none; }
 
   <!-- Jahre -->
   <div class="view" id="v-years">
-    <div class="card"><h2>Jahresvergleich <span class="legend"><span><i style="background:var(--primary)"></i>Tanken</span><span><i style="background:var(--blue)"></i>Sonstiges</span></span></h2><div id="compare"></div></div>
+    <h1 class="ltitle">Jahre</h1>
+    <div class="card"><h2>Vergleich <span class="legend"><span><i style="background:var(--primary)"></i>Tanken</span><span><i style="background:var(--blue)"></i>Sonstiges</span></span></h2><div id="compare"></div></div>
     <button class="btn full" id="pdfBtn">📄 Jahresbericht als PDF</button>
   </div>
 
   <!-- Daten -->
-  <div class="view" id="v-data">
+    <div class="view" id="v-data">
+    <h1 class="ltitle">Mehr</h1>
+    <div class="group-h">Auto</div>
+    <div class="group">
+      <button class="row-item" type="button" data-page="cars"><span class="ri" style="background:#34c759">🚗</span><span class="rt">Fahrzeuge</span><span class="rv" id="rv-cars"></span><span class="chev">›</span></button>
+      <button class="row-item" type="button" data-page="terms"><span class="ri" style="background:#ff9500">🔔</span><span class="rt">Termine &amp; Erinnerungen</span><span class="rv" id="rv-terms"></span><span class="chev">›</span></button>
+    </div>
+    <div class="group-h">Spritpreise</div>
+    <div class="group">
+      <button class="row-item" type="button" data-page="prices"><span class="ri" style="background:#007aff">⛽</span><span class="rt">Spritpreise in der Nähe</span><span class="rv" id="rv-prices"></span><span class="chev">›</span></button>
+      <button class="row-item" type="button" data-page="alarm"><span class="ri" style="background:#5856d6">📣</span><span class="rt">Preis-Alarm (Telegram)</span><span class="rv" id="rv-alarm"></span><span class="chev">›</span></button>
+    </div>
+    <div class="group-h">Daten</div>
+    <div class="group">
+      <button class="row-item" type="button" data-page="sync"><span class="ri" style="background:#32ade6">☁️</span><span class="rt">Profil &amp; Cloud-Sync</span><span class="rv" id="rv-sync"></span><span class="chev">›</span></button>
+      <button class="row-item" type="button" data-page="backup"><span class="ri" style="background:#8e8e93">💾</span><span class="rt">Sicherung &amp; Export</span><span class="rv" id="rv-backup"></span><span class="chev">›</span></button>
+    </div>
+    <div class="group-h">Darstellung</div>
+    <div class="group">
+      <button class="row-item" type="button" data-page="look"><span class="ri" style="background:#ff2d55">🎨</span><span class="rt">Aussehen</span><span class="rv" id="rv-look"></span><span class="chev">›</span></button>
+      <button class="row-item" type="button" data-page="app"><span class="ri" style="background:#30b0c7">📱</span><span class="rt">Als App nutzen</span><span class="rv" id="rv-app"></span><span class="chev">›</span></button>
+    </div>
+    <p class="group-f">Deine Daten bleiben auf deinem Handy – und mit Profil verschlüsselt in deiner eigenen Cloud.</p>
+  </div>
+</main>
+
+<nav>
+  <div class="in">
+    <button class="tab on" data-v="home"><svg class="i"><use href="#i-home"/></svg>Übersicht</button>
+    <button class="tab" data-v="list"><svg class="i"><use href="#i-list"/></svg>Verlauf</button>
+    <button class="fab" id="fab" aria-label="Eintragen"><svg class="i"><use href="#i-plus"/></svg></button>
+    <button class="tab" data-v="years"><svg class="i"><use href="#i-chart"/></svg>Jahre</button>
+    <button class="tab" data-v="data"><svg class="i"><use href="#i-gear"/></svg>Mehr</button>
+  </div>
+</nav>
+
+<section class="page" id="pg-cars" aria-label="Fahrzeuge">
+  <div class="pnav"><button class="back" type="button" data-back>‹ Mehr</button><span class="ptitle">Fahrzeuge</span><span></span></div>
+  <div class="pbody">
+    <div class="card">
+      <h2>Fahrzeuge</h2>
+      <div id="cars"></div>
+      <button class="btn sec full" id="addCar" style="margin-top:10px">+ Fahrzeug hinzufügen</button>
+    </div>
+  </div>
+</section>
+<section class="page" id="pg-terms" aria-label="Termine">
+  <div class="pnav"><button class="back" type="button" data-back>‹ Mehr</button><span class="ptitle">Termine</span><span></span></div>
+  <div class="pbody">
     <div class="card" id="termCard">
       <h2>Termine &amp; Erinnerungen <small id="termCar"></small></h2>
       <div id="termList"></div>
       <button class="btn sec full" id="addTerm" style="margin-top:10px">+ Termin hinzufügen</button>
     </div>
+  </div>
+</section>
+<section class="page" id="pg-prices" aria-label="Spritpreise">
+  <div class="pnav"><button class="back" type="button" data-back>‹ Mehr</button><span class="ptitle">Spritpreise</span><span></span></div>
+  <div class="pbody">
+    <div class="card" id="priceSetup">
+      <h2>Spritpreise in der Nähe</h2>
+      <p class="note">Aktuelle Preise für <b>Deutschland</b> und <b>Italien inkl. Südtirol</b>. Das Land wird automatisch am Ort erkannt.</p>
+      <p class="note">🇮🇹 Italien: funktioniert sofort, ohne Anmeldung (Preise vom Ministerium, Stand jeden Morgen).<br>
+      🇩🇪 Deutschland: braucht einen kostenlosen Schlüssel von Tankerkönig – <a href="https://onboarding.tankerkoenig.de" target="_blank" rel="noopener">onboarding.tankerkoenig.de</a>, Name und E-Mail eintragen, der Schlüssel kommt per Mail.</p>
+      <label class="flab" for="pKey">Tankerkönig-Schlüssel (nur für Deutschland)</label>
+      <input class="inp" id="pKey" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+      <label class="flab">Sorte</label>
+      <div class="seg" id="pType" style="grid-template-columns:repeat(3,1fr);margin:0"><button type="button" data-p="e5">Super E5</button><button type="button" data-p="e10">Super E10</button><button type="button" data-p="diesel">Diesel</button></div>
+      <label class="flab">Umkreis</label>
+      <div class="seg" id="pRad" style="grid-template-columns:repeat(5,1fr);margin:0"><button type="button" data-r="5">5 km</button><button type="button" data-r="10">10 km</button><button type="button" data-r="25">25 km</button><button type="button" data-r="50">50 km</button><button type="button" data-r="100">100 km</button></div>
+      <p class="note" style="margin:6px 0 0">In Deutschland liefert die Preisquelle höchstens 25 km Umkreis.</p>
+      <label class="flab" for="pPlace">Ort</label>
+      <div class="rowin"><input class="inp" id="pPlace" placeholder="PLZ oder Ort, z. B. 50667 oder Bozen"><button class="btn sec" id="pFind" type="button">Suchen</button></div>
+      <button class="btn sec full" id="pGps" type="button" style="margin-top:8px">📍 Immer meinen aktuellen Standort nehmen</button>
+      <p class="note" id="pLoc" style="margin:8px 0 0"></p>
+      <p class="note" style="margin:4px 0 0;font-size:.72rem">Ortssuche: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-Mitwirkende (Nominatim)</p>
+      <button class="btn full" id="pSave" type="button" style="margin-top:12px">Speichern &amp; Preise laden</button>
+    </div>
+  </div>
+</section>
+<section class="page" id="pg-alarm" aria-label="Preis-Alarm">
+  <div class="pnav"><button class="back" type="button" data-back>‹ Mehr</button><span class="ptitle">Preis-Alarm</span><span></span></div>
+  <div class="pbody">
+    <div class="card" id="alarmCard">
+      <h2>🔔 Preis-Alarm per Telegram</h2>
+      <p class="note">Dein Cloudflare-Worker schaut jeden Morgen in die Preise und schickt dir eine Telegram-Nachricht, wenn in deiner Nähe eine Tankstelle unter deinem Wunschpreis liegt – auch wenn die App geschlossen ist. Einrichten: Anleitung <a href="https://github.com/LordGrim96/karte/blob/main/cloudflare/ANLEITUNG.md" target="_blank" rel="noopener">cloudflare/ANLEITUNG.md</a> (Teil 2).</p>
+      <button class="btn sec full" id="alarmPos" type="button">📍 Meine Koordinaten für den Alarm anzeigen</button>
+      <p class="note" id="alarmPosOut" style="margin:8px 0 0" hidden></p>
+    </div>
+  </div>
+</section>
+<section class="page" id="pg-sync" aria-label="Profil & Cloud">
+  <div class="pnav"><button class="back" type="button" data-back>‹ Mehr</button><span class="ptitle">Profil & Cloud</span><span></span></div>
+  <div class="pbody">
     <div class="card" id="syncCard">
       <h2>☁️ Profil &amp; Cloud-Sync</h2>
       <div id="syncOff">
@@ -474,41 +646,11 @@ body.map-open nav { display: none; }
         </div>
       </div>
     </div>
-    <div class="card" id="alarmCard">
-      <h2>🔔 Preis-Alarm per Telegram</h2>
-      <p class="note">Dein Cloudflare-Worker schaut jeden Morgen in die Preise und schickt dir eine Telegram-Nachricht, wenn in deiner Nähe eine Tankstelle unter deinem Wunschpreis liegt – auch wenn die App geschlossen ist. Einrichten: Anleitung <a href="https://github.com/LordGrim96/karte/blob/main/cloudflare/ANLEITUNG.md" target="_blank" rel="noopener">cloudflare/ANLEITUNG.md</a> (Teil 2).</p>
-      <button class="btn sec full" id="alarmPos" type="button">📍 Meine Koordinaten für den Alarm anzeigen</button>
-      <p class="note" id="alarmPosOut" style="margin:8px 0 0" hidden></p>
-    </div>
-    <div class="card" id="priceSetup">
-      <h2>Spritpreise in der Nähe</h2>
-      <p class="note">Aktuelle Preise für <b>Deutschland</b> und <b>Italien inkl. Südtirol</b>. Das Land wird automatisch am Ort erkannt.</p>
-      <p class="note">🇮🇹 Italien: funktioniert sofort, ohne Anmeldung (Preise vom Ministerium, Stand jeden Morgen).<br>
-      🇩🇪 Deutschland: braucht einen kostenlosen Schlüssel von Tankerkönig – <a href="https://onboarding.tankerkoenig.de" target="_blank" rel="noopener">onboarding.tankerkoenig.de</a>, Name und E-Mail eintragen, der Schlüssel kommt per Mail.</p>
-      <label class="flab" for="pKey">Tankerkönig-Schlüssel (nur für Deutschland)</label>
-      <input class="inp" id="pKey" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
-      <label class="flab">Sorte</label>
-      <div class="seg" id="pType" style="grid-template-columns:repeat(3,1fr);margin:0"><button type="button" data-p="e5">Super E5</button><button type="button" data-p="e10">Super E10</button><button type="button" data-p="diesel">Diesel</button></div>
-      <label class="flab">Umkreis</label>
-      <div class="seg" id="pRad" style="grid-template-columns:repeat(5,1fr);margin:0"><button type="button" data-r="5">5 km</button><button type="button" data-r="10">10 km</button><button type="button" data-r="25">25 km</button><button type="button" data-r="50">50 km</button><button type="button" data-r="100">100 km</button></div>
-      <p class="note" style="margin:6px 0 0">In Deutschland liefert die Preisquelle höchstens 25 km Umkreis.</p>
-      <label class="flab" for="pPlace">Ort</label>
-      <div class="rowin"><input class="inp" id="pPlace" placeholder="PLZ oder Ort, z. B. 50667 oder Bozen"><button class="btn sec" id="pFind" type="button">Suchen</button></div>
-      <button class="btn sec full" id="pGps" type="button" style="margin-top:8px">📍 Immer meinen aktuellen Standort nehmen</button>
-      <p class="note" id="pLoc" style="margin:8px 0 0"></p>
-      <p class="note" style="margin:4px 0 0;font-size:.72rem">Ortssuche: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-Mitwirkende (Nominatim)</p>
-      <button class="btn full" id="pSave" type="button" style="margin-top:12px">Speichern &amp; Preise laden</button>
-    </div>
-    <div class="card">
-      <h2>Aussehen</h2>
-      <div class="swatches" id="swatches"></div>
-      <div class="seg" id="themeSeg" style="margin:0;grid-template-columns:repeat(3,1fr)"><button type="button" data-t="auto">📱 Automatisch</button><button type="button" data-t="light">☀️ Hell</button><button type="button" data-t="dark">🌙 Dunkel</button></div>
-    </div>
-    <div class="card">
-      <h2>Fahrzeuge</h2>
-      <div id="cars"></div>
-      <button class="btn sec full" id="addCar" style="margin-top:10px">+ Fahrzeug hinzufügen</button>
-    </div>
+  </div>
+</section>
+<section class="page" id="pg-backup" aria-label="Sicherung">
+  <div class="pnav"><button class="back" type="button" data-back>‹ Mehr</button><span class="ptitle">Sicherung</span><span></span></div>
+  <div class="pbody">
     <div class="card">
       <h2>Daten sichern</h2>
       <p class="note">Deine Einträge sind nur auf diesem Handy gespeichert. <span id="lastBackup"></span></p>
@@ -522,23 +664,27 @@ body.map-open nav { display: none; }
       <div class="row" style="margin-top:14px"><span>Monatlich an Sicherung erinnern</span><label class="switch"><input type="checkbox" id="remind"><span></span></label></div>
       <input type="file" id="importFile" accept=".json,application/json" hidden>
     </div>
+  </div>
+</section>
+<section class="page" id="pg-look" aria-label="Aussehen">
+  <div class="pnav"><button class="back" type="button" data-back>‹ Mehr</button><span class="ptitle">Aussehen</span><span></span></div>
+  <div class="pbody">
+    <div class="card">
+      <h2>Aussehen</h2>
+      <div class="swatches" id="swatches"></div>
+      <div class="seg" id="themeSeg" style="margin:0;grid-template-columns:repeat(3,1fr)"><button type="button" data-t="auto">📱 Automatisch</button><button type="button" data-t="light">☀️ Hell</button><button type="button" data-t="dark">🌙 Dunkel</button></div>
+    </div>
+  </div>
+</section>
+<section class="page" id="pg-app" aria-label="Als App nutzen">
+  <div class="pnav"><button class="back" type="button" data-back>‹ Mehr</button><span class="ptitle">Als App nutzen</span><span></span></div>
+  <div class="pbody">
     <div class="card">
       <h2>Als App nutzen</h2>
       <p class="note" style="margin:0"><b>iPhone:</b> In Safari auf „Teilen“ → „Zum Home-Bildschirm“.<br><b>Android:</b> In Chrome Menü ⋮ → „App installieren“.<br>Danach funktioniert das Tankbuch auch ohne Internet (nur das Bon-Scannen braucht Internet).</p>
     </div>
   </div>
-</main>
-
-<nav>
-  <div class="in">
-    <button class="tab on" data-v="home"><svg class="i"><use href="#i-home"/></svg>Übersicht</button>
-    <button class="tab" data-v="list"><svg class="i"><use href="#i-list"/></svg>Verlauf</button>
-    <button class="fab" id="fab" aria-label="Eintragen"><svg class="i"><use href="#i-plus"/></svg></button>
-    <button class="tab" data-v="years"><svg class="i"><use href="#i-chart"/></svg>Jahre</button>
-    <button class="tab" data-v="data"><svg class="i"><use href="#i-gear"/></svg>Mehr</button>
-  </div>
-</nav>
-
+</section>
 <div class="scrim" id="scrim"></div>
 <form class="sheet" id="form" autocomplete="off" novalidate>
   <div class="grip"></div>

@@ -4,7 +4,12 @@ name: Spritpreise Italien
 
 on:
   schedule:
-    - cron: "17 8 * * *"   # täglich ca. 9–10 Uhr italienischer Zeit (Daten mit Stand 8 Uhr)
+    # GitHub startet geplante Läufe oft stundenlang verspätet – darum mehrere Termine am Vormittag,
+    # damit die Preise vom Morgen (Stand 8 Uhr) möglichst früh bereitstehen. Jeder Lauf überschreibt nur.
+    - cron: "53 7 * * *"
+    - cron: "23 8 * * *"
+    - cron: "41 9 * * *"
+    - cron: "11 11 * * *"
   workflow_dispatch:
   push:                    # läuft auch direkt nach Änderungen am Skript
     branches: [main]
